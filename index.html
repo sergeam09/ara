@@ -1,0 +1,1001 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ARA — Augmented Reality Atelier</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <style>
+    :root {
+      --bg:       #0a0a0a;
+      --surface:  #111111;
+      --border:   #222222;
+      --accent:   #c8f542;
+      --accent2:  #f5a623;
+      --text:     #e8e8e0;
+      --muted:    #555550;
+      --danger:   #ff4545;
+      --font-display: 'DM Serif Display', serif;
+      --font-mono:    'DM Mono', monospace;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-mono);
+      font-size: 13px;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── GRAIN OVERLAY ── */
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 9999;
+    }
+
+    /* ── HEADER ── */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 28px 40px;
+      border-bottom: 1px solid var(--border);
+      position: sticky; top: 0;
+      background: rgba(10,10,10,0.92);
+      backdrop-filter: blur(12px);
+      z-index: 100;
+    }
+
+    .logo {
+      display: flex;
+      align-items: baseline;
+      gap: 12px;
+    }
+
+    .logo-text {
+      font-family: var(--font-display);
+      font-size: 28px;
+      letter-spacing: -0.02em;
+      color: var(--accent);
+    }
+
+    .logo-sub {
+      color: var(--muted);
+      font-size: 11px;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+    }
+
+    .header-status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    .dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--accent);
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+
+    /* ── LAYOUT ── */
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 48px 40px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2px;
+      background: var(--border);
+      border: 1px solid var(--border);
+    }
+
+    /* ── PANEL ── */
+    .panel {
+      background: var(--surface);
+      padding: 32px;
+    }
+
+    .panel-label {
+      font-size: 10px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 24px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .panel-label::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    /* ── FORM ELEMENTS ── */
+    .field {
+      margin-bottom: 20px;
+    }
+
+    .field label {
+      display: block;
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+
+    .field input[type="text"],
+    .field select {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-family: var(--font-mono);
+      font-size: 13px;
+      padding: 12px 16px;
+      outline: none;
+      transition: border-color 0.2s;
+      appearance: none;
+    }
+
+    .field input[type="text"]:focus,
+    .field select:focus {
+      border-color: var(--accent);
+    }
+
+    .field input[type="text"]::placeholder {
+      color: var(--muted);
+    }
+
+    /* ── UPLOAD ZONES ── */
+    .upload-zone {
+      border: 1px dashed var(--border);
+      padding: 24px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      position: relative;
+      background: var(--bg);
+    }
+
+    .upload-zone:hover,
+    .upload-zone.dragover {
+      border-color: var(--accent);
+      background: rgba(200, 245, 66, 0.03);
+    }
+
+    .upload-zone input[type="file"] {
+      position: absolute; inset: 0;
+      opacity: 0; cursor: pointer;
+      width: 100%; height: 100%;
+    }
+
+    .upload-icon {
+      font-size: 24px;
+      margin-bottom: 8px;
+      display: block;
+    }
+
+    .upload-text {
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.6;
+    }
+
+    .upload-text strong {
+      color: var(--accent);
+      font-weight: 500;
+    }
+
+    .upload-preview {
+      margin-top: 12px;
+      font-size: 11px;
+      color: var(--accent2);
+      display: none;
+    }
+
+    /* ── CONTENT TYPE SELECTOR ── */
+    .type-selector {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 2px;
+      background: var(--border);
+      margin-bottom: 20px;
+    }
+
+    .type-btn {
+      background: var(--bg);
+      border: none;
+      color: var(--muted);
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      padding: 10px 4px;
+      cursor: pointer;
+      transition: all 0.15s;
+      text-align: center;
+    }
+
+    .type-btn:hover { color: var(--text); }
+
+    .type-btn.active {
+      background: var(--surface);
+      color: var(--accent);
+    }
+
+    .type-icon { display: block; font-size: 16px; margin-bottom: 4px; }
+
+    /* ── CONTENT PANELS ── */
+    .content-panel { display: none; }
+    .content-panel.active { display: block; }
+
+    /* ── BUTTON ── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 14px 24px;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      cursor: pointer;
+      border: none;
+      transition: all 0.15s;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #0a0a0a;
+      width: 100%;
+      justify-content: center;
+    }
+
+    .btn-primary:hover { background: #d4ff55; }
+
+    .btn-secondary {
+      background: transparent;
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    .btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
+
+    .btn:disabled {
+      opacity: 0.3;
+      cursor: not-allowed;
+    }
+
+    /* ── OUTPUT PANEL ── */
+    .output-panel {
+      background: var(--surface);
+      padding: 32px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .output-empty {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      color: var(--muted);
+      gap: 16px;
+      padding: 40px;
+    }
+
+    .output-empty-icon {
+      font-size: 48px;
+      opacity: 0.3;
+    }
+
+    .output-empty p {
+      font-size: 12px;
+      line-height: 1.8;
+      max-width: 220px;
+    }
+
+    .output-content { display: none; }
+    .output-content.visible { display: flex; flex-direction: column; gap: 20px; }
+
+    /* ── QR ── */
+    .qr-wrapper {
+      display: flex;
+      justify-content: center;
+      padding: 24px;
+      background: #fff;
+    }
+
+    #qrcode canvas, #qrcode img {
+      display: block;
+    }
+
+    /* ── LINK BOX ── */
+    .link-box {
+      display: flex;
+      gap: 2px;
+      background: var(--border);
+    }
+
+    .link-display {
+      flex: 1;
+      background: var(--bg);
+      padding: 12px 16px;
+      font-size: 11px;
+      color: var(--accent);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      word-break: break-all;
+    }
+
+    .btn-copy {
+      background: var(--surface);
+      border: none;
+      color: var(--muted);
+      font-family: var(--font-mono);
+      font-size: 11px;
+      padding: 12px 16px;
+      cursor: pointer;
+      transition: all 0.15s;
+      white-space: nowrap;
+    }
+
+    .btn-copy:hover { color: var(--accent); }
+    .btn-copy.copied { color: var(--accent); }
+
+    /* ── PROJECT LIST ── */
+    .projects-section {
+      margin-top: 2px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-top: none;
+    }
+
+    .projects-header {
+      padding: 20px 32px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .projects-title {
+      font-size: 10px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .projects-count {
+      font-size: 11px;
+      color: var(--accent);
+    }
+
+    .projects-list {
+      padding: 16px 32px;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .project-item {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 12px 16px;
+      background: var(--bg);
+      cursor: pointer;
+      transition: all 0.15s;
+      border: 1px solid transparent;
+    }
+
+    .project-item:hover { border-color: var(--border); }
+
+    .project-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--accent);
+      flex-shrink: 0;
+    }
+
+    .project-dot.video { background: #5b8def; }
+    .project-dot.gif   { background: #f5a623; }
+    .project-dot.model { background: #c471ed; }
+    .project-dot.audio { background: #12c2e9; }
+
+    .project-name {
+      flex: 1;
+      font-size: 12px;
+      color: var(--text);
+    }
+
+    .project-type {
+      font-size: 10px;
+      color: var(--muted);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+
+    .project-actions {
+      display: flex;
+      gap: 8px;
+      opacity: 0;
+      transition: opacity 0.15s;
+    }
+
+    .project-item:hover .project-actions { opacity: 1; }
+
+    .project-action {
+      background: none;
+      border: none;
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 14px;
+      padding: 2px 4px;
+      transition: color 0.15s;
+    }
+
+    .project-action:hover { color: var(--accent); }
+    .project-action.del:hover { color: var(--danger); }
+
+    .projects-empty {
+      padding: 32px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.8;
+    }
+
+    /* ── INSTRUCTIONS ── */
+    .instructions {
+      margin-top: 2px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-top: none;
+      padding: 24px 32px;
+    }
+
+    .instructions-title {
+      font-size: 10px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 16px;
+    }
+
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 2px;
+      background: var(--border);
+    }
+
+    .step {
+      background: var(--bg);
+      padding: 16px;
+    }
+
+    .step-num {
+      font-family: var(--font-display);
+      font-size: 32px;
+      color: var(--border);
+      line-height: 1;
+      margin-bottom: 8px;
+    }
+
+    .step-text {
+      font-size: 11px;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    .step-text strong { color: var(--text); }
+
+    /* ── TOAST ── */
+    .toast {
+      position: fixed;
+      bottom: 32px; right: 32px;
+      background: var(--accent);
+      color: #0a0a0a;
+      padding: 12px 20px;
+      font-size: 12px;
+      font-family: var(--font-mono);
+      letter-spacing: 0.05em;
+      transform: translateY(80px);
+      opacity: 0;
+      transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+      z-index: 1000;
+    }
+
+    .toast.show {
+      transform: translateY(0);
+      opacity: 1;
+    }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 768px) {
+      header { padding: 20px; }
+      .container { padding: 24px 20px; }
+      .grid { grid-template-columns: 1fr; }
+      .steps { grid-template-columns: repeat(2, 1fr); }
+      .type-selector { grid-template-columns: repeat(2, 1fr); }
+      .projects-list { padding: 12px; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <span class="logo-text">ARA</span>
+    <span class="logo-sub">Augmented Reality Atelier</span>
+  </div>
+  <div class="header-status">
+    <span class="dot"></span>
+    <span>Studio activo</span>
+  </div>
+</header>
+
+<div class="container">
+
+  <div class="grid">
+
+    <!-- ══ PANEL IZQUIERDO: CREATOR ══ -->
+    <div class="panel">
+      <div class="panel-label">Nuevo proyecto AR</div>
+
+      <div class="field">
+        <label>Nombre del proyecto</label>
+        <input type="text" id="projectName" placeholder="ej. mural-centro-historico" />
+      </div>
+
+      <!-- Imagen trigger -->
+      <div class="field">
+        <label>Imagen trigger — la obra física</label>
+        <div class="upload-zone" id="triggerZone">
+          <input type="file" id="triggerFile" accept="image/*">
+          <span class="upload-icon">◈</span>
+          <div class="upload-text">
+            <strong>Selecciona o arrastra</strong><br>
+            JPG, PNG, WEBP — mínimo 500px<br>
+            Alta resolución = mejor tracking
+          </div>
+          <div class="upload-preview" id="triggerPreview"></div>
+        </div>
+      </div>
+
+      <!-- Tipo de contenido -->
+      <div class="field">
+        <label>Tipo de contenido AR</label>
+        <div class="type-selector">
+          <button class="type-btn active" data-type="video" onclick="switchType('video')">
+            <span class="type-icon">▶</span>Video
+          </button>
+          <button class="type-btn" data-type="gif" onclick="switchType('gif')">
+            <span class="type-icon">◈</span>GIF
+          </button>
+          <button class="type-btn" data-type="model" onclick="switchType('model')">
+            <span class="type-icon">⬡</span>3D
+          </button>
+          <button class="type-btn" data-type="audio" onclick="switchType('audio')">
+            <span class="type-icon">♪</span>Audio
+          </button>
+        </div>
+      </div>
+
+      <!-- Paneles de contenido -->
+      <div id="panel-video" class="content-panel active">
+        <div class="upload-zone">
+          <input type="file" id="videoFile" accept="video/*">
+          <span class="upload-icon">▶</span>
+          <div class="upload-text">
+            <strong>Video MP4 o WEBM</strong><br>
+            Recomendado: menos de 30MB<br>
+            Comprime en <strong>handbrake.fr</strong> si es necesario
+          </div>
+          <div class="upload-preview" id="videoPreview"></div>
+        </div>
+      </div>
+
+      <div id="panel-gif" class="content-panel">
+        <div class="upload-zone">
+          <input type="file" id="gifFile" accept="image/gif,image/webp">
+          <span class="upload-icon">◈</span>
+          <div class="upload-text">
+            <strong>GIF animado o WEBP</strong><br>
+            Recomendado: menos de 10MB<br>
+            Optimiza en <strong>ezgif.com</strong>
+          </div>
+          <div class="upload-preview" id="gifPreview"></div>
+        </div>
+      </div>
+
+      <div id="panel-model" class="content-panel">
+        <div class="upload-zone">
+          <input type="file" id="modelFile" accept=".glb,.gltf">
+          <span class="upload-icon">⬡</span>
+          <div class="upload-text">
+            <strong>Modelo 3D — GLB o GLTF</strong><br>
+            Recomendado: menos de 20MB<br>
+            Convierte en <strong>sketchfab.com</strong>
+          </div>
+          <div class="upload-preview" id="modelPreview"></div>
+        </div>
+        <div class="field" style="margin-top:12px;">
+          <label>Escala del modelo</label>
+          <input type="text" id="modelScale" placeholder="1.0" value="1.0">
+        </div>
+      </div>
+
+      <div id="panel-audio" class="content-panel">
+        <div class="upload-zone">
+          <input type="file" id="audioFile" accept="audio/*">
+          <span class="upload-icon">♪</span>
+          <div class="upload-text">
+            <strong>Audio MP3 o WAV</strong><br>
+            Se reproduce al detectar la imagen<br>
+            Recomendado: menos de 5MB
+          </div>
+          <div class="upload-preview" id="audioPreview"></div>
+        </div>
+        <div class="field" style="margin-top:12px;">
+          <label>Imagen a mostrar mientras suena</label>
+          <div class="upload-zone">
+            <input type="file" id="audioImageFile" accept="image/*">
+            <span class="upload-icon">🖼</span>
+            <div class="upload-text">
+              <strong>Imagen decorativa opcional</strong><br>JPG o PNG
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <button class="btn btn-primary" id="generateBtn" onclick="generateProject()" style="margin-top:8px;">
+        ◈ Generar experiencia AR
+      </button>
+    </div>
+
+    <!-- ══ PANEL DERECHO: OUTPUT ══ -->
+    <div class="output-panel">
+      <div class="panel-label">Resultado</div>
+
+      <div class="output-empty" id="outputEmpty">
+        <div class="output-empty-icon">◈</div>
+        <p>Completa el formulario y genera tu experiencia AR para obtener el link y el QR.</p>
+      </div>
+
+      <div class="output-content" id="outputContent">
+
+        <div class="qr-wrapper">
+          <div id="qrcode"></div>
+        </div>
+
+        <div>
+          <div class="panel-label">Link del espectador</div>
+          <div class="link-box">
+            <div class="link-display" id="linkDisplay">—</div>
+            <button class="btn-copy" id="copyBtn" onclick="copyLink()">Copiar</button>
+          </div>
+        </div>
+
+        <div style="display:flex; gap:2px;">
+          <button class="btn btn-secondary" style="flex:1; justify-content:center;" onclick="openViewer()">
+            ↗ Abrir Viewer
+          </button>
+          <button class="btn btn-secondary" style="flex:1; justify-content:center;" onclick="downloadQR()">
+            ↓ Descargar QR
+          </button>
+        </div>
+
+        <div style="background:var(--bg); padding:16px; border:1px solid var(--border);">
+          <div style="font-size:10px; color:var(--muted); letter-spacing:0.15em; text-transform:uppercase; margin-bottom:12px;">Instrucciones de instalación</div>
+          <div id="installInstructions" style="font-size:11px; color:var(--muted); line-height:1.9;"></div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ══ LISTA DE PROYECTOS ══ -->
+  <div class="projects-section">
+    <div class="projects-header">
+      <span class="projects-title">Proyectos guardados</span>
+      <span class="projects-count" id="projectsCount">0 proyectos</span>
+    </div>
+    <div class="projects-list" id="projectsList">
+      <div class="projects-empty">
+        Aún no hay proyectos.<br>
+        Crea tu primera experiencia AR arriba.
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ INSTRUCCIONES ══ -->
+  <div class="instructions">
+    <div class="instructions-title">¿Cómo funciona ARA?</div>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">01</div>
+        <div class="step-text"><strong>Sube tu obra</strong> como imagen trigger y el contenido AR que aparecerá encima.</div>
+      </div>
+      <div class="step">
+        <div class="step-num">02</div>
+        <div class="step-text"><strong>Genera la experiencia</strong> y obtén un link único + QR para compartir.</div>
+      </div>
+      <div class="step">
+        <div class="step-num">03</div>
+        <div class="step-text"><strong>Sube los archivos</strong> a tu repositorio de GitHub según las instrucciones.</div>
+      </div>
+      <div class="step">
+        <div class="step-num">04</div>
+        <div class="step-text"><strong>El espectador</strong> escanea el QR, abre el navegador y apunta a la obra.</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+  // ── ESTADO ──
+  let currentType = 'video';
+  let projects = JSON.parse(localStorage.getItem('ara-projects') || '[]');
+
+  // Detectar base URL (GitHub Pages o local)
+  const BASE_URL = (() => {
+    const { protocol, host, pathname } = window.location;
+    const base = pathname.replace('index.html', '').replace(/\/$/, '');
+    return `${protocol}//${host}${base}`;
+  })();
+
+  // ── TIPO DE CONTENIDO ──
+  function switchType(type) {
+    currentType = type;
+    document.querySelectorAll('.type-btn').forEach(b => b.classList.remove('active'));
+    document.querySelector(`[data-type="${type}"]`).classList.add('active');
+    document.querySelectorAll('.content-panel').forEach(p => p.classList.remove('active'));
+    document.getElementById(`panel-${type}`).classList.add('active');
+  }
+
+  // ── DRAG & DROP ──
+  document.querySelectorAll('.upload-zone').forEach(zone => {
+    zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('dragover'); });
+    zone.addEventListener('dragleave', () => zone.classList.remove('dragover'));
+    zone.addEventListener('drop', e => {
+      e.preventDefault();
+      zone.classList.remove('dragover');
+      const input = zone.querySelector('input[type="file"]');
+      if (input && e.dataTransfer.files[0]) {
+        const dt = new DataTransfer();
+        dt.items.add(e.dataTransfer.files[0]);
+        input.files = dt.files;
+        input.dispatchEvent(new Event('change'));
+      }
+    });
+  });
+
+  // ── PREVIEWS DE ARCHIVOS ──
+  function setupPreview(inputId, previewId) {
+    document.getElementById(inputId)?.addEventListener('change', function() {
+      const preview = document.getElementById(previewId);
+      if (this.files[0]) {
+        preview.style.display = 'block';
+        preview.textContent = `✓ ${this.files[0].name} (${formatSize(this.files[0].size)})`;
+      }
+    });
+  }
+
+  setupPreview('triggerFile', 'triggerPreview');
+  setupPreview('videoFile', 'videoPreview');
+  setupPreview('gifFile', 'gifPreview');
+  setupPreview('modelFile', 'modelPreview');
+  setupPreview('audioFile', 'audioPreview');
+
+  function formatSize(bytes) {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / 1048576).toFixed(1) + ' MB';
+  }
+
+  // ── GENERAR PROYECTO ──
+  function generateProject() {
+    const name = document.getElementById('projectName').value.trim();
+    const triggerFile = document.getElementById('triggerFile').files[0];
+
+    // Validaciones
+    if (!name) { showToast('Ponle nombre al proyecto'); return; }
+    if (!/^[a-z0-9-_]+$/i.test(name)) { showToast('Solo letras, números y guiones'); return; }
+    if (!triggerFile) { showToast('Necesitas una imagen trigger'); return; }
+
+    // Verificar contenido según tipo
+    const contentFiles = {
+      video: document.getElementById('videoFile').files[0],
+      gif:   document.getElementById('gifFile').files[0],
+      model: document.getElementById('modelFile').files[0],
+      audio: document.getElementById('audioFile').files[0],
+    };
+
+    if (!contentFiles[currentType]) {
+      showToast(`Sube el archivo de ${currentType}`);
+      return;
+    }
+
+    // Construir extensión del contenido
+    const contentFile = contentFiles[currentType];
+    const contentExt = contentFile.name.split('.').pop().toLowerCase();
+    const triggerExt = triggerFile.name.split('.').pop().toLowerCase();
+
+    // Nombre del proyecto normalizado
+    const slug = name.toLowerCase().replace(/\s+/g, '-');
+
+    // Construir el link del viewer
+    const viewerUrl = `${BASE_URL}/viewer.html?p=${slug}&t=${currentType}&ce=${contentExt}&te=${triggerExt}`;
+
+    // Guardar en localStorage
+    const project = {
+      id: Date.now(),
+      slug,
+      name,
+      type: currentType,
+      contentExt,
+      triggerExt,
+      url: viewerUrl,
+      created: new Date().toLocaleDateString('es-MX'),
+    };
+
+    projects.unshift(project);
+    localStorage.setItem('ara-projects', JSON.stringify(projects));
+
+    // Mostrar resultado
+    showOutput(project);
+    renderProjects();
+    showToast('Experiencia AR generada ✓');
+  }
+
+  // ── MOSTRAR OUTPUT ──
+  function showOutput(project) {
+    document.getElementById('outputEmpty').style.display = 'none';
+    const content = document.getElementById('outputContent');
+    content.classList.add('visible');
+
+    // Link
+    document.getElementById('linkDisplay').textContent = project.url;
+
+    // QR
+    document.getElementById('qrcode').innerHTML = '';
+    new QRCode(document.getElementById('qrcode'), {
+      text: project.url,
+      width: 180,
+      height: 180,
+      colorDark: '#0a0a0a',
+      colorLight: '#ffffff',
+      correctLevel: QRCode.CorrectLevel.H,
+    });
+
+    // Instrucciones de instalación
+    const typeNames = { video: 'video', gif: 'imagen GIF', model: 'modelo 3D (.glb)', audio: 'audio' };
+    document.getElementById('installInstructions').innerHTML = `
+      Sube estos archivos a tu repo en la carpeta <span style="color:var(--accent)">proyectos/${project.slug}/</span><br><br>
+      <span style="color:var(--text)">trigger.${project.triggerExt}</span> — la imagen de la obra<br>
+      <span style="color:var(--text)">contenido.${project.contentExt}</span> — tu ${typeNames[project.type]}<br><br>
+      Una vez subidos, el link ya funciona.
+    `;
+  }
+
+  // ── COPIAR LINK ──
+  function copyLink() {
+    const link = document.getElementById('linkDisplay').textContent;
+    navigator.clipboard.writeText(link).then(() => {
+      const btn = document.getElementById('copyBtn');
+      btn.textContent = '✓ Copiado';
+      btn.classList.add('copied');
+      setTimeout(() => { btn.textContent = 'Copiar'; btn.classList.remove('copied'); }, 2000);
+    });
+  }
+
+  // ── ABRIR VIEWER ──
+  function openViewer() {
+    const link = document.getElementById('linkDisplay').textContent;
+    window.open(link, '_blank');
+  }
+
+  // ── DESCARGAR QR ──
+  function downloadQR() {
+    const canvas = document.querySelector('#qrcode canvas');
+    if (!canvas) return;
+    const link = document.createElement('a');
+    link.download = `ara-qr-${Date.now()}.png`;
+    link.href = canvas.toDataURL();
+    link.click();
+    showToast('QR descargado ✓');
+  }
+
+  // ── RENDER LISTA ──
+  function renderProjects() {
+    const list = document.getElementById('projectsList');
+    const count = document.getElementById('projectsCount');
+    count.textContent = `${projects.length} proyecto${projects.length !== 1 ? 's' : ''}`;
+
+    if (projects.length === 0) {
+      list.innerHTML = '<div class="projects-empty">Aún no hay proyectos.<br>Crea tu primera experiencia AR arriba.</div>';
+      return;
+    }
+
+    list.innerHTML = projects.map(p => `
+      <div class="project-item" onclick="loadProject('${p.slug}')">
+        <div class="project-dot ${p.type}"></div>
+        <div class="project-name">${p.name}</div>
+        <div class="project-type">${p.type}</div>
+        <div style="font-size:10px; color:var(--muted);">${p.created}</div>
+        <div class="project-actions">
+          <button class="project-action" onclick="event.stopPropagation(); copyProjectLink('${p.slug}')" title="Copiar link">⎘</button>
+          <button class="project-action del" onclick="event.stopPropagation(); deleteProject(${p.id})" title="Eliminar">✕</button>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  function loadProject(slug) {
+    const project = projects.find(p => p.slug === slug);
+    if (project) showOutput(project);
+  }
+
+  function copyProjectLink(slug) {
+    const project = projects.find(p => p.slug === slug);
+    if (project) {
+      navigator.clipboard.writeText(project.url);
+      showToast('Link copiado ✓');
+    }
+  }
+
+  function deleteProject(id) {
+    projects = projects.filter(p => p.id !== id);
+    localStorage.setItem('ara-projects', JSON.stringify(projects));
+    renderProjects();
+    showToast('Proyecto eliminado');
+  }
+
+  // ── TOAST ──
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2500);
+  }
+
+  // ── INIT ──
+  renderProjects();
+</script>
+</body>
+</html>

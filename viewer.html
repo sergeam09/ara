@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <title>ARA — Experiencia AR</title>
+
+  <!-- MindAR + A-Frame -->
+  <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
+
+  <!-- Model Viewer para modelos 3D -->
+  <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.3.0/model-viewer.min.js"></script>
+
+  <style>
+    :root {
+      --accent: #c8f542;
+      --bg:     #0a0a0a;
+      --font:   'DM Mono', monospace;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: #e8e8e0;
+      font-family: system-ui, monospace;
+      height: 100vh;
+      overflow: hidden;
+      touch-action: none;
+    }
+
+    /* ── SPLASH / LOADING ── */
+    #splash {
+      position: fixed; inset: 0;
+      background: var(--bg);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 24px;
+      z-index: 1000;
+      transition: opacity 0.5s;
+    }
+
+    #splash.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .splash-logo {
+      font-size: 48px;
+      font-weight: 300;
+      letter-spacing: -0.02em;
+      color: var(--accent);
+    }
+
+    .splash-sub {
+      font-size: 11px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: #444;
+    }
+
+    .splash-loader {
+      width: 120px;
+      height: 1px;
+      background: #1a1a1a;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .splash-loader::after {
+      content: '';
+      position: absolute;
+      left: -40%;
+      width: 40%;
+      height: 100%;
+      background: var(--accent);
+      animation: load 1.2s ease-in-out infinite;
+    }
+
+    @keyframes load {
+      to { left: 140%; }
+    }
+
+    .splash-msg {
+      font-size: 12px;
+      color: #333;
+      text-align: center;
+      line-height: 1.8;
+    }
+
+    /* ── ERROR ── */
+    #errorScreen {
+      position: fixed; inset: 0;
+      background: var(--bg);
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 20px;
+      padding: 40px;
+      text-align: center;
+      z-index: 1001;
+    }
+
+    #errorScreen.show { display: flex; }
+
+    .error-icon { font-size: 48px; }
+
+    .error-title {
+      font-size: 18px;
+      color: #ff4545;
+    }
+
+    .error-msg {
+      font-size: 13px;
+      color: #555;
+      line-height: 1.8;
+      max-width: 320px;
+    }
+
+    .error-btn {
+      background: var(--accent);
+      color: #0a0a0a;
+      border: none;
+      padding: 12px 24px;
+      font-size: 12px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      cursor: pointer;
+    }
+
+    /* ── AR SCENE ── */
+    #ar-scene {
+      display: none;
+      width: 100vw;
+      height: 100vh;
+    }
+
+    #ar-scene.show { display: block; }
+
+    /* ── HUD ── */
+    #hud {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      padding: 20px;
+      display: none;
+      justify-content: space-between;
+      align-items: flex-start;
+      z-index: 500;
+      pointer-events: none;
+    }
+
+    #hud.show { display: flex; }
+
+    .hud-logo {
+      font-size: 16px;
+      color: rgba(200,245,66,0.8);
+      letter-spacing: 0.1em;
+      text-shadow: 0 1px 8px rgba(0,0,0,0.8);
+    }
+
+    .hud-btn {
+      pointer-events: all;
+      background: rgba(10,10,10,0.7);
+      border: 1px solid rgba(255,255,255,0.1);
+      color: #888;
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      padding: 8px 14px;
+      cursor: pointer;
+      backdrop-filter: blur(8px);
+    }
+
+    /* ── SCAN INDICATOR ── */
+    #scanIndicator {
+      position: fixed;
+      bottom: 48px; left: 0; right: 0;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      z-index: 500;
+      pointer-events: none;
+    }
+
+    #scanIndicator.show { display: flex; }
+
+    .scan-frame {
+      width: 200px; height: 200px;
+      position: relative;
+    }
+
+    .scan-corner {
+      position: absolute;
+      width: 24px; height: 24px;
+      border-color: var(--accent);
+      border-style: solid;
+      opacity: 0.7;
+    }
+
+    .scan-corner.tl { top: 0; left: 0; border-width: 2px 0 0 2px; }
+    .scan-corner.tr { top: 0; right: 0; border-width: 2px 2px 0 0; }
+    .scan-corner.bl { bottom: 0; left: 0; border-width: 0 0 2px 2px; }
+    .scan-corner.br { bottom: 0; right: 0; border-width: 0 2px 2px 0; }
+
+    .scan-line {
+      position: absolute;
+      left: 10%; right: 10%;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--accent), transparent);
+      animation: scanLine 2s ease-in-out infinite;
+      top: 0;
+    }
+
+    @keyframes scanLine {
+      0%, 100% { top: 10%; opacity: 0; }
+      20% { opacity: 1; }
+      80% { opacity: 1; }
+      100% { top: 90%; opacity: 0; }
+    }
+
+    .scan-text {
+      font-size: 12px;
+      color: rgba(255,255,255,0.6);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      text-shadow: 0 1px 8px rgba(0,0,0,0.9);
+    }
+
+    /* ── FOUND INDICATOR ── */
+    #foundPing {
+      position: fixed;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      width: 60px; height: 60px;
+      border: 2px solid var(--accent);
+      border-radius: 50%;
+      opacity: 0;
+      pointer-events: none;
+      z-index: 500;
+    }
+
+    #foundPing.ping {
+      animation: ping 0.6s ease-out forwards;
+    }
+
+    @keyframes ping {
+      0%   { opacity: 1; transform: translate(-50%, -50%) scale(0.5); }
+      100% { opacity: 0; transform: translate(-50%, -50%) scale(2); }
+    }
+
+    /* ── MODEL VIEWER (para 3D sin tracking) ── */
+    #modelViewerWrap {
+      display: none;
+      width: 100vw;
+      height: 100vh;
+    }
+
+    #modelViewerWrap.show { display: block; }
+
+    model-viewer {
+      width: 100%;
+      height: 100%;
+      background: #0a0a0a;
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── SPLASH ── -->
+<div id="splash">
+  <div class="splash-logo">ARA</div>
+  <div class="splash-sub">Cargando experiencia</div>
+  <div class="splash-loader"></div>
+  <div class="splash-msg" id="splashMsg">Iniciando cámara...</div>
+</div>
+
+<!-- ── ERROR ── -->
+<div id="errorScreen">
+  <div class="error-icon">◈</div>
+  <div class="error-title">Algo salió mal</div>
+  <div class="error-msg" id="errorMsg">Verifica que los archivos estén subidos correctamente al repositorio.</div>
+  <button class="error-btn" onclick="location.reload()">Reintentar</button>
+  <button class="error-btn" style="background:transparent; color:#444; border:1px solid #222;" onclick="history.back()">Volver</button>
+</div>
+
+<!-- ── HUD ── -->
+<div id="hud">
+  <div class="hud-logo">ARA</div>
+  <button class="hud-btn" onclick="history.back()">✕ Cerrar</button>
+</div>
+
+<!-- ── SCAN INDICATOR ── -->
+<div id="scanIndicator">
+  <div class="scan-frame">
+    <div class="scan-corner tl"></div>
+    <div class="scan-corner tr"></div>
+    <div class="scan-corner bl"></div>
+    <div class="scan-corner br"></div>
+    <div class="scan-line"></div>
+  </div>
+  <div class="scan-text">Apunta a la obra</div>
+</div>
+
+<!-- ── FOUND PING ── -->
+<div id="foundPing"></div>
+
+<!-- ── AR SCENE (se construye dinámicamente) ── -->
+<div id="ar-scene"></div>
+
+<!-- ── MODEL VIEWER FALLBACK (para 3D) ── -->
+<div id="modelViewerWrap"></div>
+
+<script>
+  // ── PARÁMETROS DE URL ──
+  const params = new URLSearchParams(window.location.search);
+  const PROJECT = params.get('p');
+  const TYPE    = params.get('t') || 'video';
+  const CE      = params.get('ce') || 'mp4';   // content extension
+  const TE      = params.get('te') || 'jpg';   // trigger extension
+
+  // Base URL del repo
+  const BASE = (() => {
+    const { protocol, host, pathname } = window.location;
+    const base = pathname.replace('viewer.html', '').replace(/\/$/, '');
+    return `${protocol}//${host}${base}`;
+  })();
+
+  // Rutas de archivos
+  const PATHS = {
+    trigger:  `${BASE}/proyectos/${PROJECT}/trigger.${TE}`,
+    content:  `${BASE}/proyectos/${PROJECT}/contenido.${CE}`,
+    mind:     `${BASE}/proyectos/${PROJECT}/targets.mind`,
+    audioImg: `${BASE}/proyectos/${PROJECT}/audio-img.jpg`,
+  };
+
+  // ── VALIDACIÓN ──
+  if (!PROJECT) {
+    showError('No se especificó ningún proyecto. Vuelve al Creator y genera un link válido.');
+  } else {
+    init();
+  }
+
+  async function init() {
+    setSplash('Verificando archivos...');
+
+    // Para 3D usamos Model Viewer directo sin image tracking
+    if (TYPE === 'model') {
+      initModelViewer();
+      return;
+    }
+
+    // Para el resto usamos MindAR + A-Frame con image tracking
+    await initMindAR();
+  }
+
+  // ── MODEL VIEWER (3D sin tracking) ──
+  function initModelViewer() {
+    setSplash('Cargando modelo 3D...');
+
+    const scale = params.get('scale') || '1';
+    const wrap  = document.getElementById('modelViewerWrap');
+
+    wrap.innerHTML = `
+      <model-viewer
+        src="${PATHS.content}"
+        ar
+        ar-modes="webxr scene-viewer quick-look"
+        camera-controls
+        auto-rotate
+        shadow-intensity="1"
+        exposure="0.8"
+        style="background:#0a0a0a;"
+      >
+        <button slot="ar-button" style="
+          position:absolute; bottom:24px; left:50%; transform:translateX(-50%);
+          background:#c8f542; color:#0a0a0a; border:none;
+          padding:14px 28px; font-size:13px; letter-spacing:0.1em;
+          text-transform:uppercase; cursor:pointer;
+        ">⬡ Ver en tu espacio</button>
+      </model-viewer>
+    `;
+
+    wrap.classList.add('show');
+    document.getElementById('hud').classList.add('show');
+    hideSplash();
+  }
+
+  // ── MINDAR + A-FRAME (image tracking) ──
+  async function initMindAR() {
+    setSplash('Cargando motor de tracking...');
+
+    // Verificar que existe el archivo .mind
+    const mindExists = await fileExists(PATHS.mind);
+    if (!mindExists) {
+      showError(
+        `No se encontró el archivo de tracking.<br><br>` +
+        `Asegúrate de subir <strong style="color:#c8f542">targets.mind</strong> a la carpeta ` +
+        `<strong style="color:#c8f542">proyectos/${PROJECT}/</strong><br><br>` +
+        `Genera el archivo .mind en:<br>` +
+        `<a href="https://hiukim.github.io/mind-ar-js-doc/tools/compile" target="_blank" style="color:#c8f542">hiukim.github.io/mind-ar-js-doc/tools/compile</a>`
+      );
+      return;
+    }
+
+    setSplash('Preparando escena AR...');
+
+    // Construir el contenido A-Frame según el tipo
+    const entityContent = buildAFrameContent();
+
+    // Inyectar la escena A-Frame
+    const sceneDiv = document.getElementById('ar-scene');
+    sceneDiv.innerHTML = `
+      <a-scene
+        mindar-image="imageTargetSrc: ${PATHS.mind}; autoStart: true; uiScanning: false; uiLoading: false;"
+        color-space="sRGB"
+        embedded
+        renderer="colorManagement: true, physicallyCorrectLights: true"
+        vr-mode-ui="enabled: false"
+        device-orientation-permission-ui="enabled: false"
+        style="width:100vw; height:100vh;"
+      >
+        <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+        <a-entity mindar-image-target="targetIndex: 0">
+          ${entityContent}
+        </a-entity>
+      </a-scene>
+    `;
+
+    sceneDiv.classList.add('show');
+    document.getElementById('hud').classList.add('show');
+    document.getElementById('scanIndicator').classList.add('show');
+
+    // Escuchar eventos de MindAR
+    setTimeout(() => {
+      const scene = sceneDiv.querySelector('a-scene');
+      if (!scene) return;
+
+      scene.addEventListener('arReady', () => {
+        hideSplash();
+        setSplash('');
+      });
+
+      scene.addEventListener('arError', () => {
+        showError('No se pudo acceder a la cámara. Verifica los permisos en tu navegador.');
+      });
+
+      // Target encontrado
+      const target = scene.querySelector('[mindar-image-target]');
+      if (target) {
+        target.addEventListener('targetFound', () => {
+          document.getElementById('scanIndicator').classList.remove('show');
+          const ping = document.getElementById('foundPing');
+          ping.classList.add('ping');
+          setTimeout(() => ping.classList.remove('ping'), 700);
+        });
+
+        target.addEventListener('targetLost', () => {
+          document.getElementById('scanIndicator').classList.add('show');
+        });
+      }
+
+      // Fallback si arReady no dispara en 8 segundos
+      setTimeout(() => {
+        if (!document.getElementById('splash').classList.contains('hidden')) {
+          hideSplash();
+        }
+      }, 8000);
+
+    }, 500);
+  }
+
+  // ── CONSTRUIR CONTENIDO A-FRAME SEGÚN TIPO ──
+  function buildAFrameContent() {
+    switch(TYPE) {
+
+      case 'video':
+        return `
+          <a-video
+            src="${PATHS.content}"
+            width="1" height="0.552"
+            position="0 0 0.01"
+            rotation="0 0 0"
+            loop="true"
+            autoplay="true"
+            playsinline="true"
+            webkit-playsinline="true"
+          ></a-video>
+        `;
+
+      case 'gif':
+        return `
+          <a-image
+            src="${PATHS.content}"
+            width="1" height="1"
+            position="0 0 0.01"
+          ></a-image>
+        `;
+
+      case 'audio':
+        return `
+          <a-sound src="${PATHS.content}" autoplay="true" loop="true" position="0 0 0"></a-sound>
+          <a-image
+            src="${PATHS.audioImg}"
+            width="1" height="1"
+            position="0 0 0.01"
+          ></a-image>
+          <a-text
+            value="♪ Reproduciendo"
+            position="0 -0.6 0.01"
+            align="center"
+            color="#c8f542"
+            width="2"
+          ></a-text>
+        `;
+
+      default:
+        return `
+          <a-plane
+            color="#c8f542"
+            width="0.5" height="0.5"
+            position="0 0 0.01"
+          ></a-plane>
+        `;
+    }
+  }
+
+  // ── UTILIDADES ──
+  async function fileExists(url) {
+    try {
+      const r = await fetch(url, { method: 'HEAD' });
+      return r.ok;
+    } catch { return false; }
+  }
+
+  function setSplash(msg) {
+    document.getElementById('splashMsg').textContent = msg;
+  }
+
+  function hideSplash() {
+    document.getElementById('splash').classList.add('hidden');
+  }
+
+  function showError(msg) {
+    hideSplash();
+    const errScreen = document.getElementById('errorScreen');
+    document.getElementById('errorMsg').innerHTML = msg;
+    errScreen.classList.add('show');
+  }
+</script>
+</body>
+</html>

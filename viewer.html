@@ -71,17 +71,18 @@
       border-top: 1px solid var(--b);
       padding: 16px 20px 24px;
       z-index: 600;
-      display: none;
+      display: flex;
       flex-direction: column;
       gap: 10px;
       max-height: 70vh;
       overflow-y: auto;
       transform: translateY(100%);
-      transition: transform 0.3s cubic-bezier(0.34,1.2,0.64,1);
+      transition: transform 0.35s cubic-bezier(0.25,0.46,0.45,0.94);
+      pointer-events: none;
     }
     #editor.open {
-      display: flex;
       transform: translateY(0);
+      pointer-events: all;
     }
 
     .ed-title {
@@ -460,7 +461,7 @@
     }
 
     const sceneAttrs = withTracking
-      ? `mindar-image="imageTargetSrc:${PATHS.mind};autoStart:true;uiScanning:false;uiLoading:false;"`
+      ? `mindar-image="imageTargetSrc:${PATHS.mind};autoStart:true;uiScanning:false;uiLoading:false;filterMinCF:0.001;filterBeta:0.001;"`
       : ``;
 
     const sceneInner = withTracking
@@ -525,15 +526,9 @@
   function toggleEditor() {
     const ed = document.getElementById('editor');
     const btn = document.getElementById('btnEdit');
-    if (ed.classList.contains('open')) {
-      ed.classList.remove('open');
-      setTimeout(() => ed.style.display = 'none', 300);
-      btn.classList.remove('active');
-    } else {
-      ed.style.display = 'flex';
-      requestAnimationFrame(() => ed.classList.add('open'));
-      btn.classList.add('active');
-    }
+    const isOpen = ed.classList.contains('open');
+    ed.classList.toggle('open', !isOpen);
+    btn.classList.toggle('active', !isOpen);
   }
 
   function getRotation() {
@@ -640,11 +635,14 @@
 
   async function guardarConfig() {
     readSliders();
-    // Guardar en GitHub via API
-    const token = localStorage.getItem('ara-gh-token');
+    // Token: primero desde URL, luego desde localStorage del mismo dominio
+    let token = new URLSearchParams(location.search).get('tk')
+             || sessionStorage.getItem('ara-tk');
     if (!token) {
-      alert('Para guardar necesitas abrir ARA con tu token de GitHub guardado.');
-      return;
+      // Pedir token con input flotante (no alert)
+      token = await pedirToken();
+      if (!token) return;
+      sessionStorage.setItem('ara-tk', token);
     }
 
     const user = 'sergeam09', repo = 'ara';
@@ -679,6 +677,43 @@
     } catch(e) {
       showToast('Error de conexión');
     }
+  }
+
+  function pedirToken() {
+    return new Promise(resolve => {
+      // Crear modal de token
+      const overlay = document.createElement('div');
+      overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:2000;display:flex;align-items:center;justify-content:center;padding:24px;';
+      overlay.innerHTML = `
+        <div style="background:#111;border:1px solid #222;padding:24px;width:100%;max-width:340px;">
+          <div style="font-size:10px;color:#555;letter-spacing:0.2em;text-transform:uppercase;margin-bottom:16px;">GitHub Token requerido</div>
+          <input id="tkInput" type="password" placeholder="ghp_xxxxxxxxxxxx"
+            style="width:100%;background:#0a0a0a;border:1px solid #333;color:#e8e8e0;font-family:monospace;font-size:12px;padding:10px 12px;outline:none;margin-bottom:12px;">
+          <div style="font-size:10px;color:#333;margin-bottom:16px;line-height:1.7;">
+            El token se guarda solo en esta sesión del navegador.
+          </div>
+          <div style="display:flex;gap:8px;">
+            <button id="tkOk" style="flex:1;background:#c8f542;color:#0a0a0a;border:none;padding:10px;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer;">Guardar</button>
+            <button id="tkCancel" style="background:transparent;border:1px solid #222;color:#555;padding:10px 16px;font-size:11px;cursor:pointer;">✕</button>
+          </div>
+        </div>`;
+      document.body.appendChild(overlay);
+      document.getElementById('tkInput').focus();
+
+      document.getElementById('tkOk').onclick = () => {
+        const v = document.getElementById('tkInput').value.trim();
+        overlay.remove();
+        resolve(v || null);
+      };
+      document.getElementById('tkCancel').onclick = () => {
+        overlay.remove();
+        resolve(null);
+      };
+      document.getElementById('tkInput').onkeydown = e => {
+        if (e.key === 'Enter') document.getElementById('tkOk').click();
+        if (e.key === 'Escape') document.getElementById('tkCancel').click();
+      };
+    });
   }
 
   function showToast(msg) {

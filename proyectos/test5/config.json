@@ -1,0 +1,15 @@
+{
+  "posX": -0.05,
+  "posY": 0,
+  "posZ": -0.2,
+  "rotX": 0,
+  "rotY": 0,
+  "rotZ": 0,
+  "scale": 1.25,
+  "width": 0.9,
+  "height": 0.9,
+  "preset": "libre",
+  "loop": false,
+  "autoplay": false,
+  "fade": false
+}

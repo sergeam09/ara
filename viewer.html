@@ -41,15 +41,15 @@
     #hudRight { display: flex; gap: 6px; pointer-events: all; }
 
     /* SCAN */
-    #scan { position: fixed; bottom: 48px; left: 0; right: 0; display: none; flex-direction: column; align-items: center; gap: 14px; z-index: 500; pointer-events: none; }
+    #scan { position: fixed; top: 50%; left: 0; right: 0; transform: translateY(-50%); display: none; flex-direction: column; align-items: center; gap: 14px; z-index: 500; pointer-events: none; }
     #scan.show { display: flex; }
-    .sframe { width: 190px; height: 190px; position: relative; }
+    .sframe { width: 220px; height: 220px; position: relative; }
     .sc { position: absolute; width: 22px; height: 22px; border-color: var(--a); border-style: solid; opacity: 0.7; }
     .sc.tl{top:0;left:0;border-width:2px 0 0 2px}.sc.tr{top:0;right:0;border-width:2px 2px 0 0}
     .sc.bl{bottom:0;left:0;border-width:0 0 2px 2px}.sc.br{bottom:0;right:0;border-width:0 2px 2px 0}
     .sline { position: absolute; left: 10%; right: 10%; height: 1px; background: linear-gradient(90deg,transparent,var(--a),transparent); animation: scl 2s ease-in-out infinite; top: 0; }
     @keyframes scl { 0%,100%{top:10%;opacity:0}20%{opacity:1}80%{opacity:1}100%{top:90%;opacity:0} }
-    .stxt { font-size: 11px; color: rgba(255,255,255,0.5); letter-spacing: 0.12em; text-transform: uppercase; text-shadow: 0 1px 8px rgba(0,0,0,0.9); }
+    .stxt { font-size: 12px; color: rgba(255,255,255,0.75); letter-spacing: 0.12em; text-transform: uppercase; text-shadow: 0 2px 12px rgba(0,0,0,0.95); margin-top: 8px; }
 
     /* PING */
     #ping { position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%); width: 56px; height: 56px; border: 2px solid var(--a); border-radius: 50%; opacity: 0; pointer-events: none; z-index: 500; }
@@ -383,14 +383,24 @@
     document.getElementById('mvWrap').innerHTML = `
       <model-viewer src="${PATHS.content}" ar ar-modes="webxr scene-viewer quick-look"
         camera-controls auto-rotate shadow-intensity="1">
-        <button slot="ar-button" style="position:absolute;bottom:24px;left:50%;transform:translateX(-50%);
-          background:#c8f542;color:#0a0a0a;border:none;padding:13px 26px;
-          font-size:12px;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer;">
-          ⬡ Ver en tu espacio
-        </button>
+        <button slot="ar-button" style="
+          position:absolute;
+          top:50%;left:50%;
+          transform:translate(-50%,-50%);
+          background:#c8f542;color:#0a0a0a;border:none;
+          padding:16px 32px;
+          font-size:13px;letter-spacing:0.12em;text-transform:uppercase;
+          cursor:pointer;white-space:nowrap;
+          box-shadow:0 4px 24px rgba(0,0,0,0.5);
+        ">⬡ Ver en tu espacio</button>
       </model-viewer>`;
     document.getElementById('mvWrap').classList.add('show');
     document.getElementById('hud').classList.add('show');
+    // Instrucción centrada debajo del logo
+    const hint = document.createElement('div');
+    hint.style.cssText = 'position:fixed;top:70px;left:0;right:0;text-align:center;font-size:11px;color:rgba(255,255,255,0.4);letter-spacing:0.1em;text-transform:uppercase;pointer-events:none;z-index:500;';
+    hint.textContent = 'Rota con los dedos · Toca el botón para ver en AR';
+    document.body.appendChild(hint);
     hideSplash();
   }
 

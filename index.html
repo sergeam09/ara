@@ -54,6 +54,16 @@
     .uptext strong{color:var(--accent);font-weight:500}
     .uppreview{margin-top:8px;font-size:11px;color:var(--accent2);display:none}
     .cpanel{display:none}.cpanel.active{display:block}.mode-panel{display:none}.mode-panel.active{display:block}
+.dim-box{background:rgba(200,245,66,0.04);border:1px solid rgba(200,245,66,0.12);padding:12px;margin-top:10px;}
+.dim-title{font-size:9px;color:#444;letter-spacing:0.18em;text-transform:uppercase;margin-bottom:10px;}
+.dim-row{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+.dim-label{font-size:10px;color:#555;letter-spacing:0.08em;text-transform:uppercase;width:80px;flex-shrink:0;}
+.dim-input{background:#0a0a0a;border:1px solid #1e1e1e;color:#e8e8e0;font-family:var(--fm);font-size:12px;padding:7px 10px;width:80px;outline:none;transition:border-color .2s;}
+.dim-input:focus{border-color:#c8f542;}
+.dim-unit{font-size:10px;color:#444;}
+.dim-presets{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px;}
+.dim-preset{background:rgba(255,255,255,0.04);border:1px solid #1e1e1e;color:#555;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;padding:5px 10px;cursor:pointer;font-family:var(--fm);}
+.dim-preset:hover,.dim-preset.active{border-color:#c8f542;color:#c8f542;}
     .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:13px 22px;font-family:var(--fm);font-size:11px;letter-spacing:.12em;text-transform:uppercase;cursor:pointer;border:none;transition:all .15s}
     .btn-primary{background:var(--accent);color:#0a0a0a;width:100%;margin-top:8px}
     .btn-primary:hover{background:#d4ff55}.btn-primary:disabled{opacity:.35;cursor:not-allowed}
@@ -170,6 +180,25 @@
           <div class="uptext"><strong>Video MP4 o WEBM</strong><br>Recomendado &lt; 30MB</div>
           <div class="uppreview" id="prVideo"></div>
         </div>
+        <div class="dim-box">
+          <div class="dim-title">Proporción del video</div>
+          <div class="dim-presets" id="videoPropPresets">
+            <button class="dim-preset active" onclick="setProp('video',16,9)">16:9</button>
+            <button class="dim-preset" onclick="setProp('video',1,1)">1:1</button>
+            <button class="dim-preset" onclick="setProp('video',4,3)">4:3</button>
+            <button class="dim-preset" onclick="setProp('video',9,16)">9:16</button>
+          </div>
+          <div class="dim-row">
+            <span class="dim-label">Ancho obra</span>
+            <input type="number" class="dim-input" id="dimVideoW" placeholder="ej. 80" min="1" step="1">
+            <span class="dim-unit">cm (opcional)</span>
+          </div>
+          <div class="dim-row">
+            <span class="dim-label">Alto obra</span>
+            <input type="number" class="dim-input" id="dimVideoH" placeholder="ej. 60" min="1" step="1">
+            <span class="dim-unit">cm (opcional)</span>
+          </div>
+        </div>
       </div>
       <div id="cp-gif" class="cpanel">
         <div class="upzone"><input type="file" id="fGif" accept="image/gif,image/webp">
@@ -177,12 +206,45 @@
           <div class="uptext"><strong>GIF animado o WEBP</strong><br>Recomendado &lt; 10MB</div>
           <div class="uppreview" id="prGif"></div>
         </div>
+        <div class="dim-box">
+          <div class="dim-title">Proporción del GIF</div>
+          <div class="dim-presets" id="gifPropPresets">
+            <button class="dim-preset active" onclick="setProp('gif',1,1)">1:1</button>
+            <button class="dim-preset" onclick="setProp('gif',16,9)">16:9</button>
+            <button class="dim-preset" onclick="setProp('gif',4,3)">4:3</button>
+            <button class="dim-preset" onclick="setProp('gif',9,16)">9:16</button>
+          </div>
+          <div class="dim-row">
+            <span class="dim-label">Ancho obra</span>
+            <input type="number" class="dim-input" id="dimGifW" placeholder="ej. 50" min="1" step="1">
+            <span class="dim-unit">cm (opcional)</span>
+          </div>
+          <div class="dim-row">
+            <span class="dim-label">Alto obra</span>
+            <input type="number" class="dim-input" id="dimGifH" placeholder="ej. 50" min="1" step="1">
+            <span class="dim-unit">cm (opcional)</span>
+          </div>
+        </div>
       </div>
       <div id="cp-model" class="cpanel">
         <div class="upzone"><input type="file" id="fModel" accept=".glb,.gltf">
           <span class="upicon">⬡</span>
           <div class="uptext"><strong>Modelo 3D — GLB o GLTF</strong><br>Recomendado &lt; 20MB</div>
           <div class="uppreview" id="prModel"></div>
+        </div>
+        <div class="dim-box">
+          <div class="dim-title">Tamaño inicial del modelo</div>
+          <div class="dim-presets" id="modelScalePresets">
+            <button class="dim-preset" onclick="setModelScale('pequeno')">Pequeño</button>
+            <button class="dim-preset active" onclick="setModelScale('mediano')">Mediano</button>
+            <button class="dim-preset" onclick="setModelScale('grande')">Grande</button>
+            <button class="dim-preset" onclick="setModelScale('real')">Tamaño real</button>
+          </div>
+          <div class="dim-row" id="modelRealDims" style="display:none;">
+            <span class="dim-label">Alto máx</span>
+            <input type="number" class="dim-input" id="dimModelH" placeholder="ej. 30" min="1" step="1">
+            <span class="dim-unit">cm</span>
+          </div>
         </div>
       </div>
       <div id="cp-surface-model" class="cpanel">
@@ -307,6 +369,58 @@ function getToken(){return tokenInput.value.trim();}
 function updateDot(){const t=getToken(),d=document.getElementById('tokenDot');d.className='token-dot '+(t.startsWith('ghp_')?'ok':t?'err':'');}
 updateDot();
 
+// ── DIMENSIONES ──
+let dimConfig = { prop: '16:9', width: 1, height: 0.552, scale: 0.5 };
+
+function setProp(tipo, w, h) {
+  const base = 1;
+  const maxD = Math.max(w, h);
+  dimConfig.width  = parseFloat((base * w / maxD).toFixed(3));
+  dimConfig.height = parseFloat((base * h / maxD).toFixed(3));
+  dimConfig.prop   = `${w}:${h}`;
+  // Marcar preset activo
+  const presets = document.getElementById(`${tipo}PropPresets`);
+  if (presets) presets.querySelectorAll('.dim-preset').forEach(b => {
+    b.classList.toggle('active', b.textContent === `${w}:${h}`);
+  });
+}
+
+function setModelScale(sz) {
+  const map = { pequeno: 0.2, mediano: 0.5, grande: 1, real: 1 };
+  dimConfig.scale = map[sz] || 0.5;
+  document.getElementById('modelRealDims').style.display = sz === 'real' ? 'flex' : 'none';
+  // Marcar preset
+  document.querySelectorAll('#modelScalePresets .dim-preset').forEach(b => {
+    b.classList.toggle('active', b.onclick?.toString().includes(`'${sz}'`));
+  });
+}
+
+function getDimensions() {
+  // Leer cm si fueron introducidos y convertir a metros
+  const t = tipoActual;
+  if (t === 'video' || t === 'surface-video') {
+    const w = parseFloat(document.getElementById('dimVideoW')?.value);
+    const h = parseFloat(document.getElementById('dimVideoH')?.value);
+    if (w && h && !isNaN(w) && !isNaN(h)) {
+      return { width: +(w/100).toFixed(3), height: +(h/100).toFixed(3), scale: 1 };
+    }
+  }
+  if (t === 'gif' || t === 'surface-gif') {
+    const w = parseFloat(document.getElementById('dimGifW')?.value);
+    const h = parseFloat(document.getElementById('dimGifH')?.value);
+    if (w && h && !isNaN(w) && !isNaN(h)) {
+      return { width: +(w/100).toFixed(3), height: +(h/100).toFixed(3), scale: 1 };
+    }
+  }
+  if (t === 'model') {
+    const h = parseFloat(document.getElementById('dimModelH')?.value);
+    if (h && !isNaN(h)) {
+      return { width: 1, height: 1, scale: +(h/100).toFixed(3) };
+    }
+  }
+  return { width: dimConfig.width, height: dimConfig.height, scale: dimConfig.scale };
+}
+
 function setModo(m){
   modoActual=m;
   document.querySelectorAll('[data-mode]').forEach(b=>b.classList.remove('active'));
@@ -427,6 +541,9 @@ async function generarProyecto(){
   clearLog();
 
   try{
+    // Obtener dimensiones definidas por el usuario
+    const dims = getDimensions();
+
     if(modoActual==='surface'){
       // Surface AR: solo subir el contenido, sin trigger ni .mind
       setProgress(50,'Subiendo archivos',`Subiendo contenido.${contentExt}...`);
@@ -465,6 +582,25 @@ async function generarProyecto(){
       await githubUpload(`proyectos/${slug}/audio-img.jpg`,await fileToBase64(fAImg),`ARA: audio-img ${slug}`);
       logStep('✓ imagen de audio subida','ok');
     }
+
+    // Subir config.json con dimensiones iniciales
+    const initConfig = {
+      posX:0, posY:0, posZ:0.01,
+      rotX:0, rotY:0, rotZ:0,
+      preset:'vertical',
+      scale: dims.scale,
+      width: dims.width,
+      height: dims.height,
+      loop:true, autoplay:true, fade:false
+    };
+    try {
+      await githubUpload(
+        `proyectos/${slug}/config.json`,
+        btoa(JSON.stringify(initConfig, null, 2)),
+        `ARA: config inicial ${slug}`
+      );
+      logStep('✓ Configuración inicial guardada','ok');
+    } catch(e) { logStep('⚠ Config no guardada (no crítico)',''); }
 
     setProgress(100,'Publicado','✓ Experiencia AR disponible en GitHub Pages','ok');
     logStep('✓ ¡Publicado en GitHub Pages!','ok');

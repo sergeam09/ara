@@ -202,7 +202,7 @@
   <div class="hlogo">ARA</div>
   <div id="hudRight">
     <button class="hbtn" id="btnEdit" onclick="toggleEditor()" style="display:none;">✎</button>
-    <button class="hbtn" onclick="history.back()">✕</button>
+    <button class="hbtn" onclick="cerrarViewer()" title="Cerrar">✕</button>
   </div>
 </div>
 
@@ -478,13 +478,14 @@
         camera-controls auto-rotate shadow-intensity="1">
         <button slot="ar-button" style="
           position:absolute;
-          top:50%;left:50%;
-          transform:translate(-50%,-50%);
+          bottom:80px;left:50%;
+          transform:translateX(-50%);
           background:#c8f542;color:#0a0a0a;border:none;
-          padding:16px 32px;
+          padding:16px 36px;
           font-size:13px;letter-spacing:0.12em;text-transform:uppercase;
           cursor:pointer;white-space:nowrap;
-          box-shadow:0 4px 24px rgba(0,0,0,0.5);
+          box-shadow:0 4px 24px rgba(0,0,0,0.6);
+          font-family:system-ui,monospace;
         ">⬡ Ver en tu espacio</button>
       </model-viewer>`;
     document.getElementById('mvWrap').classList.add('show');
@@ -861,6 +862,15 @@
         if (e.key === 'Escape') document.getElementById('tkCancel').click();
       };
     });
+  }
+
+  function cerrarViewer() {
+    // Intentar cerrar la pestaña si fue abierta desde otra
+    if (window.history.length > 1) {
+      window.history.back();
+    } else {
+      window.close();
+    }
   }
 
   function showToast(msg) {

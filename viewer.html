@@ -353,6 +353,11 @@
     config:   `${BASE}/proyectos/${PROJECT}/config.json`,
   };
 
+  // Dimensiones desde URL (pasadas por el Creator)
+  const URL_W  = parseFloat(P.get('w'))  || null;
+  const URL_H  = parseFloat(P.get('h'))  || null;
+  const URL_SC = parseFloat(P.get('sc')) || null;
+
   // ── CONFIG DEL PROYECTO ──
   // Defaults neutros — no afectan la proyección sin que el usuario los cambie
   const defaultConfig = {
@@ -407,30 +412,24 @@
       }
     } catch(e) { /* usa defaults */ }
 
-    // Defaults inteligentes por tipo — neutros, sin distorsión
-    if (!P.get('configured')) {
-      if (isVideo) {
-        CFG.width = 1; CFG.height = 0.552;  // 16:9 estándar
-        CFG.preset = 'vertical';             // vertical = sin rotación extra
-        CFG.posX = 0; CFG.posY = 0; CFG.posZ = 0.01;
-        CFG.rotX = 0; CFG.rotY = 0; CFG.rotZ = 0;
-      }
-      if (isGif) {
-        CFG.width = 1; CFG.height = 1;
-        CFG.preset = 'vertical';
-        CFG.rotX = 0; CFG.rotY = 0; CFG.rotZ = 0;
-      }
-      if (isAudio) {
-        CFG.width = 1; CFG.height = 1;
-        CFG.preset = 'vertical';
-        CFG.rotX = 0; CFG.rotY = 0; CFG.rotZ = 0;
-      }
-      if (isModel) {
-        CFG.scale = 0.5;
-        CFG.preset = 'vertical';
-        CFG.rotX = 0; CFG.rotY = 0; CFG.rotZ = 0;
-      }
+    // URL params tienen MÁXIMA prioridad — vienen directamente del Creator
+    if (URL_W  > 0) CFG.width  = URL_W;
+    if (URL_H  > 0) CFG.height = URL_H;
+    if (URL_SC > 0) CFG.scale  = URL_SC;
+
+    // Forzar orientación correcta y valores mínimos según tipo
+    if (isVideo || isGif || isAudio) {
+      CFG.preset = 'vertical';
+      CFG.rotX = 0; CFG.rotY = 0; CFG.rotZ = 0;
+      if (!CFG.width  || CFG.width  <= 0) CFG.width  = isVideo ? 1 : 1;
+      if (!CFG.height || CFG.height <= 0) CFG.height = isVideo ? 0.5625 : 1;
     }
+    if (isModel && !isSurface) {
+      CFG.preset = 'vertical';
+      CFG.rotX = 0; CFG.rotY = 0; CFG.rotZ = 0;
+      if (!CFG.scale || CFG.scale <= 0) CFG.scale = 0.5;
+    }
+    if (!CFG.posZ || CFG.posZ === 0) CFG.posZ = 0.01;
 
     applyConfigToSliders();
     init();
@@ -865,23 +864,10 @@
   }
 
   function cerrarViewer() {
-    // Estrategia robusta para cerrar el viewer
-    try {
-      // Si tiene referrer, intentar ir atrás
-      if (document.referrer && document.referrer !== '') {
-        window.location.href = document.referrer;
-        return;
-      }
-    } catch(e) {}
-
-    // Intentar cerrar la pestaña
-    try {
-      window.open('', '_self').close();
-    } catch(e) {}
-
-    // Fallback: ir a la raíz del sitio (el Creator)
+    // Siempre ir al Creator — nunca al historial anterior
+    // Esto evita que al cerrar regrese a una experiencia anterior
     const base = window.location.href.split('/viewer.html')[0];
-    window.location.href = base + '/';
+    window.location.replace(base + '/index.html');
   }
 
   function showToast(msg) {

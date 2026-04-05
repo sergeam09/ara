@@ -616,7 +616,8 @@ async function generarProyecto(){
     setProgress(100,'Publicado','✓ Experiencia AR disponible en GitHub Pages','ok');
     logStep('✓ ¡Publicado en GitHub Pages!','ok');
 
-    const viewerUrl=`${BASE_URL}/viewer.html?p=${slug}&t=${tipoActual}&ce=${contentExt}&te=${triggerExt}`;
+    // Pasar dimensiones directamente en la URL — sin depender de config.json
+    const viewerUrl=`${BASE_URL}/viewer.html?p=${slug}&t=${tipoActual}&ce=${contentExt}&te=${triggerExt}&w=${dims.width}&h=${dims.height}&sc=${dims.scale}`;
     viewerUrlActual=viewerUrl;
 
     const proyecto={slug,nombre,tipo:tipoActual,contentExt,triggerExt,url:viewerUrl,creado:new Date().toLocaleDateString('es-MX')};

@@ -337,7 +337,8 @@
         </div>
         <div style="display:flex;gap:2px;">
           <button class="btn btn-ghost" style="flex:1;" onclick="abrirViewer()">↗ Abrir</button>
-          <button class="btn btn-ghost" style="flex:1;" onclick="descargarQR()">↓ QR</button>
+          <button class="btn btn-ghost" style="flex:1;" onclick="descargarQR('espectador')">↓ QR Público</button>
+          <button class="btn btn-ghost" style="flex:1;" onclick="descargarQR('editor')">↓ QR Editor</button>
         </div>
       </div>
     </div>
@@ -402,9 +403,10 @@ function getDimensions() {
   const t = tipoActual;
 
   // Empezar con la proporción elegida (preset) — siempre presente
-  let width  = dimConfig.width;
-  let height = dimConfig.height;
-  let scale  = dimConfig.scale;
+  // Tamaño base: 1 unidad = ancho del trigger. Para videos usar 1 de ancho siempre.
+  let width  = dimConfig.width  || 1;
+  let height = dimConfig.height || 1;
+  let scale  = dimConfig.scale  || 1;
 
   // Si el usuario introdujo cm, calcular tamaño real y mantener la proporción
   if (t === 'video' || t === 'surface-video') {
@@ -661,7 +663,30 @@ function copiarLink(elId){
   toast('Link copiado ✓');
 }
 function abrirViewer(){if(viewerUrlActual)window.open(viewerUrlActual,'_blank');}
-function descargarQR(){const c=document.querySelector('#qrcode canvas');if(!c)return;const a=document.createElement('a');a.download='ara-qr.png';a.href=c.toDataURL();a.click();}
+function descargarQR(tipo){
+  const url = tipo === 'editor'
+    ? document.getElementById('linkEditor').textContent
+    : document.getElementById('linkDisplay').textContent;
+  if (!url || url === '—') return;
+
+  // Generar QR temporal
+  const tmp = document.createElement('div');
+  tmp.style.cssText = 'position:fixed;left:-9999px;top:-9999px;background:#fff;padding:16px;';
+  document.body.appendChild(tmp);
+  new QRCode(tmp, {text:url, width:256, height:256, colorDark:'#0a0a0a', colorLight:'#ffffff', correctLevel:QRCode.CorrectLevel.H});
+
+  setTimeout(() => {
+    const c = tmp.querySelector('canvas');
+    if (c) {
+      const a = document.createElement('a');
+      a.download = `ara-qr-${tipo||'publico'}.png`;
+      a.href = c.toDataURL();
+      a.click();
+    }
+    tmp.remove();
+    toast(`QR ${tipo === 'editor' ? 'de edición' : 'público'} descargado ✓`);
+  }, 300);
+}
 
 function renderProyectos(){
   const el=document.getElementById('pList');

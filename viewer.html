@@ -412,22 +412,32 @@
       }
     } catch(e) { /* usa defaults */ }
 
-    // URL params tienen MÁXIMA prioridad — vienen directamente del Creator
-    if (URL_W  > 0) CFG.width  = URL_W;
-    if (URL_H  > 0) CFG.height = URL_H;
-    if (URL_SC > 0) CFG.scale  = URL_SC;
+    // Si NO hay config.json guardado, usar URL params como punto de partida
+    // Si SÍ hay config.json (editor guardó), respetarlo completamente
+    const hasConfig = CFG.width !== defaultConfig.width || CFG.height !== defaultConfig.height
+                   || CFG.scale !== defaultConfig.scale || CFG.posX !== 0 || CFG.posY !== 0;
 
-    // Forzar orientación correcta y valores mínimos según tipo
+    if (!hasConfig) {
+      // Sin config guardado — usar URL params del Creator
+      if (URL_W  > 0) CFG.width  = URL_W;
+      if (URL_H  > 0) CFG.height = URL_H;
+      if (URL_SC > 0) CFG.scale  = URL_SC;
+    }
+    // Si hay config guardado, los valores del editor ya están en CFG — no tocar
+
+    // Forzar orientación correcta siempre
     if (isVideo || isGif || isAudio) {
-      CFG.preset = 'vertical';
-      CFG.rotX = 0; CFG.rotY = 0; CFG.rotZ = 0;
-      if (!CFG.width  || CFG.width  <= 0) CFG.width  = isVideo ? 1 : 1;
-      if (!CFG.height || CFG.height <= 0) CFG.height = isVideo ? 0.5625 : 1;
+      CFG.preset = CFG.preset || 'vertical';
+      if (CFG.rotX === undefined) CFG.rotX = 0;
+      if (CFG.rotY === undefined) CFG.rotY = 0;
+      if (CFG.rotZ === undefined) CFG.rotZ = 0;
+      // Tamaño mínimo razonable si viene vacío
+      if (!CFG.width  || CFG.width  <= 0) CFG.width  = URL_W  || (isVideo ? 1 : 1);
+      if (!CFG.height || CFG.height <= 0) CFG.height = URL_H  || (isVideo ? 0.5625 : 1);
     }
     if (isModel && !isSurface) {
-      CFG.preset = 'vertical';
-      CFG.rotX = 0; CFG.rotY = 0; CFG.rotZ = 0;
-      if (!CFG.scale || CFG.scale <= 0) CFG.scale = 0.5;
+      CFG.preset = CFG.preset || 'vertical';
+      if (!CFG.scale || CFG.scale <= 0) CFG.scale = URL_SC || 0.5;
     }
     if (!CFG.posZ || CFG.posZ === 0) CFG.posZ = 0.01;
 

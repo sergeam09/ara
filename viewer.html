@@ -6,587 +6,382 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
   <title>ARA — Experiencia AR</title>
-
-  <!-- A-Frame debe cargar PRIMERO, antes que MindAR -->
   <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
-
-  <!-- MindAR después de A-Frame -->
   <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
-
-  <!-- Model Viewer para modelos 3D -->
   <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.3.0/model-viewer.min.js"></script>
-
   <style>
-    :root {
-      --accent: #c8f542;
-      --bg:     #0a0a0a;
-      --font:   'DM Mono', monospace;
-    }
+    :root { --a: #c8f542; --bg: #0a0a0a; --s: rgba(10,10,10,0.82); --b: rgba(255,255,255,0.08); }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: #e8e8e0; font-family: system-ui, monospace; height: 100vh; overflow: hidden; touch-action: none; }
 
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+    /* SPLASH */
+    #splash { position: fixed; inset: 0; background: var(--bg); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 24px; z-index: 1000; transition: opacity 0.5s; }
+    #splash.hidden { opacity: 0; pointer-events: none; }
+    .slogo { font-size: 48px; font-weight: 300; color: var(--a); letter-spacing: -0.02em; }
+    .ssub  { font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; color: #333; }
+    .sbar  { width: 120px; height: 1px; background: #1a1a1a; position: relative; overflow: hidden; }
+    .sbar::after { content: ''; position: absolute; left: -40%; width: 40%; height: 100%; background: var(--a); animation: sl 1.2s ease-in-out infinite; }
+    @keyframes sl { to { left: 140%; } }
+    .smsg  { font-size: 12px; color: #333; text-align: center; line-height: 1.8; }
 
-    body {
-      background: var(--bg);
-      color: #e8e8e0;
-      font-family: system-ui, monospace;
-      height: 100vh;
-      overflow: hidden;
-      touch-action: none;
-    }
+    /* ERROR */
+    #errScreen { position: fixed; inset: 0; background: var(--bg); display: none; flex-direction: column; align-items: center; justify-content: center; gap: 18px; padding: 36px; text-align: center; z-index: 1001; }
+    #errScreen.show { display: flex; }
+    .eicon { font-size: 44px; } .etitle { font-size: 16px; color: #ff4545; }
+    .emsg  { font-size: 12px; color: #444; line-height: 1.9; max-width: 300px; }
+    .ebtn  { background: var(--a); color: #0a0a0a; border: none; padding: 11px 22px; font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; cursor: pointer; }
 
-    /* ── SPLASH / LOADING ── */
-    #splash {
-      position: fixed; inset: 0;
-      background: var(--bg);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 24px;
-      z-index: 1000;
-      transition: opacity 0.5s;
-    }
-
-    #splash.hidden {
-      opacity: 0;
-      pointer-events: none;
-    }
-
-    .splash-logo {
-      font-size: 48px;
-      font-weight: 300;
-      letter-spacing: -0.02em;
-      color: var(--accent);
-    }
-
-    .splash-sub {
-      font-size: 11px;
-      letter-spacing: 0.2em;
-      text-transform: uppercase;
-      color: #444;
-    }
-
-    .splash-loader {
-      width: 120px;
-      height: 1px;
-      background: #1a1a1a;
-      position: relative;
-      overflow: hidden;
-    }
-
-    .splash-loader::after {
-      content: '';
-      position: absolute;
-      left: -40%;
-      width: 40%;
-      height: 100%;
-      background: var(--accent);
-      animation: load 1.2s ease-in-out infinite;
-    }
-
-    @keyframes load {
-      to { left: 140%; }
-    }
-
-    .splash-msg {
-      font-size: 12px;
-      color: #333;
-      text-align: center;
-      line-height: 1.8;
-    }
-
-    /* ── ERROR ── */
-    #errorScreen {
-      position: fixed; inset: 0;
-      background: var(--bg);
-      display: none;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 20px;
-      padding: 40px;
-      text-align: center;
-      z-index: 1001;
-    }
-
-    #errorScreen.show { display: flex; }
-
-    .error-icon { font-size: 48px; }
-
-    .error-title {
-      font-size: 18px;
-      color: #ff4545;
-    }
-
-    .error-msg {
-      font-size: 13px;
-      color: #555;
-      line-height: 1.8;
-      max-width: 320px;
-    }
-
-    .error-btn {
-      background: var(--accent);
-      color: #0a0a0a;
-      border: none;
-      padding: 12px 24px;
-      font-size: 12px;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      cursor: pointer;
-    }
-
-    /* ── AR SCENE ── */
-    #ar-scene {
-      display: none;
-      width: 100vw;
-      height: 100vh;
-    }
-
-    #ar-scene.show { display: block; }
-
-    /* ── HUD ── */
-    #hud {
-      position: fixed;
-      top: 0; left: 0; right: 0;
-      padding: 20px;
-      display: none;
-      justify-content: space-between;
-      align-items: flex-start;
-      z-index: 500;
-      pointer-events: none;
-    }
-
+    /* HUD */
+    #hud { position: fixed; top: 0; left: 0; right: 0; padding: 18px 20px; display: none; justify-content: space-between; align-items: flex-start; z-index: 500; pointer-events: none; }
     #hud.show { display: flex; }
+    .hlogo { font-size: 15px; color: rgba(200,245,66,0.8); letter-spacing: 0.1em; text-shadow: 0 1px 8px rgba(0,0,0,0.8); }
+    .hbtn  { pointer-events: all; background: var(--s); border: 1px solid var(--b); color: #888; font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; padding: 8px 13px; cursor: pointer; backdrop-filter: blur(8px); font-family: system-ui, monospace; }
+    .hbtn:hover { color: var(--a); }
+    .hbtn.active { color: var(--a); border-color: rgba(200,245,66,0.3); }
+    #hudRight { display: flex; gap: 6px; pointer-events: all; }
 
-    .hud-logo {
-      font-size: 16px;
-      color: rgba(200,245,66,0.8);
-      letter-spacing: 0.1em;
-      text-shadow: 0 1px 8px rgba(0,0,0,0.8);
-    }
+    /* SCAN */
+    #scan { position: fixed; bottom: 48px; left: 0; right: 0; display: none; flex-direction: column; align-items: center; gap: 14px; z-index: 500; pointer-events: none; }
+    #scan.show { display: flex; }
+    .sframe { width: 190px; height: 190px; position: relative; }
+    .sc { position: absolute; width: 22px; height: 22px; border-color: var(--a); border-style: solid; opacity: 0.7; }
+    .sc.tl{top:0;left:0;border-width:2px 0 0 2px}.sc.tr{top:0;right:0;border-width:2px 2px 0 0}
+    .sc.bl{bottom:0;left:0;border-width:0 0 2px 2px}.sc.br{bottom:0;right:0;border-width:0 2px 2px 0}
+    .sline { position: absolute; left: 10%; right: 10%; height: 1px; background: linear-gradient(90deg,transparent,var(--a),transparent); animation: scl 2s ease-in-out infinite; top: 0; }
+    @keyframes scl { 0%,100%{top:10%;opacity:0}20%{opacity:1}80%{opacity:1}100%{top:90%;opacity:0} }
+    .stxt { font-size: 11px; color: rgba(255,255,255,0.5); letter-spacing: 0.12em; text-transform: uppercase; text-shadow: 0 1px 8px rgba(0,0,0,0.9); }
 
-    .hud-btn {
-      pointer-events: all;
-      background: rgba(10,10,10,0.7);
-      border: 1px solid rgba(255,255,255,0.1);
-      color: #888;
-      font-size: 11px;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      padding: 8px 14px;
-      cursor: pointer;
-      backdrop-filter: blur(8px);
-    }
+    /* PING */
+    #ping { position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%); width: 56px; height: 56px; border: 2px solid var(--a); border-radius: 50%; opacity: 0; pointer-events: none; z-index: 500; }
+    #ping.go { animation: pg 0.6s ease-out forwards; }
+    @keyframes pg { 0%{opacity:1;transform:translate(-50%,-50%) scale(0.5)}100%{opacity:0;transform:translate(-50%,-50%) scale(2)} }
 
-    /* ── SCAN INDICATOR ── */
-    #scanIndicator {
-      position: fixed;
-      bottom: 48px; left: 0; right: 0;
+    /* SCENE */
+    #arScene { display: none; width: 100vw; height: 100vh; }
+    #arScene.show { display: block; }
+    #mvWrap { display: none; width: 100vw; height: 100vh; }
+    #mvWrap.show { display: block; }
+    model-viewer { width: 100%; height: 100%; background: #0a0a0a; }
+
+    /* ── EDITOR PANEL ── */
+    #editor {
+      position: fixed; bottom: 0; left: 0; right: 0;
+      background: var(--s);
+      backdrop-filter: blur(16px);
+      border-top: 1px solid var(--b);
+      padding: 16px 20px 24px;
+      z-index: 600;
       display: none;
       flex-direction: column;
-      align-items: center;
-      gap: 12px;
-      z-index: 500;
-      pointer-events: none;
+      gap: 10px;
+      max-height: 70vh;
+      overflow-y: auto;
+      transform: translateY(100%);
+      transition: transform 0.3s cubic-bezier(0.34,1.2,0.64,1);
+    }
+    #editor.open {
+      display: flex;
+      transform: translateY(0);
     }
 
-    #scanIndicator.show { display: flex; }
-
-    .scan-frame {
-      width: 200px; height: 200px;
-      position: relative;
+    .ed-title {
+      font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase;
+      color: rgba(200,245,66,0.6); margin-bottom: 4px;
+      display: flex; justify-content: space-between; align-items: center;
     }
 
-    .scan-corner {
-      position: absolute;
-      width: 24px; height: 24px;
-      border-color: var(--accent);
-      border-style: solid;
-      opacity: 0.7;
+    .ed-save {
+      background: var(--a); color: #0a0a0a; border: none;
+      font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase;
+      padding: 5px 12px; cursor: pointer; font-family: system-ui, monospace;
     }
 
-    .scan-corner.tl { top: 0; left: 0; border-width: 2px 0 0 2px; }
-    .scan-corner.tr { top: 0; right: 0; border-width: 2px 2px 0 0; }
-    .scan-corner.bl { bottom: 0; left: 0; border-width: 0 0 2px 2px; }
-    .scan-corner.br { bottom: 0; right: 0; border-width: 0 2px 2px 0; }
-
-    .scan-line {
-      position: absolute;
-      left: 10%; right: 10%;
-      height: 1px;
-      background: linear-gradient(90deg, transparent, var(--accent), transparent);
-      animation: scanLine 2s ease-in-out infinite;
-      top: 0;
+    .ed-section {
+      font-size: 9px; letter-spacing: 0.2em; text-transform: uppercase;
+      color: #333; padding: 6px 0 2px; border-top: 1px solid rgba(255,255,255,0.05);
     }
 
-    @keyframes scanLine {
-      0%, 100% { top: 10%; opacity: 0; }
-      20% { opacity: 1; }
-      80% { opacity: 1; }
-      100% { top: 90%; opacity: 0; }
+    .ed-row {
+      display: flex; align-items: center; gap: 10px;
     }
 
-    .scan-text {
-      font-size: 12px;
-      color: rgba(255,255,255,0.6);
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      text-shadow: 0 1px 8px rgba(0,0,0,0.9);
+    .ed-label {
+      font-size: 10px; color: #555; letter-spacing: 0.08em;
+      text-transform: uppercase; width: 72px; flex-shrink: 0;
     }
 
-    /* ── FOUND INDICATOR ── */
-    #foundPing {
-      position: fixed;
-      top: 50%; left: 50%;
-      transform: translate(-50%, -50%);
-      width: 60px; height: 60px;
-      border: 2px solid var(--accent);
-      border-radius: 50%;
-      opacity: 0;
-      pointer-events: none;
-      z-index: 500;
+    .ed-slider {
+      flex: 1; height: 2px; appearance: none; background: #222;
+      outline: none; cursor: pointer;
+    }
+    .ed-slider::-webkit-slider-thumb {
+      appearance: none; width: 16px; height: 16px;
+      border-radius: 50%; background: var(--a); cursor: pointer;
+    }
+    .ed-slider::-moz-range-thumb {
+      width: 16px; height: 16px; border-radius: 50%;
+      background: var(--a); cursor: pointer; border: none;
     }
 
-    #foundPing.ping {
-      animation: ping 0.6s ease-out forwards;
+    .ed-val {
+      font-size: 10px; color: var(--a); width: 36px;
+      text-align: right; font-family: system-ui, monospace;
     }
 
-    @keyframes ping {
-      0%   { opacity: 1; transform: translate(-50%, -50%) scale(0.5); }
-      100% { opacity: 0; transform: translate(-50%, -50%) scale(2); }
-    }
+    .ed-grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 
-    /* ── MODEL VIEWER (para 3D sin tracking) ── */
-    #modelViewerWrap {
-      display: none;
-      width: 100vw;
-      height: 100vh;
+    .ed-preset-row { display: flex; gap: 6px; flex-wrap: wrap; }
+    .ed-preset {
+      background: rgba(255,255,255,0.05); border: 1px solid var(--b);
+      color: #666; font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase;
+      padding: 5px 10px; cursor: pointer; font-family: system-ui, monospace;
     }
+    .ed-preset:hover, .ed-preset.active { border-color: var(--a); color: var(--a); }
 
-    #modelViewerWrap.show { display: block; }
-
-    model-viewer {
-      width: 100%;
-      height: 100%;
-      background: #0a0a0a;
+    .ed-toggle-row { display: flex; gap: 6px; }
+    .ed-toggle {
+      flex: 1; background: rgba(255,255,255,0.05); border: 1px solid var(--b);
+      color: #555; font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase;
+      padding: 7px; cursor: pointer; text-align: center; font-family: system-ui, monospace;
     }
+    .ed-toggle.active { background: rgba(200,245,66,0.1); border-color: var(--a); color: var(--a); }
   </style>
 </head>
 <body>
 
-<!-- ── SPLASH ── -->
 <div id="splash">
-  <div class="splash-logo">ARA</div>
-  <div class="splash-sub">Cargando experiencia</div>
-  <div class="splash-loader"></div>
-  <div class="splash-msg" id="splashMsg">Iniciando cámara...</div>
+  <div class="slogo">ARA</div>
+  <div class="ssub">Cargando experiencia</div>
+  <div class="sbar"></div>
+  <div class="smsg" id="smsg">Iniciando...</div>
 </div>
 
-<!-- ── ERROR ── -->
-<div id="errorScreen">
-  <div class="error-icon">◈</div>
-  <div class="error-title">Algo salió mal</div>
-  <div class="error-msg" id="errorMsg">Verifica que los archivos estén subidos correctamente al repositorio.</div>
-  <button class="error-btn" onclick="location.reload()">Reintentar</button>
-  <button class="error-btn" style="background:transparent; color:#444; border:1px solid #222;" onclick="history.back()">Volver</button>
+<div id="errScreen">
+  <div class="eicon">◈</div>
+  <div class="etitle">Algo salió mal</div>
+  <div class="emsg" id="emsg">Error desconocido.</div>
+  <button class="ebtn" onclick="location.reload()">Reintentar</button>
+  <button class="ebtn" style="background:transparent;color:#444;border:1px solid #222;" onclick="history.back()">Volver</button>
 </div>
 
-<!-- ── HUD ── -->
 <div id="hud">
-  <div class="hud-logo">ARA</div>
-  <button class="hud-btn" onclick="history.back()">✕ Cerrar</button>
-</div>
-
-<!-- ── SCAN INDICATOR ── -->
-<div id="scanIndicator">
-  <div class="scan-frame">
-    <div class="scan-corner tl"></div>
-    <div class="scan-corner tr"></div>
-    <div class="scan-corner bl"></div>
-    <div class="scan-corner br"></div>
-    <div class="scan-line"></div>
+  <div class="hlogo">ARA</div>
+  <div id="hudRight">
+    <button class="hbtn" id="btnEdit" onclick="toggleEditor()" style="display:none;">✎ Editar</button>
+    <button class="hbtn" onclick="history.back()">✕</button>
   </div>
-  <div class="scan-text">Apunta a la obra</div>
 </div>
 
-<!-- ── FOUND PING ── -->
-<div id="foundPing"></div>
+<div id="scan">
+  <div class="sframe">
+    <div class="sc tl"></div><div class="sc tr"></div>
+    <div class="sc bl"></div><div class="sc br"></div>
+    <div class="sline"></div>
+  </div>
+  <div class="stxt" id="scanTxt">Apunta a la obra</div>
+</div>
 
-<!-- ── AR SCENE (se construye dinámicamente) ── -->
-<div id="ar-scene"></div>
+<div id="ping"></div>
+<div id="arScene"></div>
+<div id="mvWrap"></div>
 
-<!-- ── MODEL VIEWER FALLBACK (para 3D) ── -->
-<div id="modelViewerWrap"></div>
+<!-- ── EDITOR PANEL ── -->
+<div id="editor">
+  <div class="ed-title">
+    <span>Editor de experiencia</span>
+    <button class="ed-save" onclick="guardarConfig()">✓ Guardar</button>
+  </div>
+
+  <!-- Orientación -->
+  <div class="ed-section">Orientación</div>
+  <div class="ed-preset-row" id="presetOri">
+    <button class="ed-preset active" onclick="aplicarPreset('horizontal')">Horizontal</button>
+    <button class="ed-preset" onclick="aplicarPreset('vertical')">Vertical</button>
+    <button class="ed-preset" onclick="aplicarPreset('inclinado')">Inclinado 45°</button>
+    <button class="ed-preset" onclick="aplicarPreset('libre')">Libre</button>
+  </div>
+
+  <!-- Posición -->
+  <div class="ed-section">Posición</div>
+  <div class="ed-row">
+    <div class="ed-label">Altura</div>
+    <input type="range" class="ed-slider" id="slPosY" min="-1" max="2" step="0.05" value="0" oninput="updateContent()">
+    <div class="ed-val" id="valPosY">0.0</div>
+  </div>
+  <div class="ed-row">
+    <div class="ed-label">Profundidad</div>
+    <input type="range" class="ed-slider" id="slPosZ" min="-0.5" max="0.5" step="0.02" value="0.01" oninput="updateContent()">
+    <div class="ed-val" id="valPosZ">0.0</div>
+  </div>
+  <div class="ed-row">
+    <div class="ed-label">Lateral</div>
+    <input type="range" class="ed-slider" id="slPosX" min="-1" max="1" step="0.05" value="0" oninput="updateContent()">
+    <div class="ed-val" id="valPosX">0.0</div>
+  </div>
+
+  <!-- Rotación manual (solo en modo libre) -->
+  <div id="secRotacion" style="display:none;">
+    <div class="ed-section">Rotación</div>
+    <div class="ed-row">
+      <div class="ed-label">Eje X</div>
+      <input type="range" class="ed-slider" id="slRotX" min="-180" max="180" step="1" value="0" oninput="updateContent()">
+      <div class="ed-val" id="valRotX">0°</div>
+    </div>
+    <div class="ed-row">
+      <div class="ed-label">Eje Y</div>
+      <input type="range" class="ed-slider" id="slRotY" min="-180" max="180" step="1" value="0" oninput="updateContent()">
+      <div class="ed-val" id="valRotY">0°</div>
+    </div>
+    <div class="ed-row">
+      <div class="ed-label">Eje Z</div>
+      <input type="range" class="ed-slider" id="slRotZ" min="-180" max="180" step="1" value="0" oninput="updateContent()">
+      <div class="ed-val" id="valRotZ">0°</div>
+    </div>
+  </div>
+
+  <!-- Escala -->
+  <div class="ed-section">Tamaño</div>
+  <div class="ed-row">
+    <div class="ed-label">Escala</div>
+    <input type="range" class="ed-slider" id="slScale" min="0.05" max="3" step="0.05" value="1" oninput="updateContent()">
+    <div class="ed-val" id="valScale">1.0</div>
+  </div>
+
+  <!-- Proporción (solo para video/gif) -->
+  <div id="secProp">
+    <div class="ed-section">Proporción del contenido</div>
+    <div class="ed-preset-row" id="presetProp">
+      <button class="ed-preset" onclick="setProporcion(16,9)">16:9</button>
+      <button class="ed-preset active" onclick="setProporcion(1,1)">1:1</button>
+      <button class="ed-preset" onclick="setProporcion(4,3)">4:3</button>
+      <button class="ed-preset" onclick="setProporcion(9,16)">9:16</button>
+    </div>
+    <div class="ed-row" style="margin-top:8px;">
+      <div class="ed-label">Ancho</div>
+      <input type="range" class="ed-slider" id="slWidth" min="0.2" max="3" step="0.05" value="1" oninput="updateDims()">
+      <div class="ed-val" id="valWidth">1.0</div>
+    </div>
+    <div class="ed-row">
+      <div class="ed-label">Alto</div>
+      <input type="range" class="ed-slider" id="slHeight" min="0.2" max="3" step="0.05" value="1" oninput="updateDims()">
+      <div class="ed-val" id="valHeight">1.0</div>
+    </div>
+  </div>
+
+  <!-- Comportamiento -->
+  <div class="ed-section">Comportamiento</div>
+  <div class="ed-toggle-row">
+    <button class="ed-toggle active" id="togLoop" onclick="toggleLoop()">↺ Loop</button>
+    <button class="ed-toggle active" id="togAuto" onclick="toggleAuto()">▶ Autoplay</button>
+    <button class="ed-toggle" id="togFade" onclick="toggleFade()">◌ Fade in</button>
+  </div>
+
+</div>
 
 <script>
-  // ── PARÁMETROS DE URL ──
-  const params = new URLSearchParams(window.location.search);
-  const PROJECT = params.get('p');
-  const TYPE    = params.get('t') || 'video';
-  const CE      = params.get('ce') || 'mp4';   // content extension
-  const TE      = params.get('te') || 'jpg';   // trigger extension
+  const P  = new URLSearchParams(location.search);
+  const PROJECT = P.get('p');
+  const TYPE    = P.get('t') || 'video';
+  const CE      = P.get('ce') || 'mp4';
+  const TE      = P.get('te') || 'jpg';
 
-  // Base URL del repo
   const BASE = (() => {
-    const { protocol, host, pathname } = window.location;
-    const base = pathname.replace('viewer.html', '').replace(/\/$/, '');
-    return `${protocol}//${host}${base}`;
+    const {protocol,host,pathname} = location;
+    return `${protocol}//${host}${pathname.replace('viewer.html','').replace(/\/$/,'')}`;
   })();
 
-  // Rutas de archivos
   const PATHS = {
-    trigger:  `${BASE}/proyectos/${PROJECT}/trigger.${TE}`,
-    content:  `${BASE}/proyectos/${PROJECT}/contenido.${CE}`,
     mind:     `${BASE}/proyectos/${PROJECT}/targets.mind`,
+    content:  `${BASE}/proyectos/${PROJECT}/contenido.${CE}`,
+    trigger:  `${BASE}/proyectos/${PROJECT}/trigger.${TE}`,
     audioImg: `${BASE}/proyectos/${PROJECT}/audio-img.jpg`,
+    config:   `${BASE}/proyectos/${PROJECT}/config.json`,
   };
 
-  // ── VALIDACIÓN ──
+  // ── CONFIG DEL PROYECTO ──
+  const defaultConfig = {
+    posX: 0, posY: 0, posZ: 0.01,
+    rotX: 0, rotY: 0, rotZ: 0,
+    scale: 1,
+    width: 1, height: 1,
+    preset: 'horizontal',
+    loop: true, autoplay: true, fade: false,
+  };
+  let CFG = {...defaultConfig};
+
+  // Tipo de contenido
+  const isVideo = ['video','surface-video'].includes(TYPE);
+  const isGif   = ['gif','surface-gif'].includes(TYPE);
+  const isModel = ['model','surface-model'].includes(TYPE);
+  const isAudio = TYPE === 'audio';
+  const isSurface = TYPE.startsWith('surface-');
+  const isImage = !isSurface;
+
+  // ── ELEMENTO AR ACTIVO ──
+  let arContent = null;
+
+  // ── INIT ──
   if (!PROJECT) {
-    showError('No se especificó ningún proyecto. Vuelve al Creator y genera un link válido.');
+    showErr('No se especificó ningún proyecto.');
   } else {
+    loadConfigAndInit();
+  }
+
+  async function loadConfigAndInit() {
+    setSplash('Cargando configuración...');
+    // Intentar cargar config guardada
+    try {
+      const r = await fetch(PATHS.config);
+      if (r.ok) {
+        const saved = await r.json();
+        CFG = {...defaultConfig, ...saved};
+      }
+    } catch(e) { /* usa defaults */ }
+
+    // Defaults inteligentes por tipo
+    if (!P.get('configured')) {
+      if (isVideo) { CFG.width = 1.6; CFG.height = 0.9; } // 16:9 por defecto para video
+      if (isModel) { CFG.scale = 0.5; }
+    }
+
+    applyConfigToSliders();
     init();
   }
 
+  function applyConfigToSliders() {
+    const set = (id, v) => { const el = document.getElementById(id); if(el) el.value = v; };
+    set('slPosX', CFG.posX); set('slPosY', CFG.posY); set('slPosZ', CFG.posZ);
+    set('slRotX', CFG.rotX); set('slRotY', CFG.rotY); set('slRotZ', CFG.rotZ);
+    set('slScale', CFG.scale);
+    set('slWidth', CFG.width); set('slHeight', CFG.height);
+    updateVals();
+
+    // Presets
+    document.querySelectorAll('#presetOri .ed-preset').forEach(b => {
+      b.classList.toggle('active', b.textContent.toLowerCase().includes(CFG.preset));
+    });
+
+    // Toggles
+    document.getElementById('togLoop')?.classList.toggle('active', CFG.loop);
+    document.getElementById('togAuto')?.classList.toggle('active', CFG.autoplay);
+    document.getElementById('togFade')?.classList.toggle('active', CFG.fade);
+
+    // Mostrar/ocultar sección de proporciones
+    document.getElementById('secProp').style.display = (isVideo || isGif) ? 'block' : 'none';
+  }
+
   async function init() {
-    setSplash('Verificando archivos...');
-
-    // Surface AR — modelo 3D, video o gif sobre superficie
-    if (TYPE === 'surface-model' || TYPE === 'surface-video' || TYPE === 'surface-gif') {
-      initSurface();
-      return;
-    }
-
-    // Model Viewer — 3D sin imagen trigger (fallback simple)
-    if (TYPE === 'model') {
-      initModelViewer();
-      return;
-    }
-
-    // Image tracking — MindAR + A-Frame
+    setSplash('Preparando experiencia...');
+    if (isSurface) { initSurface(); return; }
+    if (isModel)   { initModelViewer(); return; }
     await initMindAR();
   }
 
-  // ── MODEL VIEWER (3D sin tracking) ──
+  // ── MODEL VIEWER ──
   function initModelViewer() {
     setSplash('Cargando modelo 3D...');
-
-    const scale = params.get('scale') || '1';
-    const wrap  = document.getElementById('modelViewerWrap');
-
-    wrap.innerHTML = `
-      <model-viewer
-        src="${PATHS.content}"
-        ar
-        ar-modes="webxr scene-viewer quick-look"
-        camera-controls
-        auto-rotate
-        shadow-intensity="1"
-        exposure="0.8"
-        style="background:#0a0a0a;"
-      >
-        <button slot="ar-button" style="
-          position:absolute; bottom:24px; left:50%; transform:translateX(-50%);
-          background:#c8f542; color:#0a0a0a; border:none;
-          padding:14px 28px; font-size:13px; letter-spacing:0.1em;
-          text-transform:uppercase; cursor:pointer;
-        ">⬡ Ver en tu espacio</button>
-      </model-viewer>
-    `;
-
-    wrap.classList.add('show');
-    document.getElementById('hud').classList.add('show');
-    hideSplash();
-  }
-
-  // ── SURFACE AR (WebXR hit-test) ──
-  function initSurface() {
-    setSplash('Preparando Surface AR...');
-    const sceneDiv = document.getElementById('ar-scene');
-
-    let contentHTML = '';
-    if (TYPE === 'surface-model') {
-      contentHTML = `<a-entity
-        gltf-model="${PATHS.content}"
-        scale="0.5 0.5 0.5"
-        id="ar-content"
-        visible="false"
-        shadow="receive: true">
-      </a-entity>`;
-    } else if (TYPE === 'surface-video') {
-      contentHTML = `<a-video
-        src="${PATHS.content}"
-        width="1.6" height="0.9"
-        id="ar-content"
-        visible="false"
-        loop="true"
-        autoplay="true"
-        playsinline="true"
-        webkit-playsinline="true"
-        rotation="-90 0 0">
-      </a-video>`;
-    } else if (TYPE === 'surface-gif') {
-      contentHTML = `<a-image
-        src="${PATHS.content}"
-        width="1" height="1"
-        id="ar-content"
-        visible="false"
-        rotation="-90 0 0">
-      </a-image>`;
-    }
-
-    sceneDiv.innerHTML = `
-      <a-scene
-        webxr="requiredFeatures: hit-test; optionalFeatures: dom-overlay; overlayElement: #hud;"
-        embedded
-        renderer="colorManagement: true; physicallyCorrectLights: true"
-        vr-mode-ui="enabled: false"
-        device-orientation-permission-ui="enabled: false"
-        style="width:100vw; height:100vh;">
-
-        <a-assets>
-          <video id="surf-video" src="${PATHS.content}" loop playsinline crossorigin="anonymous" style="display:none"></video>
-        </a-assets>
-
-        <a-camera position="0 1.6 0">
-          <a-cursor id="cursor" fuse="false" raycaster="objects: .clickable" color="#c8f542" opacity="0.8"></a-cursor>
-        </a-camera>
-
-        <!-- Reticle: indica dónde se colocará el objeto -->
-        <a-entity id="reticle"
-          geometry="primitive: ring; radiusInner: 0.06; radiusOuter: 0.1"
-          material="color: #c8f542; shader: flat; side: double"
-          rotation="-90 0 0"
-          visible="false">
-        </a-entity>
-
-        <!-- Contenido AR -->
-        ${contentHTML}
-
-        <!-- Luz ambiental -->
-        <a-light type="ambient" color="#ffffff" intensity="0.6"></a-light>
-        <a-light type="directional" color="#ffffff" intensity="0.8" position="1 2 1"></a-light>
-      </a-scene>
-    `;
-
-    sceneDiv.classList.add('show');
-    document.getElementById('hud').classList.add('show');
-
-    // Instrucción de toque
-    const scanEl = document.getElementById('scanIndicator');
-    scanEl.querySelector('.stxt').textContent = 'Apunta al suelo o pared y toca para colocar';
-    scanEl.classList.add('show');
-
-    setTimeout(() => {
-      const scene = sceneDiv.querySelector('a-scene');
-      if (!scene) return;
-
-      scene.addEventListener('loaded', () => {
-        hideSplash();
-        initHitTest(scene);
-      });
-
-      // Fallback
-      setTimeout(() => hideSplash(), 5000);
-    }, 500);
-  }
-
-  function initHitTest(scene) {
-    const reticle  = document.getElementById('reticle');
-    const content  = document.getElementById('ar-content');
-    let placed     = false;
-    let hitMatrix  = null;
-
-    // WebXR hit-test via A-Frame
-    scene.addEventListener('enter-vr', () => {
-      const renderer = scene.renderer;
-      const xrSession = renderer.xr.getSession();
-      if (!xrSession) return;
-
-      xrSession.requestReferenceSpace('viewer').then(viewerSpace => {
-        xrSession.requestHitTestSource({ space: viewerSpace }).then(hitTestSource => {
-
-          // Loop de hit-test en cada frame
-          renderer.setAnimationLoop((timestamp, frame) => {
-            if (!frame) return;
-            const refSpace = renderer.xr.getReferenceSpace();
-            const hits = frame.getHitTestResults(hitTestSource);
-
-            if (hits.length > 0) {
-              const hit = hits[0];
-              const pose = hit.getPose(refSpace);
-              if (pose) {
-                hitMatrix = pose.transform.matrix;
-                reticle.setAttribute('visible', true);
-
-                // Posición del reticle
-                const px = hitMatrix[12], py = hitMatrix[13], pz = hitMatrix[14];
-                reticle.setAttribute('position', `${px} ${py} ${pz}`);
-
-                // Detectar si es superficie vertical u horizontal
-                const normalY = hitMatrix[5];
-                const isVertical = Math.abs(normalY) < 0.3;
-                if (!placed) {
-                  if (isVertical) {
-                    reticle.querySelector('.stxt') && (document.querySelector('.stxt').textContent = 'Superficie vertical detectada — toca para colocar');
-                  } else {
-                    document.querySelector('.stxt') && (document.querySelector('.stxt').textContent = 'Superficie detectada — toca para colocar');
-                  }
-                }
-              }
-            } else {
-              reticle.setAttribute('visible', false);
-            }
-          });
-        }).catch(() => {
-          // Hit-test no disponible — fallback a posición fija
-          fallbackSurface(content);
-        });
-      });
-    });
-
-    // Tap para colocar
-    sceneDiv.addEventListener('click', () => {
-      if (hitMatrix && !placed) {
-        placed = true;
-        const px = hitMatrix[12], py = hitMatrix[13], pz = hitMatrix[14];
-        content.setAttribute('position', `${px} ${py} ${pz}`);
-        content.setAttribute('visible', true);
-        reticle.setAttribute('visible', false);
-        document.getElementById('scanIndicator').classList.remove('show');
-
-        // Ping de confirmación
-        const ping = document.getElementById('foundPing');
-        ping.classList.add('ping');
-        setTimeout(() => ping.classList.remove('ping'), 700);
-
-        // Botón para reposicionar
-        showReposicionarBtn();
-      }
-    });
-
-    // Intentar entrar en AR automáticamente
-    setTimeout(() => {
-      const arBtn = scene.querySelector('[webxr]');
-      scene.enterAR().catch(() => {
-        // Si WebXR no está disponible usar Model Viewer como fallback
-        if (TYPE === 'surface-model') {
-          fallbackModelViewer();
-        } else {
-          fallbackSurface(content);
-        }
-      });
-    }, 1000);
-  }
-
-  function fallbackModelViewer() {
-    document.getElementById('ar-scene').classList.remove('show');
-    const wrap = document.getElementById('mvWrap');
-    wrap.innerHTML = `
-      <model-viewer
-        src="${PATHS.content}"
-        ar ar-modes="webxr scene-viewer quick-look"
+    document.getElementById('mvWrap').innerHTML = `
+      <model-viewer src="${PATHS.content}" ar ar-modes="webxr scene-viewer quick-look"
         camera-controls auto-rotate shadow-intensity="1">
         <button slot="ar-button" style="position:absolute;bottom:24px;left:50%;transform:translateX(-50%);
           background:#c8f542;color:#0a0a0a;border:none;padding:13px 26px;
@@ -594,200 +389,309 @@
           ⬡ Ver en tu espacio
         </button>
       </model-viewer>`;
-    wrap.classList.add('show');
+    document.getElementById('mvWrap').classList.add('show');
     document.getElementById('hud').classList.add('show');
-    document.getElementById('scanIndicator').classList.remove('show');
     hideSplash();
   }
 
-  function fallbackSurface(content) {
-    // Posición fija frente a la cámara si no hay hit-test
-    content.setAttribute('position', '0 0 -1.5');
-    content.setAttribute('visible', true);
-    document.getElementById('scanIndicator').classList.remove('show');
-    hideSplash();
+  // ── SURFACE AR ──
+  function initSurface() {
+    setSplash('Cargando Surface AR...');
+    // Modelos 3D: Model Viewer con AR nativo (WebXR + ARKit + Scene Viewer)
+    if (TYPE === 'surface-model') { initModelViewer(); return; }
+    // Video/GIF sobre superficie: A-Frame sin tracking de imagen
+    buildAFrameScene(false);
   }
 
-  function showReposicionarBtn() {
-    const hud = document.getElementById('hud');
-    const btn = document.createElement('button');
-    btn.className = 'hbtn';
-    btn.textContent = '↺ Reposicionar';
-    btn.style.marginRight = '8px';
-    btn.onclick = () => {
-      const content = document.getElementById('ar-content');
-      const reticle = document.getElementById('reticle');
-      // Reset
-      window._arPlaced = false;
-      content.setAttribute('visible', false);
-      reticle.setAttribute('visible', true);
-      document.getElementById('scanIndicator').classList.add('show');
-      btn.remove();
-    };
-    hud.insertBefore(btn, hud.lastElementChild);
-  }
-
-  // ── MINDAR + A-FRAME (image tracking) ──
+  // ── MINDAR IMAGE TRACKING ──
   async function initMindAR() {
     setSplash('Cargando motor de tracking...');
-
-    // Verificar que existe el archivo .mind
-    const mindExists = await fileExists(PATHS.mind);
-    if (!mindExists) {
-      showError(
-        `No se encontró el archivo de tracking.<br><br>` +
-        `Asegúrate de subir <strong style="color:#c8f542">targets.mind</strong> a la carpeta ` +
-        `<strong style="color:#c8f542">proyectos/${PROJECT}/</strong><br><br>` +
-        `Genera el archivo .mind en:<br>` +
-        `<a href="https://hiukim.github.io/mind-ar-js-doc/tools/compile" target="_blank" style="color:#c8f542">hiukim.github.io/mind-ar-js-doc/tools/compile</a>`
-      );
+    const mindOk = await fileExists(PATHS.mind);
+    if (!mindOk) {
+      showErr(`Archivo tracking no encontrado.<br>Verifica que <strong style="color:#c8f542">targets.mind</strong> esté en <strong style="color:#c8f542">proyectos/${PROJECT}/</strong>`);
       return;
     }
-
     setSplash('Preparando escena AR...');
+    buildAFrameScene(true);
+  }
 
-    // Construir el contenido A-Frame según el tipo
-    const entityContent = buildAFrameContent();
+  // ── CONSTRUIR ESCENA A-FRAME ──
+  function buildAFrameScene(withTracking) {
+    const pos   = `${CFG.posX} ${CFG.posY} ${CFG.posZ}`;
+    const rot   = getRotation();
+    const scl   = `${CFG.scale} ${CFG.scale} ${CFG.scale}`;
+    const w     = CFG.width;
+    const h     = CFG.height;
 
-    // Inyectar la escena A-Frame
-    const sceneDiv = document.getElementById('ar-scene');
+    let entityHTML = '';
+
+    if (isVideo) {
+      entityHTML = `<a-video id="arc" src="${PATHS.content}"
+        width="${w}" height="${h}"
+        position="${pos}" rotation="${rot}" scale="${scl}"
+        loop="${CFG.loop}" autoplay="${CFG.autoplay}"
+        playsinline="true" webkit-playsinline="true"
+        ${CFG.fade ? 'animation="property: material.opacity; from: 0; to: 1; dur: 800"' : ''}
+      ></a-video>`;
+    } else if (isGif) {
+      entityHTML = `<a-image id="arc" src="${PATHS.content}"
+        width="${w}" height="${h}"
+        position="${pos}" rotation="${rot}" scale="${scl}"
+        ${CFG.fade ? 'animation="property: material.opacity; from: 0; to: 1; dur: 800"' : ''}
+      ></a-image>`;
+    } else if (isAudio) {
+      entityHTML = `
+        <a-sound src="${PATHS.content}" autoplay="${CFG.autoplay}" loop="${CFG.loop}"></a-sound>
+        <a-image id="arc" src="${PATHS.audioImg}" width="${w}" height="${h}"
+          position="${pos}" rotation="${rot}" scale="${scl}">
+        </a-image>
+        <a-text value="♪" position="${CFG.posX} ${CFG.posY+0.05} ${CFG.posZ+0.01}"
+          align="center" color="#c8f542" width="1"></a-text>`;
+    }
+
+    const sceneAttrs = withTracking
+      ? `mindar-image="imageTargetSrc:${PATHS.mind};autoStart:true;uiScanning:false;uiLoading:false;"`
+      : ``;
+
+    const sceneInner = withTracking
+      ? `<a-camera position="0 0 0" look-controls="enabled:false"></a-camera>
+         <a-entity id="target" mindar-image-target="targetIndex:0">${entityHTML}</a-entity>`
+      : `<a-camera position="0 1.6 0"></a-camera>${entityHTML}`;
+
+    const sceneDiv = document.getElementById('arScene');
     sceneDiv.innerHTML = `
-      <a-scene
-        mindar-image="imageTargetSrc: ${PATHS.mind}; autoStart: true; uiScanning: false; uiLoading: false;"
-        color-space="sRGB"
-        embedded
-        renderer="colorManagement: true, physicallyCorrectLights: true"
-        vr-mode-ui="enabled: false"
-        device-orientation-permission-ui="enabled: false"
-        style="width:100vw; height:100vh;"
-      >
-        <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
-        <a-entity mindar-image-target="targetIndex: 0">
-          ${entityContent}
-        </a-entity>
-      </a-scene>
-    `;
+      <a-scene ${sceneAttrs}
+        color-space="sRGB" embedded
+        renderer="colorManagement:true;physicallyCorrectLights:true"
+        vr-mode-ui="enabled:false"
+        device-orientation-permission-ui="enabled:false"
+        style="width:100vw;height:100vh;">
+        <a-light type="ambient" intensity="0.8"></a-light>
+        <a-light type="directional" intensity="0.6" position="1 2 1"></a-light>
+        ${sceneInner}
+      </a-scene>`;
 
     sceneDiv.classList.add('show');
     document.getElementById('hud').classList.add('show');
-    document.getElementById('scanIndicator').classList.add('show');
+    document.getElementById('btnEdit').style.display = 'block';
 
-    // Escuchar eventos de MindAR
+    if (withTracking) {
+      document.getElementById('scan').classList.add('show');
+    }
+
     setTimeout(() => {
       const scene = sceneDiv.querySelector('a-scene');
       if (!scene) return;
 
-      scene.addEventListener('arReady', () => {
+      scene.addEventListener('loaded', () => {
+        arContent = document.getElementById('arc');
         hideSplash();
-        setSplash('');
       });
 
-      scene.addEventListener('arError', () => {
-        showError('No se pudo acceder a la cámara. Verifica los permisos en tu navegador.');
-      });
+      scene.addEventListener('arReady', () => hideSplash());
+      scene.addEventListener('arError', () => showErr('No se pudo acceder a la cámara. Verifica los permisos.'));
 
-      // Target encontrado
-      const target = scene.querySelector('[mindar-image-target]');
-      if (target) {
-        target.addEventListener('targetFound', () => {
-          document.getElementById('scanIndicator').classList.remove('show');
-          const ping = document.getElementById('foundPing');
-          ping.classList.add('ping');
-          setTimeout(() => ping.classList.remove('ping'), 700);
-        });
-
-        target.addEventListener('targetLost', () => {
-          document.getElementById('scanIndicator').classList.add('show');
-        });
+      if (withTracking) {
+        const target = scene.querySelector('[mindar-image-target]');
+        if (target) {
+          target.addEventListener('targetFound', () => {
+            document.getElementById('scan').classList.remove('show');
+            const pg = document.getElementById('ping');
+            pg.classList.add('go');
+            setTimeout(() => pg.classList.remove('go'), 700);
+            arContent = document.getElementById('arc');
+          });
+          target.addEventListener('targetLost', () => {
+            document.getElementById('scan').classList.add('show');
+          });
+        }
       }
 
-      // Fallback si arReady no dispara en 8 segundos
-      setTimeout(() => {
-        if (!document.getElementById('splash').classList.contains('hidden')) {
-          hideSplash();
-        }
-      }, 8000);
-
-    }, 500);
+      setTimeout(() => hideSplash(), 9000);
+    }, 600);
   }
 
-  // ── CONSTRUIR CONTENIDO A-FRAME SEGÚN TIPO ──
-  function buildAFrameContent() {
-    switch(TYPE) {
-
-      case 'video':
-        return `
-          <a-video
-            src="${PATHS.content}"
-            width="1" height="0.552"
-            position="0 0 0.01"
-            rotation="0 0 0"
-            loop="true"
-            autoplay="true"
-            playsinline="true"
-            webkit-playsinline="true"
-          ></a-video>
-        `;
-
-      case 'gif':
-        return `
-          <a-image
-            src="${PATHS.content}"
-            width="1" height="1"
-            position="0 0 0.01"
-          ></a-image>
-        `;
-
-      case 'audio':
-        return `
-          <a-sound src="${PATHS.content}" autoplay="true" loop="true" position="0 0 0"></a-sound>
-          <a-image
-            src="${PATHS.audioImg}"
-            width="1" height="1"
-            position="0 0 0.01"
-          ></a-image>
-          <a-text
-            value="♪ Reproduciendo"
-            position="0 -0.6 0.01"
-            align="center"
-            color="#c8f542"
-            width="2"
-          ></a-text>
-        `;
-
-      default:
-        return `
-          <a-plane
-            color="#c8f542"
-            width="0.5" height="0.5"
-            position="0 0 0.01"
-          ></a-plane>
-        `;
+  // ── EDITOR ──
+  function toggleEditor() {
+    const ed = document.getElementById('editor');
+    const btn = document.getElementById('btnEdit');
+    if (ed.classList.contains('open')) {
+      ed.classList.remove('open');
+      setTimeout(() => ed.style.display = 'none', 300);
+      btn.classList.remove('active');
+    } else {
+      ed.style.display = 'flex';
+      requestAnimationFrame(() => ed.classList.add('open'));
+      btn.classList.add('active');
     }
   }
 
-  // ── UTILIDADES ──
-  async function fileExists(url) {
+  function getRotation() {
+    switch(CFG.preset) {
+      case 'horizontal': return '-90 0 0';
+      case 'vertical':   return '0 0 0';
+      case 'inclinado':  return '-45 0 0';
+      case 'libre':      return `${CFG.rotX} ${CFG.rotY} ${CFG.rotZ}`;
+      default:           return '0 0 0';
+    }
+  }
+
+  function updateVals() {
+    const v = (id, val, unit='') => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = parseFloat(val).toFixed(1) + unit;
+    };
+    v('valPosX', document.getElementById('slPosX')?.value || CFG.posX);
+    v('valPosY', document.getElementById('slPosY')?.value || CFG.posY);
+    v('valPosZ', document.getElementById('slPosZ')?.value || CFG.posZ);
+    v('valRotX', document.getElementById('slRotX')?.value || CFG.rotX, '°');
+    v('valRotY', document.getElementById('slRotY')?.value || CFG.rotY, '°');
+    v('valRotZ', document.getElementById('slRotZ')?.value || CFG.rotZ, '°');
+    v('valScale', document.getElementById('slScale')?.value || CFG.scale);
+    v('valWidth',  document.getElementById('slWidth')?.value || CFG.width);
+    v('valHeight', document.getElementById('slHeight')?.value || CFG.height);
+  }
+
+  function readSliders() {
+    const g = id => parseFloat(document.getElementById(id)?.value || 0);
+    CFG.posX = g('slPosX'); CFG.posY = g('slPosY'); CFG.posZ = g('slPosZ');
+    CFG.rotX = g('slRotX'); CFG.rotY = g('slRotY'); CFG.rotZ = g('slRotZ');
+    CFG.scale = g('slScale');
+    CFG.width  = g('slWidth');
+    CFG.height = g('slHeight');
+  }
+
+  function updateContent() {
+    readSliders();
+    updateVals();
+    if (!arContent) return;
+
+    const pos = `${CFG.posX} ${CFG.posY} ${CFG.posZ}`;
+    const rot = getRotation();
+    const scl = `${CFG.scale} ${CFG.scale} ${CFG.scale}`;
+
+    arContent.setAttribute('position', pos);
+    arContent.setAttribute('rotation', rot);
+    arContent.setAttribute('scale',    scl);
+
+    if (isVideo || isGif) {
+      arContent.setAttribute('width',  CFG.width);
+      arContent.setAttribute('height', CFG.height);
+    }
+  }
+
+  function updateDims() {
+    readSliders();
+    updateVals();
+    if (!arContent) return;
+    arContent.setAttribute('width',  CFG.width);
+    arContent.setAttribute('height', CFG.height);
+    // Deseleccionar preset de proporción
+    document.querySelectorAll('#presetProp .ed-preset').forEach(b => b.classList.remove('active'));
+  }
+
+  function aplicarPreset(p) {
+    CFG.preset = p;
+    document.querySelectorAll('#presetOri .ed-preset').forEach(b => {
+      b.classList.toggle('active', b.onclick?.toString().includes(`'${p}'`));
+    });
+    const showFree = p === 'libre';
+    document.getElementById('secRotacion').style.display = showFree ? 'block' : 'none';
+    updateContent();
+  }
+
+  function setProporcion(w, h) {
+    const base = parseFloat(document.getElementById('slScale').value) || 1;
+    const newW = parseFloat((base * w / Math.max(w,h)).toFixed(2));
+    const newH = parseFloat((base * h / Math.max(w,h)).toFixed(2));
+    document.getElementById('slWidth').value  = newW;
+    document.getElementById('slHeight').value = newH;
+    document.querySelectorAll('#presetProp .ed-preset').forEach(b => b.classList.remove('active'));
+    event.target.classList.add('active');
+    updateDims();
+  }
+
+  function toggleLoop() {
+    CFG.loop = !CFG.loop;
+    document.getElementById('togLoop').classList.toggle('active', CFG.loop);
+    const v = document.querySelector('a-video');
+    if (v) v.setAttribute('loop', CFG.loop);
+  }
+
+  function toggleAuto() {
+    CFG.autoplay = !CFG.autoplay;
+    document.getElementById('togAuto').classList.toggle('active', CFG.autoplay);
+  }
+
+  function toggleFade() {
+    CFG.fade = !CFG.fade;
+    document.getElementById('togFade').classList.toggle('active', CFG.fade);
+  }
+
+  async function guardarConfig() {
+    readSliders();
+    // Guardar en GitHub via API
+    const token = localStorage.getItem('ara-gh-token');
+    if (!token) {
+      alert('Para guardar necesitas abrir ARA con tu token de GitHub guardado.');
+      return;
+    }
+
+    const user = 'sergeam09', repo = 'ara';
+    const path = `proyectos/${PROJECT}/config.json`;
+    const url  = `https://api.github.com/repos/${user}/${repo}/contents/${path}`;
+
+    let sha = null;
     try {
-      const r = await fetch(url, { method: 'HEAD' });
-      return r.ok;
-    } catch { return false; }
+      const c = await fetch(url, { headers: { Authorization: `token ${token}` } });
+      if (c.ok) { const d = await c.json(); sha = d.sha; }
+    } catch(e) {}
+
+    const body = {
+      message: `ARA: config ${PROJECT}`,
+      content: btoa(JSON.stringify(CFG, null, 2)),
+      branch: 'main',
+    };
+    if (sha) body.sha = sha;
+
+    try {
+      const r = await fetch(url, {
+        method: 'PUT',
+        headers: { Authorization: `token ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      if (r.ok) {
+        showToast('✓ Configuración guardada');
+        toggleEditor();
+      } else {
+        showToast('Error al guardar');
+      }
+    } catch(e) {
+      showToast('Error de conexión');
+    }
   }
 
-  function setSplash(msg) {
-    document.getElementById('splashMsg').textContent = msg;
+  function showToast(msg) {
+    let t = document.getElementById('toast');
+    if (!t) {
+      t = document.createElement('div');
+      t.id = 'toast';
+      t.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#c8f542;color:#0a0a0a;padding:10px 18px;font-size:11px;z-index:2000;letter-spacing:0.1em;';
+      document.body.appendChild(t);
+    }
+    t.textContent = msg;
+    t.style.opacity = 1;
+    setTimeout(() => t.style.opacity = 0, 2000);
   }
 
-  function hideSplash() {
-    document.getElementById('splash').classList.add('hidden');
+  async function fileExists(url) {
+    try { const r = await fetch(url, { method: 'HEAD' }); return r.ok; }
+    catch { return false; }
   }
 
-  function showError(msg) {
-    hideSplash();
-    const errScreen = document.getElementById('errorScreen');
-    document.getElementById('errorMsg').innerHTML = msg;
-    errScreen.classList.add('show');
-  }
+  function setSplash(msg) { document.getElementById('smsg').textContent = msg; }
+  function hideSplash()   { document.getElementById('splash').classList.add('hidden'); }
+  function showErr(msg)   { hideSplash(); document.getElementById('emsg').innerHTML = msg; document.getElementById('errScreen').classList.add('show'); }
 </script>
 </body>
 </html>

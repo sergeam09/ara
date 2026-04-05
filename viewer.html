@@ -318,12 +318,13 @@
   };
 
   // ── CONFIG DEL PROYECTO ──
+  // Defaults neutros — no afectan la proyección sin que el usuario los cambie
   const defaultConfig = {
     posX: 0, posY: 0, posZ: 0.01,
     rotX: 0, rotY: 0, rotZ: 0,
     scale: 1,
-    width: 1, height: 1,
-    preset: 'horizontal',
+    width: 1, height: 0.552,  // 16:9 aprox como punto de partida razonable
+    preset: 'vertical',       // vertical = sin rotación en image tracking
     loop: true, autoplay: true, fade: false,
   };
   let CFG = {...defaultConfig};
@@ -370,10 +371,29 @@
       }
     } catch(e) { /* usa defaults */ }
 
-    // Defaults inteligentes por tipo
+    // Defaults inteligentes por tipo — neutros, sin distorsión
     if (!P.get('configured')) {
-      if (isVideo) { CFG.width = 1.6; CFG.height = 0.9; } // 16:9 por defecto para video
-      if (isModel) { CFG.scale = 0.5; }
+      if (isVideo) {
+        CFG.width = 1; CFG.height = 0.552;  // 16:9 estándar
+        CFG.preset = 'vertical';             // vertical = sin rotación extra
+        CFG.posX = 0; CFG.posY = 0; CFG.posZ = 0.01;
+        CFG.rotX = 0; CFG.rotY = 0; CFG.rotZ = 0;
+      }
+      if (isGif) {
+        CFG.width = 1; CFG.height = 1;
+        CFG.preset = 'vertical';
+        CFG.rotX = 0; CFG.rotY = 0; CFG.rotZ = 0;
+      }
+      if (isAudio) {
+        CFG.width = 1; CFG.height = 1;
+        CFG.preset = 'vertical';
+        CFG.rotX = 0; CFG.rotY = 0; CFG.rotZ = 0;
+      }
+      if (isModel) {
+        CFG.scale = 0.5;
+        CFG.preset = 'vertical';
+        CFG.rotX = 0; CFG.rotY = 0; CFG.rotZ = 0;
+      }
     }
 
     applyConfigToSliders();
@@ -564,9 +584,9 @@
 
   function getRotation() {
     switch(CFG.preset) {
-      case 'horizontal': return '-90 0 0';
-      case 'vertical':   return '0 0 0';
-      case 'inclinado':  return '-45 0 0';
+      case 'horizontal': return '-90 0 0';   // plano sobre la superficie
+      case 'vertical':   return '0 0 0';     // de frente a la cámara — DEFAULT
+      case 'inclinado':  return '-45 0 0';   // 45 grados
       case 'libre':      return `${CFG.rotX} ${CFG.rotY} ${CFG.rotZ}`;
       default:           return '0 0 0';
     }

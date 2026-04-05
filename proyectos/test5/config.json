@@ -1,15 +1,15 @@
 {
-  "posX": -0.05,
+  "posX": 0,
   "posY": 0,
-  "posZ": -0.2,
+  "posZ": 0.01,
   "rotX": 0,
   "rotY": 0,
   "rotZ": 0,
-  "scale": 1.25,
-  "width": 1.25,
-  "height": 1.25,
-  "preset": "libre",
-  "loop": false,
-  "autoplay": false,
+  "preset": "vertical",
+  "scale": 0.5,
+  "width": 1,
+  "height": 1,
+  "loop": true,
+  "autoplay": true,
   "fade": false
 }

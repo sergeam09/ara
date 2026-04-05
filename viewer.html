@@ -865,12 +865,23 @@
   }
 
   function cerrarViewer() {
-    // Intentar cerrar la pestaña si fue abierta desde otra
-    if (window.history.length > 1) {
-      window.history.back();
-    } else {
-      window.close();
-    }
+    // Estrategia robusta para cerrar el viewer
+    try {
+      // Si tiene referrer, intentar ir atrás
+      if (document.referrer && document.referrer !== '') {
+        window.location.href = document.referrer;
+        return;
+      }
+    } catch(e) {}
+
+    // Intentar cerrar la pestaña
+    try {
+      window.open('', '_self').close();
+    } catch(e) {}
+
+    // Fallback: ir a la raíz del sitio (el Creator)
+    const base = window.location.href.split('/viewer.html')[0];
+    window.location.href = base + '/';
   }
 
   function showToast(msg) {

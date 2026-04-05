@@ -370,19 +370,22 @@ function updateDot(){const t=getToken(),d=document.getElementById('tokenDot');d.
 updateDot();
 
 // ── DIMENSIONES ──
-let dimConfig = { prop: '16:9', width: 1, height: 0.552, scale: 0.5 };
+let dimConfig = { prop: '16:9', width: 1, height: 0.5625, scale: 0.5 };
+// Inicializar preset activo según tipo al cargar
+// (16:9 para video, 1:1 para gif, mediano para model)
 
 function setProp(tipo, w, h) {
-  const base = 1;
+  // Calcular width y height manteniendo el lado mayor en 1 unidad
   const maxD = Math.max(w, h);
-  dimConfig.width  = parseFloat((base * w / maxD).toFixed(3));
-  dimConfig.height = parseFloat((base * h / maxD).toFixed(3));
+  dimConfig.width  = parseFloat((w / maxD).toFixed(3));
+  dimConfig.height = parseFloat((h / maxD).toFixed(3));
   dimConfig.prop   = `${w}:${h}`;
   // Marcar preset activo
   const presets = document.getElementById(`${tipo}PropPresets`);
   if (presets) presets.querySelectorAll('.dim-preset').forEach(b => {
     b.classList.toggle('active', b.textContent === `${w}:${h}`);
   });
+  console.log('[ARA] Proporción:', dimConfig.prop, dimConfig.width, 'x', dimConfig.height);
 }
 
 function setModelScale(sz) {
@@ -396,29 +399,37 @@ function setModelScale(sz) {
 }
 
 function getDimensions() {
-  // Leer cm si fueron introducidos y convertir a metros
   const t = tipoActual;
+
+  // Empezar con la proporción elegida (preset) — siempre presente
+  let width  = dimConfig.width;
+  let height = dimConfig.height;
+  let scale  = dimConfig.scale;
+
+  // Si el usuario introdujo cm, calcular tamaño real y mantener la proporción
   if (t === 'video' || t === 'surface-video') {
-    const w = parseFloat(document.getElementById('dimVideoW')?.value);
-    const h = parseFloat(document.getElementById('dimVideoH')?.value);
-    if (w && h && !isNaN(w) && !isNaN(h)) {
-      return { width: +(w/100).toFixed(3), height: +(h/100).toFixed(3), scale: 1 };
+    const cw = parseFloat(document.getElementById('dimVideoW')?.value);
+    const ch = parseFloat(document.getElementById('dimVideoH')?.value);
+    if (cw > 0 && ch > 0 && !isNaN(cw) && !isNaN(ch)) {
+      width  = +(cw/100).toFixed(3);
+      height = +(ch/100).toFixed(3);
+    }
+  } else if (t === 'gif' || t === 'surface-gif') {
+    const cw = parseFloat(document.getElementById('dimGifW')?.value);
+    const ch = parseFloat(document.getElementById('dimGifH')?.value);
+    if (cw > 0 && ch > 0 && !isNaN(cw) && !isNaN(ch)) {
+      width  = +(cw/100).toFixed(3);
+      height = +(ch/100).toFixed(3);
+    }
+  } else if (t === 'model') {
+    const ch = parseFloat(document.getElementById('dimModelH')?.value);
+    if (ch > 0 && !isNaN(ch)) {
+      scale = +(ch/100).toFixed(3);
     }
   }
-  if (t === 'gif' || t === 'surface-gif') {
-    const w = parseFloat(document.getElementById('dimGifW')?.value);
-    const h = parseFloat(document.getElementById('dimGifH')?.value);
-    if (w && h && !isNaN(w) && !isNaN(h)) {
-      return { width: +(w/100).toFixed(3), height: +(h/100).toFixed(3), scale: 1 };
-    }
-  }
-  if (t === 'model') {
-    const h = parseFloat(document.getElementById('dimModelH')?.value);
-    if (h && !isNaN(h)) {
-      return { width: 1, height: 1, scale: +(h/100).toFixed(3) };
-    }
-  }
-  return { width: dimConfig.width, height: dimConfig.height, scale: dimConfig.scale };
+
+  console.log('[ARA] Dimensiones finales:', {width, height, scale});
+  return { width, height, scale };
 }
 
 function setModo(m){

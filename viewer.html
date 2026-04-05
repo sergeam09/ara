@@ -128,6 +128,21 @@
       font-size: 10px; color: var(--a); width: 36px;
       text-align: right; font-family: system-ui, monospace;
     }
+    .ed-num {
+      background: rgba(200,245,66,0.06); border: 1px solid rgba(200,245,66,0.15);
+      color: var(--a); font-family: system-ui, monospace; font-size: 11px;
+      width: 52px; padding: 4px 6px; text-align: right; outline: none;
+    }
+    .ed-num:focus { border-color: var(--a); }
+    .ed-unit { font-size: 10px; color: #444; letter-spacing: 0.05em; }
+    .ed-realsize {
+      background: rgba(200,245,66,0.04); border: 1px solid rgba(200,245,66,0.1);
+      padding: 12px; margin-top: 4px;
+    }
+    .ed-realsize-title {
+      font-size: 9px; color: #444; letter-spacing: 0.18em; text-transform: uppercase;
+      margin-bottom: 10px;
+    }
 
     .ed-grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 
@@ -224,18 +239,21 @@
   <div class="ed-section">Posición</div>
   <div class="ed-row">
     <div class="ed-label">Altura</div>
-    <input type="range" class="ed-slider" id="slPosY" min="-1" max="2" step="0.05" value="0" oninput="updateContent()">
-    <div class="ed-val" id="valPosY">0.0</div>
+    <input type="range" class="ed-slider" id="slPosY" min="-1" max="2" step="0.05" value="0" oninput="syncNum('slPosY','numPosY');updateContent()">
+    <input type="number" class="ed-num" id="numPosY" value="0" step="0.05" oninput="syncSlider('numPosY','slPosY',-1,2);updateContent()">
+    <span class="ed-unit">m</span>
   </div>
   <div class="ed-row">
     <div class="ed-label">Profundidad</div>
-    <input type="range" class="ed-slider" id="slPosZ" min="-0.5" max="0.5" step="0.02" value="0.01" oninput="updateContent()">
-    <div class="ed-val" id="valPosZ">0.0</div>
+    <input type="range" class="ed-slider" id="slPosZ" min="-0.5" max="0.5" step="0.02" value="0.01" oninput="syncNum('slPosZ','numPosZ');updateContent()">
+    <input type="number" class="ed-num" id="numPosZ" value="0.01" step="0.02" oninput="syncSlider('numPosZ','slPosZ',-0.5,0.5);updateContent()">
+    <span class="ed-unit">m</span>
   </div>
   <div class="ed-row">
     <div class="ed-label">Lateral</div>
-    <input type="range" class="ed-slider" id="slPosX" min="-1" max="1" step="0.05" value="0" oninput="updateContent()">
-    <div class="ed-val" id="valPosX">0.0</div>
+    <input type="range" class="ed-slider" id="slPosX" min="-1" max="1" step="0.05" value="0" oninput="syncNum('slPosX','numPosX');updateContent()">
+    <input type="number" class="ed-num" id="numPosX" value="0" step="0.05" oninput="syncSlider('numPosX','slPosX',-1,1);updateContent()">
+    <span class="ed-unit">m</span>
   </div>
 
   <!-- Rotación manual (solo en modo libre) -->
@@ -262,11 +280,11 @@
   <div class="ed-section">Tamaño</div>
   <div class="ed-row">
     <div class="ed-label">Escala</div>
-    <input type="range" class="ed-slider" id="slScale" min="0.05" max="3" step="0.05" value="1" oninput="updateContent()">
-    <div class="ed-val" id="valScale">1.0</div>
+    <input type="range" class="ed-slider" id="slScale" min="0.05" max="3" step="0.05" value="1" oninput="syncNum('slScale','numScale');updateContent()">
+    <input type="number" class="ed-num" id="numScale" value="1" step="0.05" min="0.05" max="3" oninput="syncSlider('numScale','slScale',0.05,3);updateContent()">
   </div>
 
-  <!-- Proporción (solo para video/gif) -->
+  <!-- Proporción y tamaño real (solo para video/gif) -->
   <div id="secProp">
     <div class="ed-section">Proporción del contenido</div>
     <div class="ed-preset-row" id="presetProp">
@@ -277,13 +295,31 @@
     </div>
     <div class="ed-row" style="margin-top:8px;">
       <div class="ed-label">Ancho</div>
-      <input type="range" class="ed-slider" id="slWidth" min="0.2" max="3" step="0.05" value="1" oninput="updateDims()">
-      <div class="ed-val" id="valWidth">1.0</div>
+      <input type="range" class="ed-slider" id="slWidth" min="0.1" max="3" step="0.01" value="1" oninput="syncNum('slWidth','numWidth');updateDims()">
+      <input type="number" class="ed-num" id="numWidth" value="1" step="0.01" min="0.1" max="3" oninput="syncSlider('numWidth','slWidth',0.1,3);updateDims()">
+      <span class="ed-unit">m</span>
     </div>
     <div class="ed-row">
       <div class="ed-label">Alto</div>
-      <input type="range" class="ed-slider" id="slHeight" min="0.2" max="3" step="0.05" value="1" oninput="updateDims()">
-      <div class="ed-val" id="valHeight">1.0</div>
+      <input type="range" class="ed-slider" id="slHeight" min="0.1" max="3" step="0.01" value="1" oninput="syncNum('slHeight','numHeight');updateDims()">
+      <input type="number" class="ed-num" id="numHeight" value="1" step="0.01" min="0.1" max="3" oninput="syncSlider('numHeight','slHeight',0.1,3);updateDims()">
+      <span class="ed-unit">m</span>
+    </div>
+
+    <!-- Tamaño real de la obra -->
+    <div class="ed-realsize">
+      <div class="ed-realsize-title">Tamaño real de la obra → calcula automáticamente</div>
+      <div class="ed-row">
+        <div class="ed-label">Ancho obra</div>
+        <input type="number" class="ed-num" id="numRealW" placeholder="ej. 60" step="1" min="1" oninput="calcTamanoReal()" style="width:64px;">
+        <span class="ed-unit">cm</span>
+      </div>
+      <div class="ed-row" style="margin-top:6px;">
+        <div class="ed-label">Alto obra</div>
+        <input type="number" class="ed-num" id="numRealH" placeholder="ej. 40" step="1" min="1" oninput="calcTamanoReal()" style="width:64px;">
+        <span class="ed-unit">cm</span>
+      </div>
+      <div id="realSizeResult" style="font-size:10px;color:#444;margin-top:8px;line-height:1.8;display:none;"></div>
     </div>
   </div>
 
@@ -402,10 +438,15 @@
 
   function applyConfigToSliders() {
     const set = (id, v) => { const el = document.getElementById(id); if(el) el.value = v; };
+    // Sliders
     set('slPosX', CFG.posX); set('slPosY', CFG.posY); set('slPosZ', CFG.posZ);
     set('slRotX', CFG.rotX); set('slRotY', CFG.rotY); set('slRotZ', CFG.rotZ);
     set('slScale', CFG.scale);
     set('slWidth', CFG.width); set('slHeight', CFG.height);
+    // Inputs numéricos
+    set('numPosX', CFG.posX); set('numPosY', CFG.posY); set('numPosZ', CFG.posZ);
+    set('numScale', CFG.scale);
+    set('numWidth', CFG.width); set('numHeight', CFG.height);
     updateVals();
 
     // Presets
@@ -592,29 +633,84 @@
     }
   }
 
+  // Sincronizar slider → input numérico
+  function syncNum(sliderId, numId) {
+    const sl = document.getElementById(sliderId);
+    const nm = document.getElementById(numId);
+    if (sl && nm) nm.value = parseFloat(sl.value).toFixed(2);
+  }
+
+  // Sincronizar input numérico → slider (con clamp)
+  function syncSlider(numId, sliderId, min, max) {
+    const nm = document.getElementById(numId);
+    const sl = document.getElementById(sliderId);
+    if (!nm || !sl) return;
+    let v = parseFloat(nm.value);
+    if (isNaN(v)) return;
+    v = Math.min(Math.max(v, min), max);
+    sl.value = v;
+  }
+
+  // Calculadora de tamaño real (cm → unidades A-Frame)
+  function calcTamanoReal() {
+    const rw = parseFloat(document.getElementById('numRealW')?.value);
+    const rh = parseFloat(document.getElementById('numRealH')?.value);
+    if (!rw || !rh || isNaN(rw) || isNaN(rh)) return;
+
+    // 1 unidad A-Frame = 1 metro = 100 cm
+    const aw = (rw / 100).toFixed(3);
+    const ah = (rh / 100).toFixed(3);
+
+    // Aplicar a los sliders e inputs
+    const slW = document.getElementById('slWidth');
+    const slH = document.getElementById('slHeight');
+    const nmW = document.getElementById('numWidth');
+    const nmH = document.getElementById('numHeight');
+
+    if (slW) slW.value = Math.min(aw, 3);
+    if (slH) slH.value = Math.min(ah, 3);
+    if (nmW) nmW.value = aw;
+    if (nmH) nmH.value = ah;
+
+    // Mostrar resultado
+    const res = document.getElementById('realSizeResult');
+    if (res) {
+      res.style.display = 'block';
+      res.innerHTML = `Ancho: <span style="color:var(--a)">${aw}m</span> · Alto: <span style="color:var(--a)">${ah}m</span><br>
+        <span style="color:#333">La proyección coincidirá con el tamaño físico de la obra</span>`;
+    }
+
+    updateDims();
+  }
+
   function updateVals() {
-    const v = (id, val, unit='') => {
-      const el = document.getElementById(id);
-      if (el) el.textContent = parseFloat(val).toFixed(1) + unit;
-    };
-    v('valPosX', document.getElementById('slPosX')?.value || CFG.posX);
-    v('valPosY', document.getElementById('slPosY')?.value || CFG.posY);
-    v('valPosZ', document.getElementById('slPosZ')?.value || CFG.posZ);
-    v('valRotX', document.getElementById('slRotX')?.value || CFG.rotX, '°');
-    v('valRotY', document.getElementById('slRotY')?.value || CFG.rotY, '°');
-    v('valRotZ', document.getElementById('slRotZ')?.value || CFG.rotZ, '°');
-    v('valScale', document.getElementById('slScale')?.value || CFG.scale);
-    v('valWidth',  document.getElementById('slWidth')?.value || CFG.width);
-    v('valHeight', document.getElementById('slHeight')?.value || CFG.height);
+    const g = id => document.getElementById(id)?.value || 0;
+    // Sincronizar todos los nums con sus sliders
+    ['PosX','PosY','PosZ','Scale','Width','Height'].forEach(k => {
+      syncNum(`sl${k}`, `num${k}`);
+    });
+    ['RotX','RotY','RotZ'].forEach(k => {
+      const el = document.getElementById(`valRot${k}`);
+      if (el) el.textContent = parseFloat(g(`slRot${k}`)).toFixed(0) + '°';
+    });
   }
 
   function readSliders() {
-    const g = id => parseFloat(document.getElementById(id)?.value || 0);
-    CFG.posX = g('slPosX'); CFG.posY = g('slPosY'); CFG.posZ = g('slPosZ');
-    CFG.rotX = g('slRotX'); CFG.rotY = g('slRotY'); CFG.rotZ = g('slRotZ');
-    CFG.scale = g('slScale');
-    CFG.width  = g('slWidth');
-    CFG.height = g('slHeight');
+    // Leer desde inputs numéricos si existen, sino desde sliders
+    const g = (numId, slId) => {
+      const nm = document.getElementById(numId);
+      const sl = document.getElementById(slId);
+      return parseFloat(nm?.value || sl?.value || 0);
+    };
+    CFG.posX  = g('numPosX',  'slPosX');
+    CFG.posY  = g('numPosY',  'slPosY');
+    CFG.posZ  = g('numPosZ',  'slPosZ');
+    CFG.rotX  = g(null,       'slRotX');
+    CFG.rotY  = g(null,       'slRotY');
+    CFG.rotZ  = g(null,       'slRotZ');
+    CFG.scale = g('numScale', 'slScale');
+    CFG.width  = g('numWidth',  'slWidth');
+    CFG.height = g('numHeight', 'slHeight');
   }
 
   function updateContent() {

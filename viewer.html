@@ -150,7 +150,25 @@
 </head>
 <body>
 
-<div id="splash">
+<!-- ── PANTALLA DE INICIO ── -->
+<div id="startScreen" style="position:fixed;inset:0;background:#0a0a0a;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:28px;z-index:2000;padding:40px;text-align:center;">
+  <div style="font-family:Georgia,serif;font-size:52px;color:#c8f542;letter-spacing:-0.02em;line-height:1;">ARA</div>
+  <div style="font-size:10px;color:#333;letter-spacing:0.22em;text-transform:uppercase;">Augmented Reality Atelier</div>
+  <div style="width:40px;height:1px;background:#1e1e1e;"></div>
+  <div id="startProjectName" style="font-size:13px;color:#555;letter-spacing:0.1em;"></div>
+  <button id="startBtn" onclick="arrancarExperiencia()" style="
+    background:#c8f542;color:#0a0a0a;border:none;
+    padding:16px 40px;font-size:12px;
+    letter-spacing:0.15em;text-transform:uppercase;
+    cursor:pointer;margin-top:8px;
+    font-family:system-ui,monospace;
+  ">▶ Iniciar experiencia</button>
+  <div style="font-size:10px;color:#222;letter-spacing:0.08em;line-height:1.8;max-width:240px;">
+    Se solicitará acceso a la cámara al iniciar
+  </div>
+</div>
+
+<div id="splash" style="display:none;">
   <div class="slogo">ARA</div>
   <div class="ssub">Cargando experiencia</div>
   <div class="sbar"></div>
@@ -168,7 +186,7 @@
 <div id="hud">
   <div class="hlogo">ARA</div>
   <div id="hudRight">
-    <button class="hbtn" id="btnEdit" onclick="toggleEditor()" style="display:none;">✎ Editar</button>
+    <button class="hbtn" id="btnEdit" onclick="toggleEditor()" style="display:none;">✎</button>
     <button class="hbtn" onclick="history.back()">✕</button>
   </div>
 </div>
@@ -322,9 +340,22 @@
   let arContent = null;
 
   // ── INIT ──
+  // Nombre del proyecto en pantalla de inicio
+  const startName = document.getElementById('startProjectName');
+  if (startName) startName.textContent = PROJECT ? PROJECT.replace(/-/g,' ') : '';
+
+  // El modo edición solo se activa con &edit=1 en la URL
+  const EDIT_MODE = P.get('edit') === '1';
+
   if (!PROJECT) {
+    document.getElementById('startScreen').style.display = 'none';
     showErr('No se especificó ningún proyecto.');
-  } else {
+  }
+  // Esperar al botón de inicio — arrancarExperiencia() lo llama el usuario
+
+  function arrancarExperiencia() {
+    document.getElementById('startScreen').style.display = 'none';
+    document.getElementById('splash').style.display = 'flex';
     loadConfigAndInit();
   }
 
@@ -484,7 +515,7 @@
 
     sceneDiv.classList.add('show');
     document.getElementById('hud').classList.add('show');
-    document.getElementById('btnEdit').style.display = 'block';
+    if (EDIT_MODE) document.getElementById('btnEdit').style.display = 'block';
 
     if (withTracking) {
       document.getElementById('scan').classList.add('show');

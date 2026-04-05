@@ -263,11 +263,18 @@
           <div class="plabel">Link del espectador</div>
           <div class="linkbox">
             <div class="linkdisplay" id="linkDisplay">—</div>
-            <button class="btn-copy" id="btnCopy" onclick="copiarLink()">Copiar</button>
+            <button class="btn-copy" id="btnCopy" onclick="copiarLink('linkDisplay')">Copiar</button>
+          </div>
+        </div>
+        <div>
+          <div class="plabel" style="margin-top:12px;">Link de edición — solo para ti</div>
+          <div class="linkbox">
+            <div class="linkdisplay" id="linkEditor" style="color:#f5a623;">—</div>
+            <button class="btn-copy" onclick="copiarLink('linkEditor')">Copiar</button>
           </div>
         </div>
         <div style="display:flex;gap:2px;">
-          <button class="btn btn-ghost" style="flex:1;" onclick="abrirViewer()">↗ Abrir Viewer</button>
+          <button class="btn btn-ghost" style="flex:1;" onclick="abrirViewer()">↗ Abrir</button>
           <button class="btn btn-ghost" style="flex:1;" onclick="descargarQR()">↓ QR</button>
         </div>
       </div>
@@ -483,11 +490,28 @@ async function generarProyecto(){
 }
 
 function mostrarOutput(url){
-  document.getElementById('linkDisplay').textContent=url;
+  // Link espectador (sin edit)
+  const urlEspectador = url.replace('&edit=1','');
+  // Link editor (con edit=1)
+  const urlEditor = urlEspectador + '&edit=1';
+
+  document.getElementById('linkDisplay').textContent = urlEspectador;
+  document.getElementById('linkEditor').textContent  = urlEditor;
+
   document.getElementById('qrcode').innerHTML='';
-  new QRCode(document.getElementById('qrcode'),{text:url,width:176,height:176,colorDark:'#0a0a0a',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.H});
+  new QRCode(document.getElementById('qrcode'),{
+    text:urlEspectador,width:176,height:176,
+    colorDark:'#0a0a0a',colorLight:'#ffffff',
+    correctLevel:QRCode.CorrectLevel.H
+  });
+  viewerUrlActual = urlEspectador;
 }
-function copiarLink(){navigator.clipboard.writeText(document.getElementById('linkDisplay').textContent);const b=document.getElementById('btnCopy');b.textContent='✓ Copiado';b.classList.add('copied');setTimeout(()=>{b.textContent='Copiar';b.classList.remove('copied');},2000);}
+function copiarLink(elId){
+  const id = elId || 'linkDisplay';
+  const txt = document.getElementById(id)?.textContent || '';
+  navigator.clipboard.writeText(txt);
+  toast('Link copiado ✓');
+}
 function abrirViewer(){if(viewerUrlActual)window.open(viewerUrlActual,'_blank');}
 function descargarQR(){const c=document.querySelector('#qrcode canvas');if(!c)return;const a=document.createElement('a');a.download='ara-qr.png';a.href=c.toDataURL();a.click();}
 

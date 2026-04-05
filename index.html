@@ -6,7 +6,16 @@
   <title>ARA — Augmented Reality Atelier</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
-  <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image.prod.js"></script>
+  <script type="importmap">
+  {
+    "imports": {
+      "./controller-mGt1s8dJ.js": "https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/controller-mGt1s8dJ.js",
+      "./controller-d1-OMKPY.js": "https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/controller-d1-OMKPY.js",
+      "./ui-fBadYuor.js": "https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/ui-fBadYuor.js"
+    }
+  }
+  </script>
+  <script type="module" src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image.prod.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <style>
     :root{--bg:#0a0a0a;--surface:#111111;--border:#1e1e1e;--accent:#c8f542;--accent2:#f5a623;--text:#e8e8e0;--muted:#444440;--danger:#ff4545;--ok:#42f58d;--fd:'DM Serif Display',serif;--fm:'DM Mono',monospace}
@@ -254,6 +263,22 @@ async function fileToBase64(file){return new Promise((res,rej)=>{const r=new Fil
 
 function arrayBufferToBase64(buffer){const bytes=new Uint8Array(buffer);let bin='';for(let i=0;i<bytes.byteLength;i++)bin+=String.fromCharCode(bytes[i]);return btoa(bin);}
 
+async function waitForMINDAR() {
+  return new Promise((resolve) => {
+    if (window.MINDAR && window.MINDAR.IMAGE && window.MINDAR.IMAGE.Compiler) {
+      resolve();
+      return;
+    }
+    const check = setInterval(() => {
+      if (window.MINDAR && window.MINDAR.IMAGE && window.MINDAR.IMAGE.Compiler) {
+        clearInterval(check);
+        resolve();
+      }
+    }, 100);
+    setTimeout(() => { clearInterval(check); resolve(); }, 10000);
+  });
+}
+
 async function compilarMind(imagenFile){
   return new Promise((resolve,reject)=>{
     const img=new Image(),url=URL.createObjectURL(imagenFile);
@@ -297,6 +322,9 @@ async function generarProyecto(){
   clearLog();
 
   try{
+    logStep('◈ Cargando motor de tracking...','act');
+    setProgress(5,'Iniciando','Cargando MindAR...');
+    await waitForMINDAR();
     logStep('◈ Compilando imagen trigger...','act');
     setProgress(10,'Compilando tracking','Analizando imagen...');
     const mindBuffer=await compilarMind(fTrig);

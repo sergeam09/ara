@@ -114,10 +114,8 @@
     <span class="logo-text">ARA</span>
     <span class="logo-sub">Augmented Reality Atelier</span>
   </div>
-  <div class="token-area">
-    <span class="token-label">GitHub Token</span>
-    <input type="password" class="token-input" id="ghToken" placeholder="ghp_xxxxxxxxxxxx">
-    <div class="token-dot" id="tokenDot"></div>
+  <div style="font-size:10px;color:#333;letter-spacing:0.1em;">
+    ara.sergeam09.workers.dev ●
   </div>
 </header>
 
@@ -359,16 +357,11 @@
 const GITHUB_USER='sergeam09',GITHUB_REPO='ara',GITHUB_BRANCH='main';
 const BASE_URL=`https://${GITHUB_USER}.github.io/${GITHUB_REPO}`;
 const API_BASE=`https://api.github.com/repos/${GITHUB_USER}/${GITHUB_REPO}`;
+const WORKER_URL='https://ara.sergeam09.workers.dev';
 let tipoActual='video',modoActual='image',viewerUrlActual=null;
 let proyectos=JSON.parse(localStorage.getItem('ara-proyectos')||'[]');
 
-const tokenInput=document.getElementById('ghToken');
-const saved=localStorage.getItem('ara-gh-token');
-if(saved)tokenInput.value=saved;
-tokenInput.addEventListener('change',()=>{localStorage.setItem('ara-gh-token',tokenInput.value.trim());updateDot();});
-function getToken(){return tokenInput.value.trim();}
-function updateDot(){const t=getToken(),d=document.getElementById('tokenDot');d.className='token-dot '+(t.startsWith('ghp_')?'ok':t?'err':'');}
-updateDot();
+// Token gestionado por Cloudflare Worker — no se necesita aquí
 
 // ── DIMENSIONES ──
 let dimConfig = { prop: '16:9', width: 1, height: 0.5625, scale: 0.5 };
@@ -481,15 +474,19 @@ function clearLog(){const log=document.getElementById('stepsLog');log.innerHTML=
 function setProgress(pct,label,msg,status=''){document.getElementById('progFill').style.width=pct+'%';document.getElementById('progPct').textContent=pct+'%';document.getElementById('progLabel').textContent=label;const m=document.getElementById('progMsg');m.textContent=msg;m.className='prog-msg'+(status?' '+status:'');}
 
 async function githubUpload(path,content,msg){
-  const token=getToken(),url=`${API_BASE}/contents/${path}`;
-  let sha=null;
-  try{const c=await fetch(url,{headers:{'Authorization':`token ${token}`,'Accept':'application/vnd.github.v3+json'}});if(c.ok){const d=await c.json();sha=d.sha;}}catch(e){}
-  const body={message:msg,content,branch:GITHUB_BRANCH};
-  if(sha)body.sha=sha;
-  const res=await fetch(url,{method:'PUT',headers:{'Authorization':`token ${token}`,'Content-Type':'application/json','Accept':'application/vnd.github.v3+json'},body:JSON.stringify(body)});
-  if(!res.ok){const err=await res.json();throw new Error(err.message||`Error ${res.status}`);}
+  // Usar el Worker de Cloudflare — el token vive allá, nunca aquí
+  const res = await fetch(WORKER_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ path, content, message: msg }),
+  });
+  if(!res.ok){
+    const err = await res.json();
+    throw new Error(err.error || `Error ${res.status}`);
+  }
   return res.json();
 }
+
 
 async function fileToBase64(file){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result.split(',')[1]);r.onerror=rej;r.readAsDataURL(file);});}
 
@@ -532,13 +529,13 @@ async function compilarMind(imagenFile){
 
 async function generarProyecto(){
   const nombre=document.getElementById('pNombre').value.trim();
-  const token=getToken();
+
   const fTrig=document.getElementById('fTrigger').files[0];
   const fMap={video:'fVideo',gif:'fGif',model:'fModel',audio:'fAudio','surface-model':'fSurfModel','surface-video':'fSurfVideo','surface-gif':'fSurfGif'};
   const fCont=document.getElementById(fMap[tipoActual])?.files[0];
   const fAImg=document.getElementById('fAudioImg')?.files[0];
 
-  if(!token||!token.startsWith('ghp_')){toast('Ingresa tu GitHub Token arriba');return;}
+  // Token gestionado por Worker — sin validación local necesaria
   if(!nombre){toast('Ponle nombre al proyecto');return;}
   if(!/^[a-zA-Z0-9_-]+$/.test(nombre)){toast('Solo letras, números y guiones');return;}
   if(modoActual==='image'&&!fTrig){toast('Necesitas una imagen trigger');return;}
@@ -630,6 +627,12 @@ async function generarProyecto(){
     mostrarOutput(viewerUrl);
     renderProyectos();
     toast('¡Publicado en GitHub Pages ✓');
+    // Limpiar nombre del proyecto para evitar confusión en el próximo proyecto
+    // (no limpiar archivos — el usuario puede querer republicar)
+    document.getElementById('pNombre').style.borderColor = 'var(--ok)';
+    setTimeout(() => {
+      document.getElementById('pNombre').style.borderColor = '';
+    }, 3000);
   }catch(e){
     setProgress(0,'Error',e.message,'err');
     logStep(`✕ Error: ${e.message}`,'err');

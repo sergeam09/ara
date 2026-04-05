@@ -352,13 +352,19 @@
   async function init() {
     setSplash('Verificando archivos...');
 
-    // Para 3D usamos Model Viewer directo sin image tracking
+    // Surface AR — modelo 3D, video o gif sobre superficie
+    if (TYPE === 'surface-model' || TYPE === 'surface-video' || TYPE === 'surface-gif') {
+      initSurface();
+      return;
+    }
+
+    // Model Viewer — 3D sin imagen trigger (fallback simple)
     if (TYPE === 'model') {
       initModelViewer();
       return;
     }
 
-    // Para el resto usamos MindAR + A-Frame con image tracking
+    // Image tracking — MindAR + A-Frame
     await initMindAR();
   }
 
@@ -392,6 +398,233 @@
     wrap.classList.add('show');
     document.getElementById('hud').classList.add('show');
     hideSplash();
+  }
+
+  // ── SURFACE AR (WebXR hit-test) ──
+  function initSurface() {
+    setSplash('Preparando Surface AR...');
+    const sceneDiv = document.getElementById('ar-scene');
+
+    let contentHTML = '';
+    if (TYPE === 'surface-model') {
+      contentHTML = `<a-entity
+        gltf-model="${PATHS.content}"
+        scale="0.5 0.5 0.5"
+        id="ar-content"
+        visible="false"
+        shadow="receive: true">
+      </a-entity>`;
+    } else if (TYPE === 'surface-video') {
+      contentHTML = `<a-video
+        src="${PATHS.content}"
+        width="1.6" height="0.9"
+        id="ar-content"
+        visible="false"
+        loop="true"
+        autoplay="true"
+        playsinline="true"
+        webkit-playsinline="true"
+        rotation="-90 0 0">
+      </a-video>`;
+    } else if (TYPE === 'surface-gif') {
+      contentHTML = `<a-image
+        src="${PATHS.content}"
+        width="1" height="1"
+        id="ar-content"
+        visible="false"
+        rotation="-90 0 0">
+      </a-image>`;
+    }
+
+    sceneDiv.innerHTML = `
+      <a-scene
+        webxr="requiredFeatures: hit-test; optionalFeatures: dom-overlay; overlayElement: #hud;"
+        embedded
+        renderer="colorManagement: true; physicallyCorrectLights: true"
+        vr-mode-ui="enabled: false"
+        device-orientation-permission-ui="enabled: false"
+        style="width:100vw; height:100vh;">
+
+        <a-assets>
+          <video id="surf-video" src="${PATHS.content}" loop playsinline crossorigin="anonymous" style="display:none"></video>
+        </a-assets>
+
+        <a-camera position="0 1.6 0">
+          <a-cursor id="cursor" fuse="false" raycaster="objects: .clickable" color="#c8f542" opacity="0.8"></a-cursor>
+        </a-camera>
+
+        <!-- Reticle: indica dónde se colocará el objeto -->
+        <a-entity id="reticle"
+          geometry="primitive: ring; radiusInner: 0.06; radiusOuter: 0.1"
+          material="color: #c8f542; shader: flat; side: double"
+          rotation="-90 0 0"
+          visible="false">
+        </a-entity>
+
+        <!-- Contenido AR -->
+        ${contentHTML}
+
+        <!-- Luz ambiental -->
+        <a-light type="ambient" color="#ffffff" intensity="0.6"></a-light>
+        <a-light type="directional" color="#ffffff" intensity="0.8" position="1 2 1"></a-light>
+      </a-scene>
+    `;
+
+    sceneDiv.classList.add('show');
+    document.getElementById('hud').classList.add('show');
+
+    // Instrucción de toque
+    const scanEl = document.getElementById('scanIndicator');
+    scanEl.querySelector('.stxt').textContent = 'Apunta al suelo o pared y toca para colocar';
+    scanEl.classList.add('show');
+
+    setTimeout(() => {
+      const scene = sceneDiv.querySelector('a-scene');
+      if (!scene) return;
+
+      scene.addEventListener('loaded', () => {
+        hideSplash();
+        initHitTest(scene);
+      });
+
+      // Fallback
+      setTimeout(() => hideSplash(), 5000);
+    }, 500);
+  }
+
+  function initHitTest(scene) {
+    const reticle  = document.getElementById('reticle');
+    const content  = document.getElementById('ar-content');
+    let placed     = false;
+    let hitMatrix  = null;
+
+    // WebXR hit-test via A-Frame
+    scene.addEventListener('enter-vr', () => {
+      const renderer = scene.renderer;
+      const xrSession = renderer.xr.getSession();
+      if (!xrSession) return;
+
+      xrSession.requestReferenceSpace('viewer').then(viewerSpace => {
+        xrSession.requestHitTestSource({ space: viewerSpace }).then(hitTestSource => {
+
+          // Loop de hit-test en cada frame
+          renderer.setAnimationLoop((timestamp, frame) => {
+            if (!frame) return;
+            const refSpace = renderer.xr.getReferenceSpace();
+            const hits = frame.getHitTestResults(hitTestSource);
+
+            if (hits.length > 0) {
+              const hit = hits[0];
+              const pose = hit.getPose(refSpace);
+              if (pose) {
+                hitMatrix = pose.transform.matrix;
+                reticle.setAttribute('visible', true);
+
+                // Posición del reticle
+                const px = hitMatrix[12], py = hitMatrix[13], pz = hitMatrix[14];
+                reticle.setAttribute('position', `${px} ${py} ${pz}`);
+
+                // Detectar si es superficie vertical u horizontal
+                const normalY = hitMatrix[5];
+                const isVertical = Math.abs(normalY) < 0.3;
+                if (!placed) {
+                  if (isVertical) {
+                    reticle.querySelector('.stxt') && (document.querySelector('.stxt').textContent = 'Superficie vertical detectada — toca para colocar');
+                  } else {
+                    document.querySelector('.stxt') && (document.querySelector('.stxt').textContent = 'Superficie detectada — toca para colocar');
+                  }
+                }
+              }
+            } else {
+              reticle.setAttribute('visible', false);
+            }
+          });
+        }).catch(() => {
+          // Hit-test no disponible — fallback a posición fija
+          fallbackSurface(content);
+        });
+      });
+    });
+
+    // Tap para colocar
+    sceneDiv.addEventListener('click', () => {
+      if (hitMatrix && !placed) {
+        placed = true;
+        const px = hitMatrix[12], py = hitMatrix[13], pz = hitMatrix[14];
+        content.setAttribute('position', `${px} ${py} ${pz}`);
+        content.setAttribute('visible', true);
+        reticle.setAttribute('visible', false);
+        document.getElementById('scanIndicator').classList.remove('show');
+
+        // Ping de confirmación
+        const ping = document.getElementById('foundPing');
+        ping.classList.add('ping');
+        setTimeout(() => ping.classList.remove('ping'), 700);
+
+        // Botón para reposicionar
+        showReposicionarBtn();
+      }
+    });
+
+    // Intentar entrar en AR automáticamente
+    setTimeout(() => {
+      const arBtn = scene.querySelector('[webxr]');
+      scene.enterAR().catch(() => {
+        // Si WebXR no está disponible usar Model Viewer como fallback
+        if (TYPE === 'surface-model') {
+          fallbackModelViewer();
+        } else {
+          fallbackSurface(content);
+        }
+      });
+    }, 1000);
+  }
+
+  function fallbackModelViewer() {
+    document.getElementById('ar-scene').classList.remove('show');
+    const wrap = document.getElementById('mvWrap');
+    wrap.innerHTML = `
+      <model-viewer
+        src="${PATHS.content}"
+        ar ar-modes="webxr scene-viewer quick-look"
+        camera-controls auto-rotate shadow-intensity="1">
+        <button slot="ar-button" style="position:absolute;bottom:24px;left:50%;transform:translateX(-50%);
+          background:#c8f542;color:#0a0a0a;border:none;padding:13px 26px;
+          font-size:12px;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer;">
+          ⬡ Ver en tu espacio
+        </button>
+      </model-viewer>`;
+    wrap.classList.add('show');
+    document.getElementById('hud').classList.add('show');
+    document.getElementById('scanIndicator').classList.remove('show');
+    hideSplash();
+  }
+
+  function fallbackSurface(content) {
+    // Posición fija frente a la cámara si no hay hit-test
+    content.setAttribute('position', '0 0 -1.5');
+    content.setAttribute('visible', true);
+    document.getElementById('scanIndicator').classList.remove('show');
+    hideSplash();
+  }
+
+  function showReposicionarBtn() {
+    const hud = document.getElementById('hud');
+    const btn = document.createElement('button');
+    btn.className = 'hbtn';
+    btn.textContent = '↺ Reposicionar';
+    btn.style.marginRight = '8px';
+    btn.onclick = () => {
+      const content = document.getElementById('ar-content');
+      const reticle = document.getElementById('reticle');
+      // Reset
+      window._arPlaced = false;
+      content.setAttribute('visible', false);
+      reticle.setAttribute('visible', true);
+      document.getElementById('scanIndicator').classList.add('show');
+      btn.remove();
+    };
+    hud.insertBefore(btn, hud.lastElementChild);
   }
 
   // ── MINDAR + A-FRAME (image tracking) ──

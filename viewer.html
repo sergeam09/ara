@@ -429,21 +429,34 @@
   // Esperar al botón de inicio — arrancarExperiencia() lo llama el usuario
 
   function arrancarExperiencia() {
+    dbg('arrancarExperiencia() llamado');
     document.getElementById('startScreen').style.display = 'none';
     document.getElementById('splash').style.display = 'flex';
-    loadConfigAndInit();
+    dbg('splash visible — llamando loadConfigAndInit()');
+    try {
+      loadConfigAndInit();
+    } catch(e) {
+      dbg(`ERROR en loadConfigAndInit: ${e.message}`, '#ff4545');
+    }
   }
 
   async function loadConfigAndInit() {
+    dbg('loadConfigAndInit() iniciado');
     setSplash('Cargando configuración...');
     // Intentar cargar config guardada
     try {
+      dbg(`fetching config: ${PATHS.config}`);
       const r = await fetch(PATHS.config);
       if (r.ok) {
         const saved = await r.json();
         CFG = {...defaultConfig, ...saved};
+        dbg('config.json cargado OK', '#42f58d');
+      } else {
+        dbg(`config.json ${r.status} — usando defaults`);
       }
-    } catch(e) { /* usa defaults */ }
+    } catch(e) {
+      dbg(`config fetch error: ${e.message}`);
+    }
 
     // Si NO hay config.json guardado, usar URL params como punto de partida
     // Si SÍ hay config.json (editor guardó), respetarlo completamente
@@ -477,6 +490,7 @@
     if (!CFG.posZ || CFG.posZ === 0) CFG.posZ = 0.01;
 
     applyConfigToSliders();
+    dbg(`llamando init() tipo=${TYPE}`);
     init();
   }
 

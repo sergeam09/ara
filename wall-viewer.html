@@ -6,8 +6,10 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <title>ARA — Wall AR</title>
 
-  <!-- xr.js PRIMERO, 8-Frame DESPUÉS -->
-  <script src="./xr/xr.js" data-preload-chunks="slam"></script>
+  <!-- 8th Wall engine oficial desde npm — PRIMERO -->
+  <script src="https://cdn.jsdelivr.net/npm/@8thwall/engine-binary@1/dist/xr.js"
+    async crossorigin="anonymous" data-preload-chunks="slam"></script>
+  <!-- 8-Frame DESPUÉS -->
   <script src="//cdn.8thwall.com/web/aframe/8frame-1.4.1.min.js"></script>
 
   <style>

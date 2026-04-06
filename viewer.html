@@ -792,7 +792,13 @@
 
   async function guardarConfig() {
     readSliders();
-    // Token: primero desde URL, luego desde localStorage del mismo dominio
+
+    // Si el preset es vertical, forzar rotación 0 para evitar inclinaciones residuales
+    if (CFG.preset === 'vertical') {
+      CFG.rotX = 0; CFG.rotY = 0; CFG.rotZ = 0;
+    }
+
+    // Token: primero desde URL, luego desde sessionStorage
     let token = new URLSearchParams(location.search).get('tk')
              || sessionStorage.getItem('ara-tk');
     if (!token) {
@@ -874,10 +880,47 @@
   }
 
   function cerrarViewer() {
-    // Siempre ir al Creator — nunca al historial anterior
-    // Esto evita que al cerrar regrese a una experiencia anterior
-    const base = window.location.href.split('/viewer.html')[0];
-    window.location.replace(base + '/index.html');
+    if (EDIT_MODE) {
+      // Modo editor: regresar al Creator
+      const base = window.location.href.split('/viewer.html')[0];
+      window.location.replace(base + '/index.html');
+      return;
+    }
+
+    // Modo espectador: limpiar TODO y volver a la pantalla de inicio
+
+    // 1. Detener y limpiar la escena A-Frame (MindAR e Image tracking)
+    try {
+      const scene = document.querySelector('a-scene');
+      if (scene && scene.renderer) {
+        scene.renderer.setAnimationLoop(null);
+      }
+    } catch(e) {}
+    const arScene = document.getElementById('arScene');
+    arScene.classList.remove('show');
+    arScene.innerHTML = '';
+
+    // 2. Limpiar Model Viewer (Surface 3D)
+    const mvWrap = document.getElementById('mvWrap');
+    mvWrap.classList.remove('show');
+    mvWrap.innerHTML = '';
+
+    // 3. Ocultar HUD, scan, ping, editor
+    document.getElementById('hud').classList.remove('show');
+    document.getElementById('scan').classList.remove('show');
+    document.getElementById('ping').classList.remove('go');
+    document.getElementById('editor').classList.remove('open');
+    document.getElementById('btnEdit').style.display = 'none';
+
+    // 4. Ocultar splash por si acaso
+    document.getElementById('splash').classList.remove('hidden');
+    document.getElementById('splash').style.display = 'none';
+
+    // 5. Mostrar pantalla de inicio
+    document.getElementById('startScreen').style.display = 'flex';
+
+    // 6. Resetear variable de contenido AR activo
+    arContent = null;
   }
 
   function showToast(msg) {

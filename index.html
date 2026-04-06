@@ -810,7 +810,9 @@ async function generarProyecto(){
     // Pasar dimensiones y comportamiento directamente en la URL
     const lp = dimConfig.loop    ? '1' : '0';
     const ap = dimConfig.autoplay ? '1' : '0';
-    const viewerUrl=`${BASE_URL}/viewer.html?p=${slug}&t=${tipoActual}&ce=${contentExt}&te=${triggerExt}&w=${dims.width}&h=${dims.height}&sc=${dims.scale}&lp=${lp}&ap=${ap}`;
+    // Wall usa su propio viewer con 8th Wall engine
+    const viewerFile = modoActual === 'wall' ? 'wall-viewer.html' : 'viewer.html';
+    const viewerUrl=`${BASE_URL}/${viewerFile}?p=${slug}&t=${tipoActual}&ce=${contentExt}&te=${triggerExt}&w=${dims.width}&h=${dims.height}&sc=${dims.scale}&lp=${lp}&ap=${ap}`;
     viewerUrlActual=viewerUrl;
 
     const proyecto={slug,nombre,tipo:tipoActual,contentExt,triggerExt,url:viewerUrl,creado:new Date().toLocaleDateString('es-MX')};

@@ -12,7 +12,8 @@
   <style>
     :root { --a: #c8f542; --bg: #0a0a0a; --s: rgba(10,10,10,0.82); --b: rgba(255,255,255,0.08); }
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    body { background: var(--bg); color: #e8e8e0; font-family: system-ui, monospace; height: 100vh; overflow: hidden; touch-action: none; }
+    body { background: var(--bg); color: #e8e8e0; font-family: system-ui, monospace; height: 100vh; overflow: hidden; touch-action: auto; }
+    body.ar-active { touch-action: none; }
 
     /* SPLASH */
     #splash { position: fixed; inset: 0; background: var(--bg); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 24px; z-index: 1000; transition: opacity 0.5s; }
@@ -430,6 +431,7 @@
 
   function arrancarExperiencia() {
     dbg('arrancarExperiencia() llamado');
+    document.body.classList.add('ar-active'); // activar touch-action:none para AR
     document.getElementById('startScreen').style.display = 'none';
     document.getElementById('splash').style.display = 'flex';
     dbg('splash visible — llamando loadConfigAndInit()');
@@ -1278,7 +1280,10 @@
     const wallBtn = document.getElementById('wallArBtn');
     if (wallBtn) wallBtn.remove();
 
-    // 7. Resetear variable de contenido AR activo
+    // 7. Resetear touch-action para que el botón de inicio funcione
+    document.body.classList.remove('ar-active');
+
+    // 8. Resetear variable de contenido AR activo
     arContent = null;
   }
 

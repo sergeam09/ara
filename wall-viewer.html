@@ -5,12 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <title>ARA — Wall AR</title>
-  <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
   <style>
     * { margin:0; padding:0; box-sizing:border-box; }
     body { background:#000; overflow:hidden; touch-action:auto; }
-    body.ar-active { touch-action:none; }
+
     #startScreen {
       position:fixed; inset:0; background:#0a0a0a;
       display:flex; flex-direction:column;
@@ -19,44 +17,71 @@
     }
     .slogo { font-family:Georgia,serif; font-size:52px; color:#c8f542; }
     .ssub  { font-size:10px; color:#333; letter-spacing:0.22em; text-transform:uppercase; }
-    .sname { font-size:13px; color:#555; letter-spacing:0.1em; }
+    .sname { font-size:13px; color:#555; }
     .sbtn  {
       background:#c8f542; color:#0a0a0a; border:none;
       padding:16px 40px; font-size:12px;
       letter-spacing:0.15em; text-transform:uppercase;
       cursor:pointer; font-family:system-ui,monospace;
     }
-    .shint { font-size:10px; color:#222; letter-spacing:0.08em; line-height:1.8; max-width:240px; }
+    .shint { font-size:10px; color:#222; line-height:1.8; max-width:260px; }
+
+    /* Cámara de fondo */
+    #cam {
+      position:fixed; inset:0; width:100%; height:100%;
+      object-fit:cover; z-index:1; display:none;
+    }
+
+    /* HUD */
     #hud {
       position:fixed; top:0; left:0; right:0;
       padding:18px 20px; display:none;
-      justify-content:space-between; align-items:flex-start;
-      z-index:500; pointer-events:none;
+      justify-content:space-between; align-items:center;
+      z-index:10;
     }
     #hud.show { display:flex; }
-    .hlogo { font-size:15px; color:rgba(200,245,66,0.8); letter-spacing:0.1em; font-family:system-ui,monospace; }
+    .hlogo { font-size:15px; color:rgba(200,245,66,0.9); font-family:system-ui,monospace; }
     .hbtn {
-      pointer-events:all;
-      background:rgba(10,10,10,0.82); border:1px solid rgba(255,255,255,0.08);
-      color:#888; font-size:10px; letter-spacing:0.12em; text-transform:uppercase;
-      padding:8px 13px; cursor:pointer; font-family:system-ui,monospace;
+      background:rgba(10,10,10,0.85); border:1px solid rgba(255,255,255,0.1);
+      color:#888; font-size:11px; letter-spacing:0.1em; text-transform:uppercase;
+      padding:8px 14px; cursor:pointer; font-family:system-ui,monospace;
     }
-    #status {
-      position:fixed; bottom:100px; left:0; right:0;
+
+    /* Instrucción */
+    #instruccion {
+      position:fixed; bottom:120px; left:0; right:0;
       text-align:center; font-family:system-ui,monospace;
-      font-size:12px; color:rgba(255,255,255,0.8);
-      letter-spacing:0.1em; text-transform:uppercase;
-      pointer-events:none; z-index:500;
+      font-size:13px; color:#fff;
+      text-shadow:0 2px 8px rgba(0,0,0,0.9);
+      letter-spacing:0.08em; z-index:10;
       display:none;
     }
-    #status.show { display:block; }
-    #arScene { display:none; width:100vw; height:100vh; }
-    #arScene.show { display:block; }
+    #instruccion.show { display:block; }
+
+    /* Contenido AR superpuesto */
+    #arContent {
+      position:fixed; z-index:5;
+      display:none;
+      transform-origin:center center;
+    }
+    #arContent.show { display:block; }
+    #arContent video, #arContent img {
+      width:100%; height:100%; object-fit:cover;
+      border-radius:4px;
+    }
+
+    /* Model Viewer para 3D */
+    #mvWrap {
+      position:fixed; inset:0; z-index:5; display:none;
+    }
+    #mvWrap.show { display:block; }
+    model-viewer { width:100%; height:100%; background:#000; }
+
     #ping {
       position:fixed; top:50%; left:50%;
       transform:translate(-50%,-50%);
       width:56px; height:56px; border:2px solid #c8f542;
-      border-radius:50%; opacity:0; pointer-events:none; z-index:500;
+      border-radius:50%; opacity:0; pointer-events:none; z-index:20;
     }
     #ping.go { animation:pg 0.6s ease-out forwards; }
     @keyframes pg {
@@ -73,17 +98,25 @@
   <div style="width:40px;height:1px;background:#1e1e1e;"></div>
   <div class="sname" id="startName"></div>
   <button class="sbtn" onclick="arrancar()">▶ Iniciar experiencia</button>
-  <div class="shint">Apunta la cámara hacia una pared y toca para colocar el contenido</div>
+  <div class="shint">Apunta a una pared y toca la pantalla para colocar el contenido</div>
 </div>
+
+<!-- Cámara trasera como fondo -->
+<video id="cam" autoplay playsinline muted></video>
 
 <div id="hud">
   <div class="hlogo">ARA</div>
   <button class="hbtn" onclick="cerrar()">✕</button>
 </div>
 
-<div id="status">Apunta a una pared y toca para colocar</div>
+<div id="instruccion">Toca la pantalla para colocar</div>
 <div id="ping"></div>
-<div id="arScene"></div>
+
+<!-- Contenido superpuesto -->
+<div id="arContent"></div>
+
+<!-- Model Viewer para 3D -->
+<div id="mvWrap"></div>
 
 <script>
   const P = new URLSearchParams(location.search);
@@ -93,6 +126,7 @@
   const W    = parseFloat(P.get('w'))  || 1;
   const H    = parseFloat(P.get('h'))  || 0.5625;
   const LOOP = P.get('lp') !== '0';
+  const SC   = parseFloat(P.get('sc')) || 0.5;
   const BASE = location.href.split('/wall-viewer.html')[0];
   const CONTENT_URL = BASE + '/proyectos/' + PROJECT + '/contenido.' + CE;
 
@@ -100,113 +134,118 @@
     document.getElementById('startName').textContent = PROJECT.replace(/-/g,' ');
   }
 
+  let camStream = null;
+
   function cerrar() {
-    document.getElementById('startScreen').style.display = 'flex';
+    if (camStream) { camStream.getTracks().forEach(t => t.stop()); camStream = null; }
+    document.getElementById('cam').style.display = 'none';
     document.getElementById('hud').classList.remove('show');
-    document.getElementById('status').classList.remove('show');
-    document.getElementById('arScene').classList.remove('show');
-    document.getElementById('arScene').innerHTML = '';
-    document.body.classList.remove('ar-active');
-    const vid = document.getElementById('wallVid');
-    if (vid) vid.pause();
+    document.getElementById('instruccion').classList.remove('show');
+    document.getElementById('arContent').classList.remove('show');
+    document.getElementById('arContent').innerHTML = '';
+    document.getElementById('mvWrap').classList.remove('show');
+    document.getElementById('mvWrap').innerHTML = '';
+    document.getElementById('startScreen').style.display = 'flex';
+    document.body.style.touchAction = 'auto';
   }
 
-  function arrancar() {
-    document.body.classList.add('ar-active');
+  async function arrancar() {
     document.getElementById('startScreen').style.display = 'none';
     document.getElementById('hud').classList.add('show');
-    document.getElementById('status').classList.add('show');
+    document.body.style.touchAction = 'none';
 
-    const sceneDiv = document.getElementById('arScene');
-
-    // Para modelos 3D — usar Model Viewer con ar-placement wall
+    // Modelo 3D — usar Model Viewer nativo
     if (TYPE === 'wall-model') {
-      sceneDiv.innerHTML = `
-        <model-viewer
-          src="${CONTENT_URL}"
-          ar ar-modes="webxr scene-viewer quick-look"
-          ar-placement="wall" ar-scale="fixed"
-          scale="${W} ${W} ${W}"
-          camera-controls auto-rotate
-          shadow-intensity="0.8"
-          style="width:100vw;height:100vh;background:#000;">
-          <button slot="ar-button" style="
-            position:absolute;bottom:80px;left:50%;
-            transform:translateX(-50%);
-            background:#c8f542;color:#0a0a0a;border:none;
-            padding:16px 36px;font-size:13px;
-            letter-spacing:0.12em;text-transform:uppercase;
-            cursor:pointer;font-family:system-ui,monospace;">
-            ▣ Colocar en pared
-          </button>
-        </model-viewer>`;
-      // Cargar Model Viewer dinámicamente
       if (!document.querySelector('script[src*="model-viewer"]')) {
         const s = document.createElement('script');
         s.type = 'module';
         s.src = 'https://ajax.googleapis.com/ajax/libs/model-viewer/3.3.0/model-viewer.min.js';
         document.head.appendChild(s);
+        await new Promise(r => s.onload = r);
       }
-      sceneDiv.classList.add('show');
-      document.getElementById('status').textContent = 'Toca "Colocar en pared" para ver en AR';
+      const mv = document.getElementById('mvWrap');
+      mv.innerHTML = `<model-viewer
+        src="${CONTENT_URL}"
+        ar ar-modes="webxr scene-viewer quick-look"
+        ar-placement="wall" ar-scale="fixed"
+        scale="${SC} ${SC} ${SC}"
+        camera-controls auto-rotate shadow-intensity="0.8">
+        <button slot="ar-button" style="
+          position:absolute;bottom:80px;left:50%;
+          transform:translateX(-50%);
+          background:#c8f542;color:#0a0a0a;border:none;
+          padding:16px 36px;font-size:13px;
+          letter-spacing:0.12em;text-transform:uppercase;
+          cursor:pointer;font-family:system-ui,monospace;">
+          ▣ Colocar en pared
+        </button>
+      </model-viewer>`;
+      mv.classList.add('show');
       return;
     }
 
-    // Para video y GIF — AR.js con cámara real, toque para colocar
-    let assetHTML = '';
-    let contentHTML = '';
-
-    if (TYPE === 'wall-video') {
-      assetHTML = `<video id="wallVid" src="${CONTENT_URL}"
-        loop="${LOOP}" muted playsinline webkit-playsinline
-        crossorigin="anonymous" preload="auto" style="display:none;"></video>`;
-      contentHTML = `<a-video id="arc" src="#wallVid"
-        width="${W}" height="${H}"
-        position="0 0 -1.5" look-at="[camera]"
-        visible="false">
-      </a-video>`;
-    } else if (TYPE === 'wall-gif') {
-      contentHTML = `<a-image id="arc" src="${CONTENT_URL}"
-        width="${W}" height="${H}"
-        position="0 0 -1.5" look-at="[camera]"
-        visible="false">
-      </a-image>`;
+    // Video o GIF — abrir cámara trasera y superponer contenido
+    try {
+      camStream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'environment', width: {ideal:1280}, height: {ideal:720} },
+        audio: false
+      });
+      const camEl = document.getElementById('cam');
+      camEl.srcObject = camStream;
+      camEl.style.display = 'block';
+      document.getElementById('instruccion').classList.add('show');
+    } catch(e) {
+      alert('No se pudo acceder a la cámara: ' + e.message);
+      cerrar();
+      return;
     }
 
-    sceneDiv.innerHTML = `
-      <a-scene embedded
-        arjs="sourceType:webcam; videoTexture:true; debugUIEnabled:false;"
-        vr-mode-ui="enabled:false"
-        device-orientation-permission-ui="enabled:false"
-        style="width:100vw;height:100vh;">
-        <a-assets>
-          ${assetHTML}
-        </a-assets>
-        <a-camera gps-camera rotation-reader></a-camera>
-        ${contentHTML}
-      </a-scene>`;
+    // Calcular tamaño del contenido en pantalla
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    const maxW = vw * 0.8;
+    const maxH = vh * 0.6;
+    let cw, ch;
+    if (W/H > maxW/maxH) { cw = maxW; ch = maxW * (H/W); }
+    else { ch = maxH; cw = maxH * (W/H); }
+    const cx = (vw - cw) / 2;
+    const cy = (vh - ch) / 2;
 
-    sceneDiv.classList.add('show');
+    const arEl = document.getElementById('arContent');
+    arEl.style.cssText = `left:${cx}px;top:${cy}px;width:${cw}px;height:${ch}px;`;
 
-    // Toque para colocar el contenido
-    let placed = false;
-    document.addEventListener('touchstart', () => {
-      if (placed) return;
-      placed = true;
+    if (TYPE === 'wall-video') {
+      arEl.innerHTML = `<video src="${CONTENT_URL}"
+        loop="${LOOP}" muted playsinline webkit-playsinline
+        crossorigin="anonymous" style="display:none;">
+      </video>`;
+    } else {
+      arEl.innerHTML = `<img src="${CONTENT_URL}" style="display:none;">`;
+    }
 
-      const arc = document.getElementById('arc');
-      if (arc) arc.setAttribute('visible', true);
+    // Toque para colocar
+    document.addEventListener('touchstart', colocar, { once: true });
+    document.addEventListener('click',      colocar, { once: true });
+  }
 
-      const vid = document.getElementById('wallVid');
-      if (vid) vid.play().catch(() => {});
+  function colocar() {
+    const arEl = document.getElementById('arContent');
+    const media = arEl.querySelector('video, img');
+    if (!media) return;
 
-      document.getElementById('status').textContent = '✓ Contenido colocado';
-      setTimeout(() => document.getElementById('status').classList.remove('show'), 2000);
+    media.style.display = 'block';
+    arEl.classList.add('show');
 
-      const ping = document.getElementById('ping');
-      ping.classList.add('go');
-      setTimeout(() => ping.classList.remove('go'), 700);
-    }, { once: true });
+    if (media.tagName === 'VIDEO') {
+      media.muted = true;
+      media.play().catch(() => {});
+    }
+
+    document.getElementById('instruccion').classList.remove('show');
+
+    const ping = document.getElementById('ping');
+    ping.classList.add('go');
+    setTimeout(() => ping.classList.remove('go'), 700);
   }
 </script>
 </body>

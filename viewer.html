@@ -607,68 +607,131 @@
     const w = CFG.width  || URL_W  || 1;
     const h = CFG.height || URL_H  || 0.5625;
 
-    let assetHTML = '';
-    let contentHTML = '';
+    dbg('buildWallScene() — cargando 8th Wall engine');
+    setSplash('Cargando Wall AR...');
 
-    if (TYPE === 'wall-video') {
-      assetHTML = `<video id="wallVideo"
-        src="${PATHS.content}"
-        loop="${CFG.loop}" muted playsinline
-        webkit-playsinline crossorigin="anonymous"
-        preload="auto" style="display:none;"></video>`;
-      contentHTML = `<a-video id="arc"
-        src="#wallVideo" width="${w}" height="${h}"
-        position="0 0 -1.5" visible="false">
-      </a-video>`;
-    } else if (TYPE === 'wall-gif') {
-      contentHTML = `<a-image id="arc"
-        src="${PATHS.content}" width="${w}" height="${h}"
-        position="0 0 -1.5" visible="false">
-      </a-image>`;
+    // Cargar xr.js de 8th Wall si no está cargado
+    if (!window.XR8) {
+      const xrScript = document.createElement('script');
+      xrScript.src = BASE + '/xr/xr.js';
+      xrScript.setAttribute('data-preload-chunks', 'slam');
+      xrScript.async = true;
+      xrScript.onerror = () => {
+        dbg('Error cargando xr.js', '#ff4545');
+        showErr('No se pudo cargar el engine de Wall AR.');
+      };
+      document.head.appendChild(xrScript);
+      dbg('xr.js agregado al head');
     }
 
-    const sceneDiv = document.getElementById('arScene');
-    sceneDiv.innerHTML = `
-      <a-scene
-        arjs="sourceType: webcam; videoTexture: true; debugUIEnabled: false;"
-        embedded
-        vr-mode-ui="enabled:false"
-        device-orientation-permission-ui="enabled:false"
-        style="width:100vw;height:100vh;">
-        <a-assets timeout="10000">${assetHTML}</a-assets>
-        <a-camera position="0 1.6 0" look-controls wasd-controls="enabled:false"></a-camera>
-        ${contentHTML}
-      </a-scene>`;
+    // Preparar video
+    let videoEl = null;
+    if (TYPE === 'wall-video') {
+      videoEl = document.createElement('video');
+      videoEl.id = 'wallVideo';
+      videoEl.src = PATHS.content;
+      videoEl.loop = CFG.loop;
+      videoEl.muted = true;
+      videoEl.setAttribute('playsinline', '');
+      videoEl.setAttribute('webkit-playsinline', '');
+      videoEl.crossOrigin = 'anonymous';
+      videoEl.style.display = 'none';
+      document.body.appendChild(videoEl);
+    }
 
+    // Canvas para 8th Wall
+    const sceneDiv = document.getElementById('arScene');
+    sceneDiv.innerHTML = '<canvas id="wallCanvas" style="position:absolute;top:0;left:0;width:100%;height:100%;"></canvas>';
     sceneDiv.classList.add('show');
     document.getElementById('hud').classList.add('show');
     if (EDIT_MODE) document.getElementById('btnEdit').style.display = 'block';
 
-    setTimeout(() => {
-      const scene = sceneDiv.querySelector('a-scene');
-      if (!scene) return;
+    // Esperar a que XR8 esté disponible
+    let xrWait = 0;
+    const waitXR8 = setInterval(() => {
+      xrWait++;
+      dbg('esperando XR8... ' + xrWait);
+      if (window.XR8) {
+        clearInterval(waitXR8);
+        dbg('XR8 disponible — iniciando', '#42f58d');
+        _startXR8Wall(w, h, videoEl);
+      }
+      if (xrWait > 20) {
+        clearInterval(waitXR8);
+        dbg('XR8 timeout — no disponible', '#ff4545');
+        showErr('El engine AR no pudo cargar. Verifica la conexión.');
+      }
+    }, 500);
+  }
 
-      let wallReady = false;
-      let loadTimer = 0;
-      const loadInterval = setInterval(() => {
-        loadTimer += 2;
-        const loaded = scene.hasLoaded;
-        dbg(`polling ${loadTimer}s hasLoaded:${loaded}`);
-        if (loaded && !wallReady) {
-          wallReady = true;
-          clearInterval(loadInterval);
-          dbg('escena lista', '#42f58d');
-          hideSplash();
-          mostrarBotonWall(scene);
+  function _startXR8Wall(w, h, videoEl) {
+    const canvas = document.getElementById('wallCanvas');
+    if (!canvas) { dbg('canvas no encontrado', '#ff4545'); return; }
+
+    let placed = false;
+
+    // Pipeline module personalizado
+    const wallPipeline = {
+      name: 'wall-pipeline',
+      onStart: () => {
+        dbg('XR8 onStart — cámara activa!', '#42f58d');
+        hideSplash();
+        document.getElementById('scan').classList.add('show');
+        document.getElementById('scanTxt').textContent = 'Mueve el teléfono para detectar la superficie';
+      },
+      onUpdate: ({processCpuResult}) => {
+        if (placed) return;
+        if (!processCpuResult || !processCpuResult.reality) return;
+        const reality = processCpuResult.reality;
+        if (reality && reality.position) {
+          document.getElementById('scanTxt').textContent = 'Superficie detectada — toca para colocar';
         }
-        if (loadTimer >= 12 && !wallReady) {
-          clearInterval(loadInterval);
-          wallReady = true;
-          hideSplash();
-          mostrarBotonWall(scene);
-        }
-      }, 2000);
-    }, 600);
+      },
+      onException: (err) => {
+        dbg('XR8 error: ' + err, '#ff4545');
+        showErr('Error en Wall AR: ' + err);
+      },
+    };
+
+    XR8.XrController.configure({ disableWorldTracking: false });
+    XR8.addCameraPipelineModules([
+      XR8.GlTextureRenderer.pipelineModule(),
+      XR8.XrController.pipelineModule(),
+      wallPipeline,
+    ]);
+    XR8.run({ canvas, allowedDevices: XR8.XrConfig.device().ANY });
+    dbg('XR8.run() llamado', '#42f58d');
+
+    // Toque para colocar
+    canvas.addEventListener('touchstart', () => {
+      if (placed) return;
+      placed = true;
+      dbg('toque — colocando contenido', '#f5a623');
+      document.getElementById('scan').classList.remove('show');
+
+      // Mostrar contenido sobre el canvas
+      const overlay = document.createElement('div');
+      overlay.style.cssText = 'position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;z-index:10;';
+
+      if (TYPE === 'wall-video' && videoEl) {
+        videoEl.style.cssText = 'display:block;width:80vw;max-width:500px;';
+        videoEl.play().catch(e => dbg('video: ' + e));
+        overlay.appendChild(videoEl);
+      } else if (TYPE === 'wall-gif') {
+        const img = document.createElement('img');
+        img.src = PATHS.content;
+        img.style.cssText = 'width:80vw;max-width:500px;';
+        overlay.appendChild(img);
+      }
+
+      document.getElementById('arScene').appendChild(overlay);
+      arContent = overlay;
+
+      const ping = document.getElementById('ping');
+      ping.classList.add('go');
+      setTimeout(() => ping.classList.remove('go'), 700);
+      dbg('contenido colocado', '#42f58d');
+    });
   }
 
   function mostrarBotonWall(scene) {

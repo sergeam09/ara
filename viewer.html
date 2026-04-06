@@ -8,7 +8,6 @@
   <title>ARA — Experiencia AR</title>
   <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
-  <!-- Model Viewer se carga dinámicamente solo cuando se necesita -->
   <style>
     :root { --a: #c8f542; --bg: #0a0a0a; --s: rgba(10,10,10,0.82); --b: rgba(255,255,255,0.08); }
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -352,7 +351,7 @@
   const PROJECT = P.get('p');
 
   // ── DEBUG LOG VISIBLE EN PANTALLA ──
-  const DBG = true; // cambiar a false para producción
+  const DBG = true;
   function dbg(msg, color) {
     console.log('[ARA]', msg);
     if (!DBG) return;
@@ -384,54 +383,45 @@
     config:   `${BASE}/proyectos/${PROJECT}/config.json`,
   };
 
-  // Dimensiones y comportamiento desde URL (pasadas por el Creator)
   const URL_W    = parseFloat(P.get('w'))  || null;
   const URL_H    = parseFloat(P.get('h'))  || null;
   const URL_SC   = parseFloat(P.get('sc')) || null;
-  const URL_LOOP = P.get('lp') !== '0';   // default true
-  const URL_AUTO = P.get('ap') !== '0';   // default true
+  const URL_LOOP = P.get('lp') !== '0';
+  const URL_AUTO = P.get('ap') !== '0';
 
-  // ── CONFIG DEL PROYECTO ──
-  // Defaults neutros — no afectan la proyección sin que el usuario los cambie
   const defaultConfig = {
     posX: 0, posY: 0, posZ: 0.01,
     rotX: 0, rotY: 0, rotZ: 0,
     scale: 1,
-    width: 1, height: 0.552,  // 16:9 aprox como punto de partida razonable
-    preset: 'vertical',       // vertical = sin rotación en image tracking
+    width: 1, height: 0.5625,
+    preset: 'vertical',
     loop: true, autoplay: true, fade: false,
   };
   let CFG = {...defaultConfig};
 
-  // Tipo de contenido
   const isVideo = ['video','surface-video','wall-video'].includes(TYPE);
   const isGif   = ['gif','surface-gif','wall-gif'].includes(TYPE);
   const isModel = ['model','surface-model','wall-model'].includes(TYPE);
   const isAudio = TYPE === 'audio';
   const isSurface = TYPE.startsWith('surface-');
   const isWall    = TYPE.startsWith('wall-');
-  const isImage   = !isSurface && !isWall;
-
-  // ── ELEMENTO AR ACTIVO ──
+  
   let arContent = null;
+  let animationLoopId = null; // Para limpiar el loop al cerrar
 
-  // ── INIT ──
-  // Nombre del proyecto en pantalla de inicio
   const startName = document.getElementById('startProjectName');
   if (startName) startName.textContent = PROJECT ? PROJECT.replace(/-/g,' ') : '';
 
-  // El modo edición solo se activa con &edit=1 en la URL
   const EDIT_MODE = P.get('edit') === '1';
 
   if (!PROJECT) {
     document.getElementById('startScreen').style.display = 'none';
     showErr('No se especificó ningún proyecto.');
   }
-  // Esperar al botón de inicio — arrancarExperiencia() lo llama el usuario
 
   function arrancarExperiencia() {
     dbg('arrancarExperiencia() llamado');
-    document.body.classList.add('ar-active'); // activar touch-action:none para AR
+    document.body.classList.add('ar-active');
     document.getElementById('startScreen').style.display = 'none';
     document.getElementById('splash').style.display = 'flex';
     dbg('splash visible — llamando loadConfigAndInit()');
@@ -445,7 +435,6 @@
   async function loadConfigAndInit() {
     dbg('loadConfigAndInit() iniciado');
     setSplash('Cargando configuración...');
-    // Intentar cargar config guardada
     try {
       dbg(`fetching config: ${PATHS.config}`);
       const r = await fetch(PATHS.config);
@@ -460,28 +449,22 @@
       dbg(`config fetch error: ${e.message}`);
     }
 
-    // Si NO hay config.json guardado, usar URL params como punto de partida
-    // Si SÍ hay config.json (editor guardó), respetarlo completamente
     const hasConfig = CFG.width !== defaultConfig.width || CFG.height !== defaultConfig.height
                    || CFG.scale !== defaultConfig.scale || CFG.posX !== 0 || CFG.posY !== 0;
 
     if (!hasConfig) {
-      // Sin config guardado — usar URL params del Creator
       if (URL_W  > 0) CFG.width  = URL_W;
       if (URL_H  > 0) CFG.height = URL_H;
       if (URL_SC > 0) CFG.scale  = URL_SC;
       CFG.loop     = URL_LOOP;
       CFG.autoplay = URL_AUTO;
     }
-    // Si hay config guardado, los valores del editor ya están en CFG — no tocar
 
-    // Forzar orientación correcta siempre
-    if (isVideo || isGif || isAudio) {
+    if (isVideo || isGif) {
       CFG.preset = CFG.preset || 'vertical';
       if (CFG.rotX === undefined) CFG.rotX = 0;
       if (CFG.rotY === undefined) CFG.rotY = 0;
       if (CFG.rotZ === undefined) CFG.rotZ = 0;
-      // Tamaño mínimo razonable si viene vacío
       if (!CFG.width  || CFG.width  <= 0) CFG.width  = URL_W  || (isVideo ? 1 : 1);
       if (!CFG.height || CFG.height <= 0) CFG.height = URL_H  || (isVideo ? 0.5625 : 1);
     }
@@ -498,28 +481,23 @@
 
   function applyConfigToSliders() {
     const set = (id, v) => { const el = document.getElementById(id); if(el) el.value = v; };
-    // Sliders
     set('slPosX', CFG.posX); set('slPosY', CFG.posY); set('slPosZ', CFG.posZ);
     set('slRotX', CFG.rotX); set('slRotY', CFG.rotY); set('slRotZ', CFG.rotZ);
     set('slScale', CFG.scale);
     set('slWidth', CFG.width); set('slHeight', CFG.height);
-    // Inputs numéricos
     set('numPosX', CFG.posX); set('numPosY', CFG.posY); set('numPosZ', CFG.posZ);
     set('numScale', CFG.scale);
     set('numWidth', CFG.width); set('numHeight', CFG.height);
     updateVals();
 
-    // Presets
     document.querySelectorAll('#presetOri .ed-preset').forEach(b => {
       b.classList.toggle('active', b.textContent.toLowerCase().includes(CFG.preset));
     });
 
-    // Toggles
     document.getElementById('togLoop')?.classList.toggle('active', CFG.loop);
     document.getElementById('togAuto')?.classList.toggle('active', CFG.autoplay);
     document.getElementById('togFade')?.classList.toggle('active', CFG.fade);
 
-    // Mostrar/ocultar sección de proporciones
     document.getElementById('secProp').style.display = (isVideo || isGif) ? 'block' : 'none';
   }
 
@@ -531,18 +509,15 @@
     await initMindAR();
   }
 
-  // ── MODEL VIEWER ──
   function initModelViewer() {
     setSplash('Cargando modelo 3D...');
     dbg('initModelViewer() — cargando Model Viewer');
 
-    // Cargar Model Viewer dinámicamente para evitar conflicto con Three.js
     if (!document.querySelector('script[src*="model-viewer"]')) {
       const s = document.createElement('script');
       s.type = 'module';
       s.src = 'https://ajax.googleapis.com/ajax/libs/model-viewer/3.3.0/model-viewer.min.js';
       document.head.appendChild(s);
-      // Esperar a que cargue
       s.onload = () => { dbg('Model Viewer cargado'); _initMV(); };
       s.onerror = () => { dbg('Model Viewer error de carga', '#ff4545'); _initMV(); };
     } else {
@@ -582,7 +557,6 @@
     document.getElementById('hud').classList.add('show');
     if (EDIT_MODE) document.getElementById('btnEdit').style.display = 'block';
 
-    // Instrucción
     const hint = document.createElement('div');
     hint.id = 'mvHint';
     hint.style.cssText = 'position:fixed;top:70px;left:0;right:0;text-align:center;font-size:11px;color:rgba(255,255,255,0.4);letter-spacing:0.1em;text-transform:uppercase;pointer-events:none;z-index:500;';
@@ -591,12 +565,10 @@
     hideSplash();
   }
 
-  // ── WALL AR (superficies verticales) ──
   function initWall() {
     dbg(`initWall() tipo=${TYPE}`);
     setSplash('Preparando Wall AR...');
 
-    // Para modelos 3D en pared usamos Model Viewer con ar-placement="wall"
     if (TYPE === 'wall-model') {
       const sc = URL_SC || CFG.scale || 0.5;
       document.getElementById('mvWrap').innerHTML = `
@@ -637,15 +609,13 @@
       return;
     }
 
-    // Para video/gif en pared: A-Frame con hit-test vertical
     buildWallScene();
   }
 
-  // ── ESCENA A-FRAME PARA WALL VIDEO/GIF ──
   function buildWallScene() {
     const w   = CFG.width  || URL_W  || 1;
     const h   = CFG.height || URL_H  || 0.5625;
-    const pos = '0 0 0.05'; // ligeramente adelante de la pared
+    const pos = '0 0 0.05';
 
     let entityHTML = '';
     if (TYPE === 'wall-video') {
@@ -676,14 +646,12 @@
         <a-light type="ambient" intensity="0.8"></a-light>
         <a-camera position="0 1.6 0"></a-camera>
 
-        <!-- Reticle para pared (vertical) -->
         <a-entity id="reticle"
           geometry="primitive: ring; radiusInner: 0.04; radiusOuter: 0.07"
           material="color:#c8f542;shader:flat;side:double"
           visible="false">
         </a-entity>
 
-        <!-- Contenido AR -->
         <a-entity id="arc-container" visible="false">
           ${entityHTML}
         </a-entity>
@@ -712,7 +680,6 @@
         showErr('No se pudo activar el AR. Verifica permisos de cámara.');
       });
 
-      // Polling: verificar hasLoaded cada 2s
       let loadTimer = 0;
       let wallReady = false;
       const loadInterval = setInterval(() => {
@@ -757,34 +724,41 @@
       btn.remove();
       document.getElementById('scan').classList.add('show');
       document.getElementById('scanTxt').textContent = 'Apunta a una pared';
+      
+      // Guardar referencia al sceneDiv
+      const sceneDiv = document.getElementById('arScene');
+      
       scene.enterAR().then(() => {
         dbg('enterAR() OK', '#42f58d');
+        initWallHitTest(scene, sceneDiv);
       }).catch((e) => {
         dbg(`enterAR() error: ${e}`, '#ff4545');
-        // Fallback si WebXR no está disponible
         const container = document.getElementById('arc-container');
         container.setAttribute('position', '0 1.2 -1.5');
         container.setAttribute('visible', true);
         document.getElementById('scan').classList.remove('show');
       });
-      initWallHitTest(scene);
     };
     document.body.appendChild(btn);
     dbg(`botón en DOM: ${!!document.getElementById('wallArBtn') || !!btn.isConnected}`);
   }
 
-  function initWallHitTest(scene) {
+  // ============================================================
+  // FUNCIÓN CORREGIDA: ahora recibe scene y sceneDiv
+  // ============================================================
+  function initWallHitTest(scene, sceneDiv) {
     dbg('initWallHitTest() iniciado');
     let placed = false;
     let hitMatrix = null;
-    let hitIsVertical = false;
+    let hitTestSource = null;
+    let viewerSpace = null;
 
     const reticle   = document.getElementById('reticle');
     const container = document.getElementById('arc-container');
+    const renderer = scene.renderer;
 
     scene.addEventListener('enter-vr', () => {
       dbg('enter-vr disparado');
-      const renderer = scene.renderer;
       const xrSession = renderer.xr.getSession();
       if (!xrSession) {
         dbg('xrSession es null — WebXR no disponible', '#ff4545');
@@ -792,85 +766,106 @@
       }
       dbg('xrSession OK — iniciando hit-test', '#42f58d');
 
-      xrSession.requestReferenceSpace('viewer').then(viewerSpace => {
-        xrSession.requestHitTestSource({ space: viewerSpace }).then(hitTestSource => {
-          dbg('hitTestSource OK', '#42f58d');
+      xrSession.requestReferenceSpace('viewer').then(space => {
+        viewerSpace = space;
+        return xrSession.requestHitTestSource({ space: viewerSpace });
+      }).then(source => {
+        hitTestSource = source;
+        dbg('hitTestSource OK', '#42f58d');
 
-          renderer.setAnimationLoop((timestamp, frame) => {
-            if (!frame || placed) return;
-            const refSpace = renderer.xr.getReferenceSpace();
-            const hits = frame.getHitTestResults(hitTestSource);
+        // Limpiar loop anterior si existe
+        if (animationLoopId) {
+          renderer.setAnimationLoop(null);
+        }
 
-            if (hits.length > 0) {
-              const hit  = hits[0];
-              const pose = hit.getPose(refSpace);
-              if (!pose) return;
+        renderer.setAnimationLoop((timestamp, frame) => {
+          if (!frame || placed) return;
+          
+          const refSpace = renderer.xr.getReferenceSpace();
+          if (!refSpace) return;
+          
+          const hits = frame.getHitTestResults(hitTestSource);
 
-              const m = pose.transform.matrix;
-              const px = m[12], py = m[13], pz = m[14];
+          if (hits.length > 0) {
+            const hit  = hits[0];
+            const pose = hit.getPose(refSpace);
+            if (!pose) return;
 
-              // Detectar si es superficie vertical (normalY cercano a 0)
-              const normalY = m[5];
-              hitIsVertical = Math.abs(normalY) < 0.3;
+            const m = pose.transform.matrix;
+            const px = m[12], py = m[13], pz = m[14];
+            
+            // Detectar superficie VERTICAL (normal Y cercano a 0)
+            const normalY = m[5];
+            const isVertical = Math.abs(normalY) < 0.3;
 
-              // Actualizar reticle
+            if (isVertical) {
               reticle.setAttribute('visible', true);
               reticle.setAttribute('position', `${px} ${py} ${pz}`);
-
-              // Rotar reticle según la normal de la superficie
-              if (hitIsVertical) {
-                reticle.setAttribute('rotation', '0 0 0');
-                document.getElementById('scanTxt').textContent = 'Pared detectada — toca para colocar';
-              } else {
-                reticle.setAttribute('rotation', '-90 0 0');
-                document.getElementById('scanTxt').textContent = 'Superficie horizontal — apunta a la pared';
-              }
-
-              hitMatrix = { px, py, pz, normalY };
+              reticle.setAttribute('rotation', '0 0 0');
+              hitMatrix = { px, py, pz };
+              document.getElementById('scanTxt').textContent = '✅ Pared detectada — toca para colocar';
             } else {
               reticle.setAttribute('visible', false);
               hitMatrix = null;
+              document.getElementById('scanTxt').textContent = '↻ Apunta a una pared vertical';
             }
-          });
-
-        }).catch((e) => {
-          dbg(`hitTestSource error: ${e}`, '#ff4545');
-          container.setAttribute('position', '0 1.2 -1.5');
-          container.setAttribute('visible', true);
-          document.getElementById('scan').classList.remove('show');
+          } else {
+            reticle.setAttribute('visible', false);
+            hitMatrix = null;
+            document.getElementById('scanTxt').textContent = '🔍 Mueve la cámara para detectar una pared';
+          }
         });
+
+      }).catch((e) => {
+        dbg(`hitTestSource error: ${e}`, '#ff4545');
+        container.setAttribute('position', '0 1.2 -1.5');
+        container.setAttribute('visible', true);
+        document.getElementById('scan').classList.remove('show');
       });
     });
 
-    // Toque para colocar
-    sceneDiv.addEventListener('click', () => {
-      if (!hitMatrix || placed) return;
-      placed = true;
+    // Evento de click CORREGIDO — ahora sceneDiv está definido
+    if (sceneDiv) {
+      sceneDiv.addEventListener('click', (e) => {
+        // Evitar que el click pase al botón si está presente
+        if (e.target.id === 'wallArBtn') return;
+        
+        if (!hitMatrix || placed) {
+          dbg('Click ignorado: hitMatrix null o ya colocado');
+          return;
+        }
+        
+        placed = true;
+        dbg(`Colocando contenido en pared: ${hitMatrix.px}, ${hitMatrix.py}, ${hitMatrix.pz}`, '#42f58d');
 
-      container.setAttribute('position', `${hitMatrix.px} ${hitMatrix.py} ${hitMatrix.pz}`);
-      container.setAttribute('visible', true);
-      reticle.setAttribute('visible', false);
-      document.getElementById('scan').classList.remove('show');
+        container.setAttribute('position', `${hitMatrix.px} ${hitMatrix.py} ${hitMatrix.pz}`);
+        container.setAttribute('visible', true);
+        reticle.setAttribute('visible', false);
+        document.getElementById('scan').classList.remove('show');
 
-      // Ping de confirmación
-      const ping = document.getElementById('ping');
-      ping.classList.add('go');
-      setTimeout(() => ping.classList.remove('go'), 700);
+        const ping = document.getElementById('ping');
+        ping.classList.add('go');
+        setTimeout(() => ping.classList.remove('go'), 700);
 
-      arContent = document.getElementById('arc');
-    });
+        arContent = document.getElementById('arc');
+        
+        // Detener el hit-test después de colocar
+        if (animationLoopId) {
+          renderer.setAnimationLoop(null);
+          animationLoopId = null;
+        }
+      });
+    } else {
+      dbg('ERROR: sceneDiv no está definido en initWallHitTest', '#ff4545');
+    }
   }
 
-  // ── SURFACE AR ──
   function initSurface() {
     setSplash('Cargando Surface AR...');
-    // Modelos 3D: Model Viewer con AR nativo (WebXR + ARKit + Scene Viewer)
     if (TYPE === 'surface-model') { initModelViewer(); return; }
-    // Video/GIF sobre superficie: A-Frame sin tracking de imagen
     buildAFrameScene(false);
   }
 
-  // ── MINDAR IMAGE TRACKING ──
   async function initMindAR() {
     setSplash('Cargando motor de tracking...');
     const mindOk = await fileExists(PATHS.mind);
@@ -882,7 +877,6 @@
     buildAFrameScene(true);
   }
 
-  // ── CONSTRUIR ESCENA A-FRAME ──
   function buildAFrameScene(withTracking) {
     const pos   = `${CFG.posX} ${CFG.posY} ${CFG.posZ}`;
     const rot   = getRotation();
@@ -978,7 +972,6 @@
     }, 600);
   }
 
-  // ── EDITOR ──
   function toggleEditor() {
     const ed = document.getElementById('editor');
     const btn = document.getElementById('btnEdit');
@@ -989,22 +982,20 @@
 
   function getRotation() {
     switch(CFG.preset) {
-      case 'horizontal': return '-90 0 0';   // plano sobre la superficie
-      case 'vertical':   return '0 0 0';     // de frente a la cámara — DEFAULT
-      case 'inclinado':  return '-45 0 0';   // 45 grados
+      case 'horizontal': return '-90 0 0';
+      case 'vertical':   return '0 0 0';
+      case 'inclinado':  return '-45 0 0';
       case 'libre':      return `${CFG.rotX} ${CFG.rotY} ${CFG.rotZ}`;
       default:           return '0 0 0';
     }
   }
 
-  // Sincronizar slider → input numérico
   function syncNum(sliderId, numId) {
     const sl = document.getElementById(sliderId);
     const nm = document.getElementById(numId);
     if (sl && nm) nm.value = parseFloat(sl.value).toFixed(2);
   }
 
-  // Sincronizar input numérico → slider (con clamp)
   function syncSlider(numId, sliderId, min, max) {
     const nm = document.getElementById(numId);
     const sl = document.getElementById(sliderId);
@@ -1015,17 +1006,14 @@
     sl.value = v;
   }
 
-  // Calculadora de tamaño real (cm → unidades A-Frame)
   function calcTamanoReal() {
     const rw = parseFloat(document.getElementById('numRealW')?.value);
     const rh = parseFloat(document.getElementById('numRealH')?.value);
     if (!rw || !rh || isNaN(rw) || isNaN(rh)) return;
 
-    // 1 unidad A-Frame = 1 metro = 100 cm
     const aw = (rw / 100).toFixed(3);
     const ah = (rh / 100).toFixed(3);
 
-    // Aplicar a los sliders e inputs
     const slW = document.getElementById('slWidth');
     const slH = document.getElementById('slHeight');
     const nmW = document.getElementById('numWidth');
@@ -1036,7 +1024,6 @@
     if (nmW) nmW.value = aw;
     if (nmH) nmH.value = ah;
 
-    // Mostrar resultado
     const res = document.getElementById('realSizeResult');
     if (res) {
       res.style.display = 'block';
@@ -1049,7 +1036,6 @@
 
   function updateVals() {
     const g = id => document.getElementById(id)?.value || 0;
-    // Sincronizar todos los nums con sus sliders
     ['PosX','PosY','PosZ','Scale','Width','Height'].forEach(k => {
       syncNum(`sl${k}`, `num${k}`);
     });
@@ -1060,7 +1046,6 @@
   }
 
   function readSliders() {
-    // Leer desde inputs numéricos si existen, sino desde sliders
     const g = (numId, slId) => {
       const nm = document.getElementById(numId);
       const sl = document.getElementById(slId);
@@ -1102,7 +1087,6 @@
     if (!arContent) return;
     arContent.setAttribute('width',  CFG.width);
     arContent.setAttribute('height', CFG.height);
-    // Deseleccionar preset de proporción
     document.querySelectorAll('#presetProp .ed-preset').forEach(b => b.classList.remove('active'));
   }
 
@@ -1147,16 +1131,13 @@
   async function guardarConfig() {
     readSliders();
 
-    // Si el preset es vertical, forzar rotación 0 para evitar inclinaciones residuales
     if (CFG.preset === 'vertical') {
       CFG.rotX = 0; CFG.rotY = 0; CFG.rotZ = 0;
     }
 
-    // Token: primero desde URL, luego desde sessionStorage
     let token = new URLSearchParams(location.search).get('tk')
              || sessionStorage.getItem('ara-tk');
     if (!token) {
-      // Pedir token con input flotante (no alert)
       token = await pedirToken();
       if (!token) return;
       sessionStorage.setItem('ara-tk', token);
@@ -1198,7 +1179,6 @@
 
   function pedirToken() {
     return new Promise(resolve => {
-      // Crear modal de token
       const overlay = document.createElement('div');
       overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:2000;display:flex;align-items:center;justify-content:center;padding:24px;';
       overlay.innerHTML = `
@@ -1235,15 +1215,20 @@
 
   function cerrarViewer() {
     if (EDIT_MODE) {
-      // Modo editor: regresar al Creator
       const base = window.location.href.split('/viewer.html')[0];
       window.location.replace(base + '/index.html');
       return;
     }
 
-    // Modo espectador: limpiar TODO y volver a la pantalla de inicio
+    // Limpiar animation loop si existe
+    if (animationLoopId) {
+      const scene = document.querySelector('a-scene');
+      if (scene && scene.renderer) {
+        scene.renderer.setAnimationLoop(null);
+      }
+      animationLoopId = null;
+    }
 
-    // 1. Detener y limpiar la escena A-Frame (MindAR e Image tracking)
     try {
       const scene = document.querySelector('a-scene');
       if (scene && scene.renderer) {
@@ -1254,35 +1239,28 @@
     arScene.classList.remove('show');
     arScene.innerHTML = '';
 
-    // 2. Limpiar Model Viewer (Surface 3D)
     const mvWrap = document.getElementById('mvWrap');
     mvWrap.classList.remove('show');
     mvWrap.innerHTML = '';
 
-    // 3. Ocultar HUD, scan, ping, editor
     document.getElementById('hud').classList.remove('show');
     document.getElementById('scan').classList.remove('show');
     document.getElementById('ping').classList.remove('go');
     document.getElementById('editor').classList.remove('open');
     document.getElementById('btnEdit').style.display = 'none';
 
-    // 4. Ocultar splash por si acaso
     document.getElementById('splash').classList.remove('hidden');
     document.getElementById('splash').style.display = 'none';
 
-    // 5. Mostrar pantalla de inicio
     document.getElementById('startScreen').style.display = 'flex';
 
-    // 6. Limpiar hint y botones flotantes
     const hint = document.getElementById('mvHint');
     if (hint) hint.remove();
     const wallBtn = document.getElementById('wallArBtn');
     if (wallBtn) wallBtn.remove();
 
-    // 7. Resetear touch-action para que el botón de inicio funcione
     document.body.classList.remove('ar-active');
 
-    // 8. Resetear variable de contenido AR activo
     arContent = null;
   }
 

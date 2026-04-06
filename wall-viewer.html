@@ -214,15 +214,6 @@
     const arEl = document.getElementById('arContent');
     arEl.style.cssText = `left:${cx}px;top:${cy}px;width:${cw}px;height:${ch}px;`;
 
-    if (TYPE === 'wall-video') {
-      arEl.innerHTML = `<video src="${CONTENT_URL}"
-        loop="${LOOP}" muted playsinline webkit-playsinline
-        crossorigin="anonymous" style="display:none;">
-      </video>`;
-    } else {
-      arEl.innerHTML = `<img src="${CONTENT_URL}" style="display:none;">`;
-    }
-
     // Toque para colocar
     document.addEventListener('touchstart', colocar, { once: true });
     document.addEventListener('click',      colocar, { once: true });
@@ -230,15 +221,29 @@
 
   function colocar() {
     const arEl = document.getElementById('arContent');
-    const media = arEl.querySelector('video, img');
-    if (!media) return;
 
-    media.style.display = 'block';
+    // Mostrar el contenedor
     arEl.classList.add('show');
 
-    if (media.tagName === 'VIDEO') {
-      media.muted = true;
-      media.play().catch(() => {});
+    if (TYPE === 'wall-video') {
+      // Crear el video directamente y reproducirlo
+      const vid = document.createElement('video');
+      vid.src = CONTENT_URL;
+      vid.loop = LOOP;
+      vid.muted = true;
+      vid.setAttribute('playsinline', '');
+      vid.setAttribute('webkit-playsinline', '');
+      vid.crossOrigin = 'anonymous';
+      vid.style.cssText = 'width:100%;height:100%;object-fit:cover;border-radius:4px;';
+      arEl.innerHTML = '';
+      arEl.appendChild(vid);
+      vid.play().catch(() => {});
+    } else if (TYPE === 'wall-gif') {
+      const img = document.createElement('img');
+      img.src = CONTENT_URL;
+      img.style.cssText = 'width:100%;height:100%;object-fit:cover;border-radius:4px;';
+      arEl.innerHTML = '';
+      arEl.appendChild(img);
     }
 
     document.getElementById('instruccion').classList.remove('show');

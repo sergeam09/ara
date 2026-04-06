@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <title>ARA — Face AR</title>
+
+  <!-- MindAR Face Tracking -->
+  <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-face-aframe.prod.js"></script>
+
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { background:#000; overflow:hidden; touch-action:auto; }
+    body.ar-active { touch-action:none; }
+
+    #startScreen {
+      position:fixed; inset:0; background:#0a0a0a;
+      display:flex; flex-direction:column;
+      align-items:center; justify-content:center;
+      gap:28px; z-index:2000; padding:40px; text-align:center;
+    }
+    .slogo { font-family:Georgia,serif; font-size:52px; color:#c8f542; }
+    .ssub  { font-size:10px; color:#333; letter-spacing:0.22em; text-transform:uppercase; }
+    .sname { font-size:13px; color:#555; letter-spacing:0.1em; }
+    .sbtn  {
+      background:#c8f542; color:#0a0a0a; border:none;
+      padding:16px 40px; font-size:12px;
+      letter-spacing:0.15em; text-transform:uppercase;
+      cursor:pointer; font-family:system-ui,monospace;
+    }
+    .shint { font-size:10px; color:#222; letter-spacing:0.08em; line-height:1.8; max-width:240px; }
+
+    #hud {
+      position:fixed; top:0; left:0; right:0;
+      padding:18px 20px; display:none;
+      justify-content:space-between; align-items:flex-start;
+      z-index:500; pointer-events:none;
+    }
+    #hud.show { display:flex; }
+    .hlogo { font-size:15px; color:rgba(200,245,66,0.8); letter-spacing:0.1em; font-family:system-ui,monospace; }
+    .hbtn {
+      pointer-events:all;
+      background:rgba(10,10,10,0.82); border:1px solid rgba(255,255,255,0.08);
+      color:#888; font-size:10px; letter-spacing:0.12em; text-transform:uppercase;
+      padding:8px 13px; cursor:pointer; font-family:system-ui,monospace;
+    }
+
+    #scan {
+      position:fixed; top:50%; left:0; right:0;
+      transform:translateY(-50%);
+      display:none; flex-direction:column; align-items:center; gap:14px;
+      z-index:500; pointer-events:none;
+    }
+    #scan.show { display:flex; }
+    .stxt { font-size:12px; color:rgba(255,255,255,0.75); letter-spacing:0.12em; text-transform:uppercase; }
+
+    #arScene { display:none; width:100vw; height:100vh; }
+    #arScene.show { display:block; }
+
+    #splash {
+      position:fixed; inset:0; background:#0a0a0a;
+      display:none; flex-direction:column;
+      align-items:center; justify-content:center;
+      gap:24px; z-index:1000;
+    }
+    #splash.show { display:flex; }
+    .sbar { width:120px; height:1px; background:#1a1a1a; position:relative; overflow:hidden; }
+    .sbar::after {
+      content:''; position:absolute; left:-40%; width:40%; height:100%;
+      background:#c8f542; animation:sl 1.2s ease-in-out infinite;
+    }
+    @keyframes sl { to { left:140%; } }
+    .smsg { font-size:12px; color:#333; }
+  </style>
+</head>
+<body>
+
+<div id="startScreen">
+  <div class="slogo">ARA</div>
+  <div class="ssub">Augmented Reality Atelier</div>
+  <div style="width:40px;height:1px;background:#1e1e1e;"></div>
+  <div class="sname" id="startName"></div>
+  <button class="sbtn" onclick="arrancar()">▶ Iniciar experiencia</button>
+  <div class="shint">Usa la cámara frontal — apunta tu rostro para activar el efecto</div>
+</div>
+
+<div id="splash">
+  <div class="slogo" style="font-size:36px;">ARA</div>
+  <div class="sbar"></div>
+  <div class="smsg" id="smsg">Cargando Face AR...</div>
+</div>
+
+<div id="hud">
+  <div class="hlogo">ARA</div>
+  <button class="hbtn" onclick="cerrar()">✕</button>
+</div>
+
+<div id="scan">
+  <div class="stxt" id="scanTxt">Apunta tu rostro a la cámara</div>
+</div>
+
+<div id="arScene"></div>
+
+<script>
+  const P = new URLSearchParams(location.search);
+  const PROJECT  = P.get('p');
+  const TYPE     = P.get('t') || 'face-model';
+  const CE       = P.get('ce') || 'glb';
+  const ANCHOR   = parseInt(P.get('anchor')) || 1;
+  const SC       = parseFloat(P.get('sc'))  || 0.1;
+  const IMGSIZE  = parseFloat(P.get('imgsize')) || 0.2;
+
+  const BASE = location.href.split('/face-viewer.html')[0];
+  const CONTENT_URL = BASE + '/proyectos/' + PROJECT + '/contenido.' + CE;
+
+  if (PROJECT) {
+    document.getElementById('startName').textContent = PROJECT.replace(/-/g,' ');
+  }
+
+  function cerrar() {
+    // Detener MindAR
+    const scene = document.querySelector('a-scene');
+    if (scene && scene.systems && scene.systems['mindar-face-system']) {
+      scene.systems['mindar-face-system'].stop();
+    }
+    document.getElementById('arScene').classList.remove('show');
+    document.getElementById('arScene').innerHTML = '';
+    document.getElementById('hud').classList.remove('show');
+    document.getElementById('scan').classList.remove('show');
+    document.getElementById('splash').classList.remove('show');
+    document.getElementById('startScreen').style.display = 'flex';
+    document.body.classList.remove('ar-active');
+  }
+
+  function arrancar() {
+    document.getElementById('startScreen').style.display = 'none';
+    document.getElementById('splash').classList.add('show');
+    document.body.classList.add('ar-active');
+    document.getElementById('smsg').textContent = 'Iniciando cámara frontal...';
+    buildFaceScene();
+  }
+
+  function buildFaceScene() {
+    const sceneDiv = document.getElementById('arScene');
+
+    // Contenido según tipo
+    let contentHTML = '';
+    if (TYPE === 'face-model') {
+      contentHTML = `
+        <a-entity mindar-face-target="anchorIndex: ${ANCHOR}">
+          <a-gltf-model
+            src="${CONTENT_URL}"
+            scale="${SC} ${SC} ${SC}"
+            position="0 0 0"
+            rotation="0 0 0">
+          </a-gltf-model>
+        </a-entity>`;
+    } else if (TYPE === 'face-image') {
+      contentHTML = `
+        <a-entity mindar-face-target="anchorIndex: ${ANCHOR}">
+          <a-image
+            src="${CONTENT_URL}"
+            width="${IMGSIZE}" height="${IMGSIZE}"
+            position="0 0 0"
+            transparent="true">
+          </a-image>
+        </a-entity>`;
+    }
+
+    sceneDiv.innerHTML = `
+      <a-scene
+        mindar-face="autoStart: false;"
+        embedded
+        color-space="sRGB"
+        renderer="colorManagement: true; physicallyCorrectLights: true;"
+        vr-mode-ui="enabled: false"
+        device-orientation-permission-ui="enabled: false">
+
+        <a-assets timeout="15000">
+          ${TYPE === 'face-model'
+            ? `<a-asset-item id="faceAsset" src="${CONTENT_URL}"></a-asset-item>`
+            : `<img id="faceAsset" src="${CONTENT_URL}">`}
+        </a-assets>
+
+        <a-camera active="false" position="0 0 0"></a-camera>
+
+        ${contentHTML}
+      </a-scene>`;
+
+    sceneDiv.classList.add('show');
+
+    const scene = sceneDiv.querySelector('a-scene');
+
+    scene.addEventListener('loaded', () => {
+      document.getElementById('smsg').textContent = 'Activando detección de rostro...';
+
+      const arSystem = scene.systems['mindar-face-system'];
+      if (!arSystem) {
+        document.getElementById('smsg').textContent = 'Error: sistema AR no disponible';
+        return;
+      }
+
+      arSystem.start().then(() => {
+        document.getElementById('splash').classList.remove('show');
+        document.getElementById('hud').classList.add('show');
+        document.getElementById('scan').classList.add('show');
+        document.getElementById('scanTxt').textContent = 'Apunta tu rostro a la cámara';
+      }).catch(e => {
+        document.getElementById('smsg').textContent = 'Error: ' + e.message;
+      });
+    });
+  }
+</script>
+</body>
+</html>

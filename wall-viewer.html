@@ -7,7 +7,9 @@
   <title>ARA — Wall AR</title>
 
   <!-- 8-Frame: versión modificada de A-Frame compatible con 8th Wall -->
-  <script src="https://cdn.jsdelivr.net/npm/@8thwall/aframe@latest/dist/aframe-master.js"></script>
+  <!-- 8-Frame: versión de A-Frame compatible con 8th Wall -->
+    <!-- 8-Frame: versión de A-Frame compatible con 8th Wall (CDN oficial) -->
+  <script src="//cdn.8thwall.com/web/aframe/8frame-1.4.1.min.js"></script>
 
   <!-- 8th Wall Engine Binary con SLAM -->
   <script src="./xr/xr.js" data-preload-chunks="slam"></script>
@@ -190,9 +192,14 @@
   }
 
   function cerrar() {
-    // Regresar al viewer principal
-    const base = location.href.split('/wall-viewer.html')[0];
-    window.location.replace(base + '/');
+    // Regresar a la pantalla de inicio del wall-viewer
+    document.getElementById('startScreen').style.display = 'flex';
+    document.getElementById('hud').classList.remove('show');
+    document.getElementById('scan').classList.remove('show');
+    document.body.classList.remove('ar-active');
+    // Limpiar escena A-Frame si existe
+    const scene = document.querySelector('a-scene');
+    if (scene) scene.parentNode.removeChild(scene);
   }
 
   // ── ARRANCAR ──
@@ -210,13 +217,20 @@
   function initWall() {
     dbg('esperando XR8...');
 
+    let retries = 0;
     const tryStart = () => {
-      if (window.XR8 && window.AFRAME) {
+      retries++;
+      const hasXR8   = !!window.XR8;
+      const hasAFRAME = !!window.AFRAME;
+      dbg('intento ' + retries + ' XR8:' + hasXR8 + ' AFRAME:' + hasAFRAME);
+      if (hasXR8 && hasAFRAME) {
         dbg('XR8 + AFRAME listos', '#42f58d');
         buildScene();
+      } else if (retries > 30) {
+        dbg('timeout — XR8:' + hasXR8 + ' AFRAME:' + hasAFRAME, '#ff4545');
+        showErr('No se pudo cargar el engine AR. XR8:' + hasXR8 + ' AFRAME:' + hasAFRAME);
       } else {
-        dbg('aún no listos, reintentando...');
-        setTimeout(tryStart, 300);
+        setTimeout(tryStart, 500);
       }
     };
 

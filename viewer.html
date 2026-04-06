@@ -217,7 +217,7 @@
 
 <div id="ping"></div>
 
-<!-- DEBUG LOG — visible en pantalla del móvil -->
+<!-- DEBUG LOG -->
 <div id="dbgLog" style="
   position:fixed;bottom:0;left:0;right:0;
   background:rgba(0,0,0,0.85);
@@ -239,7 +239,6 @@
     <button class="ed-save" onclick="guardarConfig()">✓ Guardar</button>
   </div>
 
-  <!-- Orientación -->
   <div class="ed-section">Orientación</div>
   <div class="ed-preset-row" id="presetOri">
     <button class="ed-preset active" onclick="aplicarPreset('horizontal')">Horizontal</button>
@@ -248,7 +247,6 @@
     <button class="ed-preset" onclick="aplicarPreset('libre')">Libre</button>
   </div>
 
-  <!-- Posición -->
   <div class="ed-section">Posición</div>
   <div class="ed-row">
     <div class="ed-label">Altura</div>
@@ -269,7 +267,6 @@
     <span class="ed-unit">m</span>
   </div>
 
-  <!-- Rotación manual (solo en modo libre) -->
   <div id="secRotacion" style="display:none;">
     <div class="ed-section">Rotación</div>
     <div class="ed-row">
@@ -289,7 +286,6 @@
     </div>
   </div>
 
-  <!-- Escala -->
   <div class="ed-section">Tamaño</div>
   <div class="ed-row">
     <div class="ed-label">Escala</div>
@@ -297,7 +293,6 @@
     <input type="number" class="ed-num" id="numScale" value="1" step="0.05" min="0.05" max="3" oninput="syncSlider('numScale','slScale',0.05,3);updateContent()">
   </div>
 
-  <!-- Proporción y tamaño real (solo para video/gif) -->
   <div id="secProp">
     <div class="ed-section">Proporción del contenido</div>
     <div class="ed-preset-row" id="presetProp">
@@ -319,7 +314,6 @@
       <span class="ed-unit">m</span>
     </div>
 
-    <!-- Tamaño real de la obra -->
     <div class="ed-realsize">
       <div class="ed-realsize-title">Tamaño real de la obra → calcula automáticamente</div>
       <div class="ed-row">
@@ -336,21 +330,18 @@
     </div>
   </div>
 
-  <!-- Comportamiento -->
   <div class="ed-section">Comportamiento</div>
   <div class="ed-toggle-row">
     <button class="ed-toggle active" id="togLoop" onclick="toggleLoop()">↺ Loop</button>
     <button class="ed-toggle active" id="togAuto" onclick="toggleAuto()">▶ Autoplay</button>
     <button class="ed-toggle" id="togFade" onclick="toggleFade()">◌ Fade in</button>
   </div>
-
 </div>
 
 <script>
   const P  = new URLSearchParams(location.search);
   const PROJECT = P.get('p');
 
-  // ── DEBUG LOG VISIBLE EN PANTALLA ──
   const DBG = true;
   function dbg(msg, color) {
     console.log('[ARA]', msg);
@@ -366,6 +357,7 @@
     log.appendChild(line);
     log.scrollTop = log.scrollHeight;
   }
+  
   const TYPE    = P.get('t') || 'video';
   const CE      = P.get('ce') || 'mp4';
   const TE      = P.get('te') || 'jpg';
@@ -407,7 +399,7 @@
   const isWall    = TYPE.startsWith('wall-');
   
   let arContent = null;
-  let animationLoopId = null; // Para limpiar el loop al cerrar
+  let animationLoopId = null;
 
   const startName = document.getElementById('startProjectName');
   if (startName) startName.textContent = PROJECT ? PROJECT.replace(/-/g,' ') : '';
@@ -611,7 +603,6 @@
 
     buildWallScene();
   }
-
   function buildWallScene() {
     const w   = CFG.width  || URL_W  || 1;
     const h   = CFG.height || URL_H  || 0.5625;
@@ -619,13 +610,13 @@
 
     let entityHTML = '';
     if (TYPE === 'wall-video') {
-      entityHTML = `<a-video id="arc"
-        src="${PATHS.content}"
-        width="${w}" height="${h}"
+      // Usar a-entity con geometry y material para mejor compatibilidad
+      entityHTML = `<a-entity id="arc"
+        geometry="primitive: plane; width: ${w}; height: ${h}"
+        material="src: ${PATHS.content}; shader: standard; side: double; transparent: true"
         position="${pos}"
-        loop="${CFG.loop}" autoplay="${CFG.autoplay}"
-        playsinline="true" webkit-playsinline="true">
-      </a-video>`;
+        ${CFG.loop ? '' : ''}>
+      </a-entity>`;
     } else if (TYPE === 'wall-gif') {
       entityHTML = `<a-image id="arc"
         src="${PATHS.content}"
@@ -643,6 +634,9 @@
         vr-mode-ui="enabled:false"
         device-orientation-permission-ui="enabled:false"
         style="width:100vw;height:100vh;">
+        <a-assets>
+          <video id="wallVideo" src="${PATHS.content}" loop="${CFG.loop}" autoplay="${CFG.autoplay}" playsinline crossorigin="anonymous" preload="auto" style="display:none;"></video>
+        </a-assets>
         <a-light type="ambient" intensity="0.8"></a-light>
         <a-camera position="0 1.6 0"></a-camera>
 
@@ -653,7 +647,7 @@
         </a-entity>
 
         <a-entity id="arc-container" visible="false">
-          ${entityHTML}
+          <a-plane id="arc-plane" width="${w}" height="${h}" position="${pos}" material="src: #wallVideo; side: double; transparent: true"></a-plane>
         </a-entity>
       </a-scene>`;
 
@@ -669,6 +663,12 @@
         dbg('A-Frame scene loaded OK', '#42f58d');
         hideSplash();
         mostrarBotonWall(scene);
+        
+        // Intentar reproducir el video
+        const videoEl = document.getElementById('wallVideo');
+        if (videoEl) {
+          videoEl.play().catch(e => dbg(`Video autoplay error: ${e}`, '#f5a623'));
+        }
       });
 
       scene.addEventListener('arReady', () => {
@@ -707,6 +707,10 @@
 
   function mostrarBotonWall(scene) {
     dbg('mostrarBotonWall() — escena cargada');
+    
+    const existingBtn = document.getElementById('wallArBtn');
+    if (existingBtn) existingBtn.remove();
+    
     const btn = document.createElement('button');
     btn.id = 'wallArBtn';
     btn.textContent = '▣ Activar Wall AR';
@@ -718,34 +722,54 @@
       cursor:pointer;white-space:nowrap;
       box-shadow:0 4px 24px rgba(0,0,0,0.6);
       font-family:system-ui,monospace;z-index:9999;`;
+    
     dbg('botón creado z-index:9999');
 
-    btn.onclick = () => {
+    btn.onclick = async () => {
+      dbg('🔘 BOTÓN CLICKEADO - iniciando AR', '#f5a623');
       btn.remove();
       document.getElementById('scan').classList.add('show');
       document.getElementById('scanTxt').textContent = 'Apunta a una pared';
       
-      // Guardar referencia al sceneDiv
       const sceneDiv = document.getElementById('arScene');
       
-      scene.enterAR().then(() => {
-        dbg('enterAR() OK', '#42f58d');
-        initWallHitTest(scene, sceneDiv);
-      }).catch((e) => {
-        dbg(`enterAR() error: ${e}`, '#ff4545');
+      try {
+        dbg('Llamando scene.enterAR()...', '#42f58d');
+        await scene.enterAR();
+        dbg('✅ enterAR() completado con éxito', '#42f58d');
+        
+        setTimeout(() => {
+          initWallHitTest(scene, sceneDiv);
+        }, 500);
+        
+      } catch (e) {
+        dbg(`❌ enterAR() error: ${e.message || e}`, '#ff4545');
         const container = document.getElementById('arc-container');
-        container.setAttribute('position', '0 1.2 -1.5');
-        container.setAttribute('visible', true);
+        if (container) {
+          container.setAttribute('position', '0 1.2 -1.5');
+          container.setAttribute('visible', true);
+        }
         document.getElementById('scan').classList.remove('show');
-      });
+        document.getElementById('scanTxt').textContent = '⚠️ Error: No se pudo activar AR';
+        setTimeout(() => {
+          document.getElementById('scan').classList.remove('show');
+        }, 3000);
+      }
     };
+    
     document.body.appendChild(btn);
-    dbg(`botón en DOM: ${!!document.getElementById('wallArBtn') || !!btn.isConnected}`);
+    dbg(`botón en DOM: ${!!document.getElementById('wallArBtn')}`);
+    
+    btn.addEventListener('touchstart', (e) => {
+      dbg('📱 TOUCH detectado en botón', '#f5a623');
+      e.stopPropagation();
+    });
+    btn.addEventListener('click', (e) => {
+      dbg('🖱️ CLICK detectado en botón', '#f5a623');
+      e.stopPropagation();
+    });
   }
 
-  // ============================================================
-  // FUNCIÓN CORREGIDA: ahora recibe scene y sceneDiv
-  // ============================================================
   function initWallHitTest(scene, sceneDiv) {
     dbg('initWallHitTest() iniciado');
     let placed = false;
@@ -773,7 +797,6 @@
         hitTestSource = source;
         dbg('hitTestSource OK', '#42f58d');
 
-        // Limpiar loop anterior si existe
         if (animationLoopId) {
           renderer.setAnimationLoop(null);
         }
@@ -794,7 +817,6 @@
             const m = pose.transform.matrix;
             const px = m[12], py = m[13], pz = m[14];
             
-            // Detectar superficie VERTICAL (normal Y cercano a 0)
             const normalY = m[5];
             const isVertical = Math.abs(normalY) < 0.3;
 
@@ -824,22 +846,24 @@
       });
     });
 
-    // Evento de click CORREGIDO — ahora sceneDiv está definido
     if (sceneDiv) {
       sceneDiv.addEventListener('click', (e) => {
-        // Evitar que el click pase al botón si está presente
         if (e.target.id === 'wallArBtn') return;
         
-        if (!hitMatrix || placed) {
-          dbg('Click ignorado: hitMatrix null o ya colocado');
-          return;
-        }
+        if (!hitMatrix || placed) return;
         
         placed = true;
         dbg(`Colocando contenido en pared: ${hitMatrix.px}, ${hitMatrix.py}, ${hitMatrix.pz}`, '#42f58d');
 
         container.setAttribute('position', `${hitMatrix.px} ${hitMatrix.py} ${hitMatrix.pz}`);
         container.setAttribute('visible', true);
+        
+        // Forzar reproducción del video
+        const videoEl = document.getElementById('wallVideo');
+        if (videoEl) {
+          videoEl.play().catch(e => dbg(`Error playing video: ${e}`, '#f5a623'));
+        }
+        
         reticle.setAttribute('visible', false);
         document.getElementById('scan').classList.remove('show');
 
@@ -847,9 +871,8 @@
         ping.classList.add('go');
         setTimeout(() => ping.classList.remove('go'), 700);
 
-        arContent = document.getElementById('arc');
+        arContent = document.getElementById('arc-plane');
         
-        // Detener el hit-test después de colocar
         if (animationLoopId) {
           renderer.setAnimationLoop(null);
           animationLoopId = null;
@@ -1114,6 +1137,8 @@
   function toggleLoop() {
     CFG.loop = !CFG.loop;
     document.getElementById('togLoop').classList.toggle('active', CFG.loop);
+    const videoEl = document.getElementById('wallVideo');
+    if (videoEl) videoEl.loop = CFG.loop;
     const v = document.querySelector('a-video');
     if (v) v.setAttribute('loop', CFG.loop);
   }
@@ -1121,6 +1146,11 @@
   function toggleAuto() {
     CFG.autoplay = !CFG.autoplay;
     document.getElementById('togAuto').classList.toggle('active', CFG.autoplay);
+    const videoEl = document.getElementById('wallVideo');
+    if (videoEl) {
+      if (CFG.autoplay) videoEl.play();
+      else videoEl.pause();
+    }
   }
 
   function toggleFade() {
@@ -1220,7 +1250,6 @@
       return;
     }
 
-    // Limpiar animation loop si existe
     if (animationLoopId) {
       const scene = document.querySelector('a-scene');
       if (scene && scene.renderer) {

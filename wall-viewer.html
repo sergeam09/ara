@@ -290,7 +290,7 @@
         </a-assets>
 
         <!-- Cámara — Y debe ser != 0 -->
-        <a-camera position="0 4 0" look-controls="enabled: false"></a-camera>
+        <a-camera position="0 1.6 0" look-controls="enabled: false"></a-camera>
 
         <!-- Reticle que sigue la superficie -->
         <a-ring id="reticle"
@@ -316,59 +316,84 @@
       setupPlacement(scene);
     });
 
-    scene.addEventListener('xrsurfacefound', () => {
-      dbg('superficie encontrada!', '#42f58d');
-      document.getElementById('scanTxt').textContent = 'Toca para colocar';
-      document.getElementById('reticle').setAttribute('visible', true);
-    });
-
-    scene.addEventListener('xrsurfaceupdated', (e) => {
-      const {position, rotation} = e.detail || {};
-      if (!position) return;
-      const reticle = document.getElementById('reticle');
-      reticle.setAttribute('position', `${position.x} ${position.y} ${position.z}`);
-      reticle.setAttribute('visible', true);
-      document.getElementById('scanTxt').textContent = 'Superficie detectada — toca para colocar';
-    });
+    // Los eventos de superficie se manejan en el componente world-tracking-placement
   }
 
   function setupPlacement(scene) {
-    dbg('setupPlacement() listo');
-    let placed = false;
+    dbg('setupPlacement() — registrando componente de hit-test');
 
-    scene.addEventListener('click', () => {
-      if (placed) return;
+    // Registrar componente que hace hit-test en cada frame
+    AFRAME.registerComponent('world-tracking-placement', {
+      init: function() {
+        this.placed = false;
+        this.hitPos = null;
 
-      const reticle = document.getElementById('reticle');
-      const anchor  = document.getElementById('content-anchor');
-      const content = document.getElementById('content');
+        // Escuchar realityready para confirmar que el SLAM arrancó
+        this.el.sceneEl.addEventListener('realityready', () => {
+          dbg('realityready — SLAM activo', '#42f58d');
+          document.getElementById('scanTxt').textContent = 'Mueve el teléfono lentamente';
+        });
 
-      if (!reticle || !anchor) return;
+        this.el.sceneEl.addEventListener('realityerror', (e) => {
+          dbg('realityerror: ' + JSON.stringify(e.detail), '#ff4545');
+          showErr('Error AR: ' + (e.detail && e.detail.msg || 'desconocido'));
+        });
 
-      const pos = reticle.getAttribute('position');
-      if (!pos || (pos.x === 0 && pos.y === 0 && pos.z === 0)) {
-        dbg('sin posición todavía', '#f5a623');
-        return;
+        // Toque para colocar
+        this.el.sceneEl.canvas.addEventListener('touchstart', () => {
+          if (this.placed || !this.hitPos) {
+            dbg('toque sin posición todavía', '#f5a623');
+            return;
+          }
+          this.placed = true;
+
+          const anchor = document.getElementById('content-anchor');
+          const reticle = document.getElementById('reticle');
+
+          anchor.setAttribute('position', this.hitPos);
+          anchor.setAttribute('visible', true);
+
+          const contentEl = document.getElementById('content');
+          if (contentEl) contentEl.setAttribute('visible', true);
+
+          const vid = document.getElementById('wallVid');
+          if (vid) vid.play().catch(e => dbg('video: ' + e));
+
+          if (reticle) reticle.setAttribute('visible', false);
+          document.getElementById('scan').classList.remove('show');
+
+          const ping = document.getElementById('ping');
+          ping.classList.add('go');
+          setTimeout(() => ping.classList.remove('go'), 700);
+
+          dbg('contenido anclado', '#42f58d');
+        });
+      },
+
+      tick: function() {
+        if (this.placed) return;
+        if (!window.XR8 || !XR8.XrController || !XR8.XrController.hitTest) return;
+
+        // Hit-test en el centro de la pantalla
+        const hits = XR8.XrController.hitTest(0.5, 0.5, ['FEATURE_POINT', 'PLANE']);
+        if (hits && hits.length > 0) {
+          const h = hits[0];
+          this.hitPos = {x: h.position.x, y: h.position.y, z: h.position.z};
+
+          // Mover reticle a la posición detectada
+          const reticle = document.getElementById('reticle');
+          if (reticle) {
+            reticle.setAttribute('visible', true);
+            reticle.setAttribute('position', this.hitPos);
+          }
+          document.getElementById('scanTxt').textContent = 'Superficie detectada — toca para colocar';
+        }
       }
-
-      placed = true;
-      anchor.setAttribute('position', `${pos.x} ${pos.y} ${pos.z}`);
-      anchor.setAttribute('visible', true);
-      if (content) content.setAttribute('visible', true);
-
-      // Reproducir video
-      const vid = document.getElementById('wallVid');
-      if (vid) vid.play().catch(e => dbg('video: ' + e));
-
-      reticle.setAttribute('visible', false);
-      document.getElementById('scan').classList.remove('show');
-
-      const ping = document.getElementById('ping');
-      ping.classList.add('go');
-      setTimeout(() => ping.classList.remove('go'), 700);
-
-      dbg('contenido anclado en ' + pos.x.toFixed(2) + ',' + pos.y.toFixed(2) + ',' + pos.z.toFixed(2), '#42f58d');
     });
+
+    // Agregar el componente a la escena
+    scene.setAttribute('world-tracking-placement', '');
+    dbg('componente world-tracking-placement agregado');
   }
 </script>
 </body>

@@ -353,10 +353,12 @@
     config:   `${BASE}/proyectos/${PROJECT}/config.json`,
   };
 
-  // Dimensiones desde URL (pasadas por el Creator)
-  const URL_W  = parseFloat(P.get('w'))  || null;
-  const URL_H  = parseFloat(P.get('h'))  || null;
-  const URL_SC = parseFloat(P.get('sc')) || null;
+  // Dimensiones y comportamiento desde URL (pasadas por el Creator)
+  const URL_W    = parseFloat(P.get('w'))  || null;
+  const URL_H    = parseFloat(P.get('h'))  || null;
+  const URL_SC   = parseFloat(P.get('sc')) || null;
+  const URL_LOOP = P.get('lp') !== '0';   // default true
+  const URL_AUTO = P.get('ap') !== '0';   // default true
 
   // ── CONFIG DEL PROYECTO ──
   // Defaults neutros — no afectan la proyección sin que el usuario los cambie
@@ -423,6 +425,8 @@
       if (URL_W  > 0) CFG.width  = URL_W;
       if (URL_H  > 0) CFG.height = URL_H;
       if (URL_SC > 0) CFG.scale  = URL_SC;
+      CFG.loop     = URL_LOOP;
+      CFG.autoplay = URL_AUTO;
     }
     // Si hay config guardado, los valores del editor ya están en CFG — no tocar
 

@@ -61,6 +61,10 @@
 .dim-input{background:#0a0a0a;border:1px solid #1e1e1e;color:#e8e8e0;font-family:var(--fm);font-size:12px;padding:7px 10px;width:80px;outline:none;transition:border-color .2s;}
 .dim-input:focus{border-color:#c8f542;}
 .dim-unit{font-size:10px;color:#444;}
+.behav-row{display:flex;gap:6px;margin-top:8px;}
+.behav-btn{flex:1;background:rgba(255,255,255,0.04);border:1px solid #1e1e1e;color:#555;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;padding:6px;cursor:pointer;text-align:center;font-family:var(--fm);transition:all .15s;}
+.behav-btn:hover{border-color:#555;color:#888;}
+.behav-btn.active{background:rgba(200,245,66,0.08);border-color:rgba(200,245,66,0.3);color:#c8f542;}
 .dim-presets{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px;}
 .dim-preset{background:rgba(255,255,255,0.04);border:1px solid #1e1e1e;color:#555;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;padding:5px 10px;cursor:pointer;font-family:var(--fm);}
 .dim-preset:hover,.dim-preset.active{border-color:#c8f542;color:#c8f542;}
@@ -214,6 +218,11 @@
             <input type="number" class="dim-input" id="dimVideoH" placeholder="ej. 60" min="1" step="1">
             <span class="dim-unit">cm (opcional)</span>
           </div>
+          <div class="dim-title" style="margin-top:10px;">Comportamiento</div>
+          <div class="behav-row">
+            <button class="behav-btn active" data-behav="loop" onclick="toggleBehav('loop',this)">↺ Loop</button>
+            <button class="behav-btn active" data-behav="autoplay" onclick="toggleBehav('autoplay',this)">▶ Autoplay</button>
+          </div>
         </div>
       </div>
       <div id="cp-gif" class="cpanel">
@@ -239,6 +248,11 @@
             <span class="dim-label">Alto obra</span>
             <input type="number" class="dim-input" id="dimGifH" placeholder="ej. 50" min="1" step="1">
             <span class="dim-unit">cm (opcional)</span>
+          </div>
+          <div class="dim-title" style="margin-top:10px;">Comportamiento</div>
+          <div class="behav-row">
+            <button class="behav-btn active" data-behav="loop" onclick="toggleBehav('loop',this)">↺ Loop</button>
+            <button class="behav-btn active" data-behav="autoplay" onclick="toggleBehav('autoplay',this)">▶ Autoplay</button>
           </div>
         </div>
       </div>
@@ -300,6 +314,19 @@
           <div class="uptext"><strong>Video MP4 o WEBM</strong><br>Flota sobre la superficie como pantalla</div>
           <div class="uppreview" id="prSurfVideo"></div>
         </div>
+        <div class="dim-box">
+          <div class="dim-title">Proporción</div>
+          <div class="dim-presets">
+            <button class="dim-preset active" onclick="setProp('surfVideo',16,9)">16:9</button>
+            <button class="dim-preset" onclick="setProp('surfVideo',1,1)">1:1</button>
+            <button class="dim-preset" onclick="setProp('surfVideo',4,3)">4:3</button>
+          </div>
+          <div class="dim-title" style="margin-top:10px;">Comportamiento</div>
+          <div class="behav-row">
+            <button class="behav-btn active" data-behav="loop" onclick="toggleBehav('loop',this)">↺ Loop</button>
+            <button class="behav-btn active" data-behav="autoplay" onclick="toggleBehav('autoplay',this)">▶ Autoplay</button>
+          </div>
+        </div>
       </div>
       <div id="cp-surface-gif" class="cpanel">
         <div class="upzone"><input type="file" id="fSurfGif" accept="image/gif,image/webp">
@@ -345,6 +372,11 @@
             <button class="dim-preset" onclick="setProp('wallVideo',1,1)">1:1</button>
             <button class="dim-preset" onclick="setProp('wallVideo',4,3)">4:3</button>
             <button class="dim-preset" onclick="setProp('wallVideo',9,16)">9:16</button>
+          </div>
+          <div class="dim-title" style="margin-top:10px;">Comportamiento</div>
+          <div class="behav-row">
+            <button class="behav-btn active" data-behav="loop" onclick="toggleBehav('loop',this)">↺ Loop</button>
+            <button class="behav-btn active" data-behav="autoplay" onclick="toggleBehav('autoplay',this)">▶ Autoplay</button>
           </div>
         </div>
       </div>
@@ -462,9 +494,8 @@ let proyectos=JSON.parse(localStorage.getItem('ara-proyectos')||'[]');
 // Token gestionado por Cloudflare Worker — no se necesita aquí
 
 // ── DIMENSIONES ──
-let dimConfig = { prop: '16:9', width: 1, height: 0.5625, scale: 0.5 };
+let dimConfig = { prop: '16:9', width: 1, height: 0.5625, scale: 0.5, loop: true, autoplay: true };
 // Inicializar preset activo según tipo al cargar
-// (16:9 para video, 1:1 para gif, mediano para model)
 
 function setProp(tipo, w, h) {
   // Calcular width y height manteniendo el lado mayor en 1 unidad
@@ -504,6 +535,14 @@ function setWallScale(val) {
   if (input) input.value = val;
   document.querySelectorAll('#wallModelPresets .dim-preset').forEach(b => {
     b.classList.toggle('active', b.onclick?.toString().includes(`(${val})`));
+  });
+}
+
+// ── Comportamiento loop/autoplay ──
+function toggleBehav(key, btn) {
+  dimConfig[key] = !dimConfig[key];
+  document.querySelectorAll(`[data-behav="${key}"]`).forEach(b => {
+    b.classList.toggle('active', dimConfig[key]);
   });
 }
 
@@ -574,15 +613,23 @@ function setModo(m){
 
 function setTipo(t){
   tipoActual=t;
-  // Botones de modo image
-  document.querySelectorAll('[data-type]').forEach(b=>b.classList.remove('active'));
-  const btn=document.querySelector(`[data-type="${t}"]`)||document.querySelector(`[data-stype="${t}"]`);
-  if(btn) btn.classList.add('active');
-  // Botones de modo surface
-  document.querySelectorAll('[data-stype]').forEach(b=>b.classList.remove('active'));
-  const sbtn=document.querySelector(`[data-stype="${t}"]`);
-  if(sbtn) sbtn.classList.add('active');
-  // Paneles
+
+  // Desactivar SOLO los botones del modo actual
+  if(modoActual==='image'){
+    document.querySelectorAll('[data-type]').forEach(b=>b.classList.remove('active'));
+    const btn=document.querySelector(`[data-type="${t}"]`);
+    if(btn) btn.classList.add('active');
+  } else if(modoActual==='surface'){
+    document.querySelectorAll('[data-stype]').forEach(b=>b.classList.remove('active'));
+    const btn=document.querySelector(`[data-stype="${t}"]`);
+    if(btn) btn.classList.add('active');
+  } else if(modoActual==='wall'){
+    document.querySelectorAll('[data-wtype]').forEach(b=>b.classList.remove('active'));
+    const btn=document.querySelector(`[data-wtype="${t}"]`);
+    if(btn) btn.classList.add('active');
+  }
+
+  // Mostrar el panel correcto
   document.querySelectorAll('.cpanel').forEach(p=>p.classList.remove('active'));
   const panel=document.getElementById(`cp-${t}`);
   if(panel) panel.classList.add('active');
@@ -760,8 +807,10 @@ async function generarProyecto(){
     setProgress(100,'Publicado','✓ Experiencia AR disponible en GitHub Pages','ok');
     logStep('✓ ¡Publicado en GitHub Pages!','ok');
 
-    // Pasar dimensiones directamente en la URL — sin depender de config.json
-    const viewerUrl=`${BASE_URL}/viewer.html?p=${slug}&t=${tipoActual}&ce=${contentExt}&te=${triggerExt}&w=${dims.width}&h=${dims.height}&sc=${dims.scale}`;
+    // Pasar dimensiones y comportamiento directamente en la URL
+    const lp = dimConfig.loop    ? '1' : '0';
+    const ap = dimConfig.autoplay ? '1' : '0';
+    const viewerUrl=`${BASE_URL}/viewer.html?p=${slug}&t=${tipoActual}&ce=${contentExt}&te=${triggerExt}&w=${dims.width}&h=${dims.height}&sc=${dims.scale}&lp=${lp}&ap=${ap}`;
     viewerUrlActual=viewerUrl;
 
     const proyecto={slug,nombre,tipo:tipoActual,contentExt,triggerExt,url:viewerUrl,creado:new Date().toLocaleDateString('es-MX')};

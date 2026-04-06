@@ -5,177 +5,209 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <title>ARA — Wall AR</title>
-
-  <!-- 8th Wall engine oficial desde npm — PRIMERO -->
-  <script src="https://cdn.jsdelivr.net/npm/@8thwall/engine-binary@1/dist/xr.js"
-    async crossorigin="anonymous" data-preload-chunks="slam"></script>
-  <!-- 8-Frame DESPUÉS -->
-  <script src="//cdn.8thwall.com/web/aframe/8frame-1.4.1.min.js"></script>
-
+  <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { background: #000; overflow: hidden; }
-
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { background:#000; overflow:hidden; touch-action:auto; }
+    body.ar-active { touch-action:none; }
+    #startScreen {
+      position:fixed; inset:0; background:#0a0a0a;
+      display:flex; flex-direction:column;
+      align-items:center; justify-content:center;
+      gap:28px; z-index:2000; padding:40px; text-align:center;
+    }
+    .slogo { font-family:Georgia,serif; font-size:52px; color:#c8f542; }
+    .ssub  { font-size:10px; color:#333; letter-spacing:0.22em; text-transform:uppercase; }
+    .sname { font-size:13px; color:#555; letter-spacing:0.1em; }
+    .sbtn  {
+      background:#c8f542; color:#0a0a0a; border:none;
+      padding:16px 40px; font-size:12px;
+      letter-spacing:0.15em; text-transform:uppercase;
+      cursor:pointer; font-family:system-ui,monospace;
+    }
+    .shint { font-size:10px; color:#222; letter-spacing:0.08em; line-height:1.8; max-width:240px; }
     #hud {
-      position: fixed; top: 0; left: 0; right: 0;
-      background: rgba(0,0,0,0.7); color: #c8f542;
-      text-align: center; padding: 12px;
-      font-family: monospace; font-size: 12px;
-      letter-spacing: 0.1em; z-index: 500;
-      pointer-events: none;
+      position:fixed; top:0; left:0; right:0;
+      padding:18px 20px; display:none;
+      justify-content:space-between; align-items:flex-start;
+      z-index:500; pointer-events:none;
     }
-    #closeBtn {
-      position: fixed; top: 8px; right: 12px;
-      background: rgba(10,10,10,0.82);
-      border: 1px solid rgba(255,255,255,0.1);
-      color: #888; font-size: 12px; padding: 8px 14px;
-      cursor: pointer; font-family: monospace; z-index: 600;
+    #hud.show { display:flex; }
+    .hlogo { font-size:15px; color:rgba(200,245,66,0.8); letter-spacing:0.1em; font-family:system-ui,monospace; }
+    .hbtn {
+      pointer-events:all;
+      background:rgba(10,10,10,0.82); border:1px solid rgba(255,255,255,0.08);
+      color:#888; font-size:10px; letter-spacing:0.12em; text-transform:uppercase;
+      padding:8px 13px; cursor:pointer; font-family:system-ui,monospace;
     }
-    #dbgLog {
-      position: fixed; bottom: 0; left: 0; right: 0;
-      background: rgba(0,0,0,0.85); color: #c8f542;
-      font-family: monospace; font-size: 11px;
-      padding: 8px; max-height: 35vh; overflow-y: auto;
-      z-index: 9000; pointer-events: none;
+    #status {
+      position:fixed; bottom:100px; left:0; right:0;
+      text-align:center; font-family:system-ui,monospace;
+      font-size:12px; color:rgba(255,255,255,0.8);
+      letter-spacing:0.1em; text-transform:uppercase;
+      pointer-events:none; z-index:500;
+      display:none;
+    }
+    #status.show { display:block; }
+    #arScene { display:none; width:100vw; height:100vh; }
+    #arScene.show { display:block; }
+    #ping {
+      position:fixed; top:50%; left:50%;
+      transform:translate(-50%,-50%);
+      width:56px; height:56px; border:2px solid #c8f542;
+      border-radius:50%; opacity:0; pointer-events:none; z-index:500;
+    }
+    #ping.go { animation:pg 0.6s ease-out forwards; }
+    @keyframes pg {
+      0%  { opacity:1; transform:translate(-50%,-50%) scale(0.5); }
+      100%{ opacity:0; transform:translate(-50%,-50%) scale(2); }
     }
   </style>
 </head>
 <body>
 
-<div id="hud">Iniciando Wall AR... v4</div>
-<button id="closeBtn" onclick="history.back()">✕</button>
-<div id="dbgLog"></div>
+<div id="startScreen">
+  <div class="slogo">ARA</div>
+  <div class="ssub">Augmented Reality Atelier</div>
+  <div style="width:40px;height:1px;background:#1e1e1e;"></div>
+  <div class="sname" id="startName"></div>
+  <button class="sbtn" onclick="arrancar()">▶ Iniciar experiencia</button>
+  <div class="shint">Apunta la cámara hacia una pared y toca para colocar el contenido</div>
+</div>
 
-<a-scene
-  xrconfig
-  xrweb="allowedDevices: any; disableWorldTracking: false;"
-  vr-mode-ui="enabled: false"
-  device-orientation-permission-ui="enabled: false">
+<div id="hud">
+  <div class="hlogo">ARA</div>
+  <button class="hbtn" onclick="cerrar()">✕</button>
+</div>
 
-  <a-assets timeout="15000">
-    <video id="wallVid" playsinline webkit-playsinline
-      crossorigin="anonymous" preload="auto" muted>
-    </video>
-  </a-assets>
-
-  <a-camera position="0 1.6 0" look-controls="enabled: false"></a-camera>
-
-  <a-ring id="reticle"
-    radius-inner="0.06" radius-outer="0.1"
-    rotation="-90 0 0"
-    material="color: #c8f542; shader: flat; side: double"
-    visible="false">
-  </a-ring>
-
-  <a-entity id="anchor" visible="false">
-    <a-video id="wallContent" src="#wallVid"
-      position="0 0 0.01" visible="true">
-    </a-video>
-  </a-entity>
-
-</a-scene>
+<div id="status">Apunta a una pared y toca para colocar</div>
+<div id="ping"></div>
+<div id="arScene"></div>
 
 <script>
   const P = new URLSearchParams(location.search);
   const PROJECT = P.get('p');
-  const CE  = P.get('ce') || 'mp4';
-  const W   = parseFloat(P.get('w'))  || 1;
-  const H   = parseFloat(P.get('h'))  || 0.5625;
+  const TYPE = P.get('t') || 'wall-video';
+  const CE   = P.get('ce') || 'mp4';
+  const W    = parseFloat(P.get('w'))  || 1;
+  const H    = parseFloat(P.get('h'))  || 0.5625;
   const LOOP = P.get('lp') !== '0';
   const BASE = location.href.split('/wall-viewer.html')[0];
+  const CONTENT_URL = BASE + '/proyectos/' + PROJECT + '/contenido.' + CE;
 
-  function dbg(msg, color) {
-    console.log('[ARA]', msg);
-    const log = document.getElementById('dbgLog');
-    const line = document.createElement('div');
-    line.style.color = color || '#c8f542';
-    line.style.padding = '2px 0';
-    line.textContent = new Date().toLocaleTimeString() + ' ' + msg;
-    log.appendChild(line);
-    log.scrollTop = log.scrollHeight;
+  if (PROJECT) {
+    document.getElementById('startName').textContent = PROJECT.replace(/-/g,' ');
   }
 
-  function setHud(msg) {
-    document.getElementById('hud').textContent = msg;
+  function cerrar() {
+    document.getElementById('startScreen').style.display = 'flex';
+    document.getElementById('hud').classList.remove('show');
+    document.getElementById('status').classList.remove('show');
+    document.getElementById('arScene').classList.remove('show');
+    document.getElementById('arScene').innerHTML = '';
+    document.body.classList.remove('ar-active');
+    const vid = document.getElementById('wallVid');
+    if (vid) vid.pause();
   }
 
-  // Configurar video y dimensiones
-  const vid = document.getElementById('wallVid');
-  vid.src  = BASE + '/proyectos/' + PROJECT + '/contenido.' + CE;
-  vid.loop = LOOP;
+  function arrancar() {
+    document.body.classList.add('ar-active');
+    document.getElementById('startScreen').style.display = 'none';
+    document.getElementById('hud').classList.add('show');
+    document.getElementById('status').classList.add('show');
 
-  document.getElementById('wallContent').setAttribute('width',  W);
-  document.getElementById('wallContent').setAttribute('height', H);
+    const sceneDiv = document.getElementById('arScene');
 
-  const scene = document.querySelector('a-scene');
-
-  scene.addEventListener('loaded', () => {
-    dbg('a-scene loaded', '#42f58d');
-    setHud('Escena lista — esperando SLAM...');
-  });
-
-  scene.addEventListener('realityready', () => {
-    dbg('realityready — SLAM activo!', '#42f58d');
-    setHud('Mueve el teléfono hacia una superficie');
-    iniciarHitTest();
-  });
-
-  scene.addEventListener('realityerror', (e) => {
-    dbg('realityerror: ' + JSON.stringify(e.detail), '#ff4545');
-    setHud('Error: ' + (e.detail && e.detail.msg || 'desconocido'));
-  });
-
-  scene.addEventListener('xrtrackingstatus', (e) => {
-    dbg('tracking: ' + JSON.stringify(e.detail), '#42f58d');
-  });
-
-  function iniciarHitTest() {
-    let placed = false;
-    let hitPos = null;
-
-    function loop() {
-      if (placed) return;
-      if (!window.XR8 || !XR8.XrController || !XR8.XrController.hitTest) {
-        setTimeout(loop, 200);
-        return;
+    // Para modelos 3D — usar Model Viewer con ar-placement wall
+    if (TYPE === 'wall-model') {
+      sceneDiv.innerHTML = `
+        <model-viewer
+          src="${CONTENT_URL}"
+          ar ar-modes="webxr scene-viewer quick-look"
+          ar-placement="wall" ar-scale="fixed"
+          scale="${W} ${W} ${W}"
+          camera-controls auto-rotate
+          shadow-intensity="0.8"
+          style="width:100vw;height:100vh;background:#000;">
+          <button slot="ar-button" style="
+            position:absolute;bottom:80px;left:50%;
+            transform:translateX(-50%);
+            background:#c8f542;color:#0a0a0a;border:none;
+            padding:16px 36px;font-size:13px;
+            letter-spacing:0.12em;text-transform:uppercase;
+            cursor:pointer;font-family:system-ui,monospace;">
+            ▣ Colocar en pared
+          </button>
+        </model-viewer>`;
+      // Cargar Model Viewer dinámicamente
+      if (!document.querySelector('script[src*="model-viewer"]')) {
+        const s = document.createElement('script');
+        s.type = 'module';
+        s.src = 'https://ajax.googleapis.com/ajax/libs/model-viewer/3.3.0/model-viewer.min.js';
+        document.head.appendChild(s);
       }
-      try {
-        const hits = XR8.XrController.hitTest(0.5, 0.5, ['FEATURE_POINT', 'PLANE']);
-        if (hits && hits.length > 0) {
-          hitPos = hits[0].position;
-          const reticle = document.getElementById('reticle');
-          reticle.setAttribute('visible', true);
-          reticle.setAttribute('position',
-            hitPos.x + ' ' + hitPos.y + ' ' + hitPos.z);
-          setHud('Superficie detectada — toca para colocar');
-        }
-      } catch(e) {
-        dbg('hitTest: ' + e, '#f5a623');
-      }
-      if (!placed) requestAnimationFrame(loop);
+      sceneDiv.classList.add('show');
+      document.getElementById('status').textContent = 'Toca "Colocar en pared" para ver en AR';
+      return;
     }
-    requestAnimationFrame(loop);
 
+    // Para video y GIF — AR.js con cámara real, toque para colocar
+    let assetHTML = '';
+    let contentHTML = '';
+
+    if (TYPE === 'wall-video') {
+      assetHTML = `<video id="wallVid" src="${CONTENT_URL}"
+        loop="${LOOP}" muted playsinline webkit-playsinline
+        crossorigin="anonymous" preload="auto" style="display:none;"></video>`;
+      contentHTML = `<a-video id="arc" src="#wallVid"
+        width="${W}" height="${H}"
+        position="0 0 -1.5" look-at="[camera]"
+        visible="false">
+      </a-video>`;
+    } else if (TYPE === 'wall-gif') {
+      contentHTML = `<a-image id="arc" src="${CONTENT_URL}"
+        width="${W}" height="${H}"
+        position="0 0 -1.5" look-at="[camera]"
+        visible="false">
+      </a-image>`;
+    }
+
+    sceneDiv.innerHTML = `
+      <a-scene embedded
+        arjs="sourceType:webcam; videoTexture:true; debugUIEnabled:false;"
+        vr-mode-ui="enabled:false"
+        device-orientation-permission-ui="enabled:false"
+        style="width:100vw;height:100vh;">
+        <a-assets>
+          ${assetHTML}
+        </a-assets>
+        <a-camera gps-camera rotation-reader></a-camera>
+        ${contentHTML}
+      </a-scene>`;
+
+    sceneDiv.classList.add('show');
+
+    // Toque para colocar el contenido
+    let placed = false;
     document.addEventListener('touchstart', () => {
-      if (placed || !hitPos) { dbg('sin posición', '#f5a623'); return; }
+      if (placed) return;
       placed = true;
 
-      const anchor = document.getElementById('anchor');
-      anchor.setAttribute('position', hitPos.x + ' ' + hitPos.y + ' ' + hitPos.z);
-      anchor.setAttribute('visible', true);
+      const arc = document.getElementById('arc');
+      if (arc) arc.setAttribute('visible', true);
 
-      document.getElementById('reticle').setAttribute('visible', false);
+      const vid = document.getElementById('wallVid');
+      if (vid) vid.play().catch(() => {});
 
-      vid.muted = true;
-      vid.play().then(() => dbg('video OK', '#42f58d'))
-                .catch(e => dbg('video: ' + e, '#f5a623'));
+      document.getElementById('status').textContent = '✓ Contenido colocado';
+      setTimeout(() => document.getElementById('status').classList.remove('show'), 2000);
 
-      setHud('¡Contenido colocado!');
-      dbg('anclado', '#42f58d');
-    }, {once: true});
+      const ping = document.getElementById('ping');
+      ping.classList.add('go');
+      setTimeout(() => ping.classList.remove('go'), 700);
+    }, { once: true });
   }
-
-  dbg('wall-viewer v4 — PROJECT:' + PROJECT);
 </script>
 </body>
 </html>

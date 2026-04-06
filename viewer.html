@@ -629,8 +629,6 @@
 
     sceneDiv.classList.add('show');
     document.getElementById('hud').classList.add('show');
-    document.getElementById('scan').classList.add('show');
-    document.getElementById('scanTxt').textContent = 'Apunta a una pared';
     if (EDIT_MODE) document.getElementById('btnEdit').style.display = 'block';
 
     setTimeout(() => {
@@ -639,15 +637,46 @@
 
       scene.addEventListener('loaded', () => {
         hideSplash();
-        initWallHitTest(scene);
+        // Mostrar botón para activar AR — requiere gesto del usuario
+        mostrarBotonWall(scene);
       });
 
       scene.addEventListener('arError', () =>
-        showErr('No se pudo acceder a la cámara o WebXR no está disponible.')
+        showErr('No se pudo activar el AR. Verifica permisos de cámara.')
       );
 
       setTimeout(() => hideSplash(), 8000);
     }, 600);
+  }
+
+  function mostrarBotonWall(scene) {
+    // Botón explícito para activar AR — necesario para permisos de cámara
+    const btn = document.createElement('button');
+    btn.id = 'wallArBtn';
+    btn.textContent = '▣ Activar Wall AR';
+    btn.style.cssText = `
+      position:fixed;bottom:80px;left:50%;transform:translateX(-50%);
+      background:#c8f542;color:#0a0a0a;border:none;
+      padding:16px 36px;font-size:13px;
+      letter-spacing:0.12em;text-transform:uppercase;
+      cursor:pointer;white-space:nowrap;
+      box-shadow:0 4px 24px rgba(0,0,0,0.6);
+      font-family:system-ui,monospace;z-index:600;`;
+
+    btn.onclick = () => {
+      btn.remove();
+      document.getElementById('scan').classList.add('show');
+      document.getElementById('scanTxt').textContent = 'Apunta a una pared';
+      scene.enterAR().catch(() => {
+        // Fallback si WebXR no está disponible
+        const container = document.getElementById('arc-container');
+        container.setAttribute('position', '0 1.2 -1.5');
+        container.setAttribute('visible', true);
+        document.getElementById('scan').classList.remove('show');
+      });
+      initWallHitTest(scene);
+    };
+    document.body.appendChild(btn);
   }
 
   function initWallHitTest(scene) {
@@ -657,17 +686,6 @@
 
     const reticle   = document.getElementById('reticle');
     const container = document.getElementById('arc-container');
-
-    // Entrar en AR
-    setTimeout(() => {
-      scene.enterAR().catch(() => {
-        // Fallback: posición fija frente a la cámara
-        container.setAttribute('position', '0 1.2 -1.5');
-        container.setAttribute('visible', true);
-        document.getElementById('scan').classList.remove('show');
-        hideSplash();
-      });
-    }, 1000);
 
     scene.addEventListener('enter-vr', () => {
       const renderer = scene.renderer;
@@ -1154,9 +1172,11 @@
     // 5. Mostrar pantalla de inicio
     document.getElementById('startScreen').style.display = 'flex';
 
-    // 6. Limpiar hint de instrucción si existe
+    // 6. Limpiar hint y botones flotantes
     const hint = document.getElementById('mvHint');
     if (hint) hint.remove();
+    const wallBtn = document.getElementById('wallArBtn');
+    if (wallBtn) wallBtn.remove();
 
     // 7. Resetear variable de contenido AR activo
     arContent = null;

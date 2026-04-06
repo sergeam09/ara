@@ -371,12 +371,13 @@
   let CFG = {...defaultConfig};
 
   // Tipo de contenido
-  const isVideo = ['video','surface-video'].includes(TYPE);
-  const isGif   = ['gif','surface-gif'].includes(TYPE);
-  const isModel = ['model','surface-model'].includes(TYPE);
+  const isVideo = ['video','surface-video','wall-video'].includes(TYPE);
+  const isGif   = ['gif','surface-gif','wall-gif'].includes(TYPE);
+  const isModel = ['model','surface-model','wall-model'].includes(TYPE);
   const isAudio = TYPE === 'audio';
   const isSurface = TYPE.startsWith('surface-');
-  const isImage = !isSurface;
+  const isWall    = TYPE.startsWith('wall-');
+  const isImage   = !isSurface && !isWall;
 
   // ── ELEMENTO AR ACTIVO ──
   let arContent = null;
@@ -474,6 +475,7 @@
 
   async function init() {
     setSplash('Preparando experiencia...');
+    if (isWall)    { initWall(); return; }
     if (isSurface) { initSurface(); return; }
     if (isModel)   { initModelViewer(); return; }
     await initMindAR();
@@ -482,9 +484,22 @@
   // ── MODEL VIEWER ──
   function initModelViewer() {
     setSplash('Cargando modelo 3D...');
+
+    // Escala: desde URL param sc, o desde CFG, o default 0.5
+    const sc = URL_SC || CFG.scale || 0.5;
+    const scaleStr = `${sc} ${sc} ${sc}`;
+
     document.getElementById('mvWrap').innerHTML = `
-      <model-viewer src="${PATHS.content}" ar ar-modes="webxr scene-viewer quick-look"
-        camera-controls auto-rotate shadow-intensity="1">
+      <model-viewer
+        src="${PATHS.content}"
+        ar
+        ar-modes="webxr scene-viewer quick-look"
+        camera-controls
+        auto-rotate
+        shadow-intensity="1"
+        scale="${scaleStr}"
+        ar-scale="fixed"
+        style="width:100%;height:100%;background:#0a0a0a;">
         <button slot="ar-button" style="
           position:absolute;
           bottom:80px;left:50%;
@@ -497,14 +512,230 @@
           font-family:system-ui,monospace;
         ">⬡ Ver en tu espacio</button>
       </model-viewer>`;
+
     document.getElementById('mvWrap').classList.add('show');
     document.getElementById('hud').classList.add('show');
-    // Instrucción centrada debajo del logo
+    if (EDIT_MODE) document.getElementById('btnEdit').style.display = 'block';
+
+    // Instrucción
     const hint = document.createElement('div');
+    hint.id = 'mvHint';
     hint.style.cssText = 'position:fixed;top:70px;left:0;right:0;text-align:center;font-size:11px;color:rgba(255,255,255,0.4);letter-spacing:0.1em;text-transform:uppercase;pointer-events:none;z-index:500;';
     hint.textContent = 'Rota con los dedos · Toca el botón para ver en AR';
     document.body.appendChild(hint);
     hideSplash();
+  }
+
+  // ── WALL AR (superficies verticales) ──
+  function initWall() {
+    setSplash('Preparando Wall AR...');
+
+    // Para modelos 3D en pared usamos Model Viewer con ar-placement="wall"
+    if (TYPE === 'wall-model') {
+      const sc = URL_SC || CFG.scale || 0.5;
+      document.getElementById('mvWrap').innerHTML = `
+        <model-viewer
+          src="${PATHS.content}"
+          ar
+          ar-modes="webxr scene-viewer quick-look"
+          ar-placement="wall"
+          ar-scale="fixed"
+          scale="${sc} ${sc} ${sc}"
+          camera-controls
+          auto-rotate
+          shadow-intensity="0.8"
+          style="width:100%;height:100%;background:#0a0a0a;">
+          <button slot="ar-button" style="
+            position:absolute;bottom:80px;left:50%;
+            transform:translateX(-50%);
+            background:#c8f542;color:#0a0a0a;border:none;
+            padding:16px 36px;font-size:13px;
+            letter-spacing:0.12em;text-transform:uppercase;
+            cursor:pointer;white-space:nowrap;
+            box-shadow:0 4px 24px rgba(0,0,0,0.6);
+            font-family:system-ui,monospace;">
+            ▣ Colocar en pared
+          </button>
+        </model-viewer>`;
+
+      document.getElementById('mvWrap').classList.add('show');
+      document.getElementById('hud').classList.add('show');
+      if (EDIT_MODE) document.getElementById('btnEdit').style.display = 'block';
+
+      const hint = document.createElement('div');
+      hint.id = 'mvHint';
+      hint.style.cssText = 'position:fixed;top:70px;left:0;right:0;text-align:center;font-size:11px;color:rgba(255,255,255,0.4);letter-spacing:0.1em;text-transform:uppercase;pointer-events:none;z-index:500;';
+      hint.textContent = 'Apunta a una pared · Toca el botón para colocar';
+      document.body.appendChild(hint);
+      hideSplash();
+      return;
+    }
+
+    // Para video/gif en pared: A-Frame con hit-test vertical
+    buildWallScene();
+  }
+
+  // ── ESCENA A-FRAME PARA WALL VIDEO/GIF ──
+  function buildWallScene() {
+    const w   = CFG.width  || URL_W  || 1;
+    const h   = CFG.height || URL_H  || 0.5625;
+    const pos = '0 0 0.05'; // ligeramente adelante de la pared
+
+    let entityHTML = '';
+    if (TYPE === 'wall-video') {
+      entityHTML = `<a-video id="arc"
+        src="${PATHS.content}"
+        width="${w}" height="${h}"
+        position="${pos}"
+        loop="${CFG.loop}" autoplay="${CFG.autoplay}"
+        playsinline="true" webkit-playsinline="true">
+      </a-video>`;
+    } else if (TYPE === 'wall-gif') {
+      entityHTML = `<a-image id="arc"
+        src="${PATHS.content}"
+        width="${w}" height="${h}"
+        position="${pos}">
+      </a-image>`;
+    }
+
+    const sceneDiv = document.getElementById('arScene');
+    sceneDiv.innerHTML = `
+      <a-scene
+        webxr="requiredFeatures: hit-test; optionalFeatures: dom-overlay;"
+        embedded
+        renderer="colorManagement:true;physicallyCorrectLights:true"
+        vr-mode-ui="enabled:false"
+        device-orientation-permission-ui="enabled:false"
+        style="width:100vw;height:100vh;">
+        <a-light type="ambient" intensity="0.8"></a-light>
+        <a-camera position="0 1.6 0"></a-camera>
+
+        <!-- Reticle para pared (vertical) -->
+        <a-entity id="reticle"
+          geometry="primitive: ring; radiusInner: 0.04; radiusOuter: 0.07"
+          material="color:#c8f542;shader:flat;side:double"
+          visible="false">
+        </a-entity>
+
+        <!-- Contenido AR -->
+        <a-entity id="arc-container" visible="false">
+          ${entityHTML}
+        </a-entity>
+      </a-scene>`;
+
+    sceneDiv.classList.add('show');
+    document.getElementById('hud').classList.add('show');
+    document.getElementById('scan').classList.add('show');
+    document.getElementById('scanTxt').textContent = 'Apunta a una pared';
+    if (EDIT_MODE) document.getElementById('btnEdit').style.display = 'block';
+
+    setTimeout(() => {
+      const scene = sceneDiv.querySelector('a-scene');
+      if (!scene) return;
+
+      scene.addEventListener('loaded', () => {
+        hideSplash();
+        initWallHitTest(scene);
+      });
+
+      scene.addEventListener('arError', () =>
+        showErr('No se pudo acceder a la cámara o WebXR no está disponible.')
+      );
+
+      setTimeout(() => hideSplash(), 8000);
+    }, 600);
+  }
+
+  function initWallHitTest(scene) {
+    let placed = false;
+    let hitMatrix = null;
+    let hitIsVertical = false;
+
+    const reticle   = document.getElementById('reticle');
+    const container = document.getElementById('arc-container');
+
+    // Entrar en AR
+    setTimeout(() => {
+      scene.enterAR().catch(() => {
+        // Fallback: posición fija frente a la cámara
+        container.setAttribute('position', '0 1.2 -1.5');
+        container.setAttribute('visible', true);
+        document.getElementById('scan').classList.remove('show');
+        hideSplash();
+      });
+    }, 1000);
+
+    scene.addEventListener('enter-vr', () => {
+      const renderer = scene.renderer;
+      const xrSession = renderer.xr.getSession();
+      if (!xrSession) return;
+
+      xrSession.requestReferenceSpace('viewer').then(viewerSpace => {
+        xrSession.requestHitTestSource({ space: viewerSpace }).then(hitTestSource => {
+
+          renderer.setAnimationLoop((timestamp, frame) => {
+            if (!frame || placed) return;
+            const refSpace = renderer.xr.getReferenceSpace();
+            const hits = frame.getHitTestResults(hitTestSource);
+
+            if (hits.length > 0) {
+              const hit  = hits[0];
+              const pose = hit.getPose(refSpace);
+              if (!pose) return;
+
+              const m = pose.transform.matrix;
+              const px = m[12], py = m[13], pz = m[14];
+
+              // Detectar si es superficie vertical (normalY cercano a 0)
+              const normalY = m[5];
+              hitIsVertical = Math.abs(normalY) < 0.3;
+
+              // Actualizar reticle
+              reticle.setAttribute('visible', true);
+              reticle.setAttribute('position', `${px} ${py} ${pz}`);
+
+              // Rotar reticle según la normal de la superficie
+              if (hitIsVertical) {
+                reticle.setAttribute('rotation', '0 0 0');
+                document.getElementById('scanTxt').textContent = 'Pared detectada — toca para colocar';
+              } else {
+                reticle.setAttribute('rotation', '-90 0 0');
+                document.getElementById('scanTxt').textContent = 'Superficie horizontal — apunta a la pared';
+              }
+
+              hitMatrix = { px, py, pz, normalY };
+            } else {
+              reticle.setAttribute('visible', false);
+              hitMatrix = null;
+            }
+          });
+
+        }).catch(() => {
+          // Hit-test no disponible
+          container.setAttribute('position', '0 1.2 -1.5');
+          container.setAttribute('visible', true);
+          document.getElementById('scan').classList.remove('show');
+        });
+      });
+    });
+
+    // Toque para colocar
+    sceneDiv.addEventListener('click', () => {
+      if (!hitMatrix || placed) return;
+      placed = true;
+
+      container.setAttribute('position', `${hitMatrix.px} ${hitMatrix.py} ${hitMatrix.pz}`);
+      container.setAttribute('visible', true);
+      reticle.setAttribute('visible', false);
+      document.getElementById('scan').classList.remove('show');
+
+      // Ping de confirmación
+      const ping = document.getElementById('ping');
+      ping.classList.add('go');
+      setTimeout(() => ping.classList.remove('go'), 700);
+
+      arContent = document.getElementById('arc');
+    });
   }
 
   // ── SURFACE AR ──
@@ -919,7 +1150,11 @@
     // 5. Mostrar pantalla de inicio
     document.getElementById('startScreen').style.display = 'flex';
 
-    // 6. Resetear variable de contenido AR activo
+    // 6. Limpiar hint de instrucción si existe
+    const hint = document.getElementById('mvHint');
+    if (hint) hint.remove();
+
+    // 7. Resetear variable de contenido AR activo
     arContent = null;
   }
 

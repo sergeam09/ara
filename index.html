@@ -138,9 +138,10 @@
       </div>
       <div class="field">
         <label>Modo AR</label>
-        <div class="type-grid" style="grid-template-columns:1fr 1fr;margin-bottom:8px;">
+        <div class="type-grid" style="grid-template-columns:1fr 1fr 1fr;margin-bottom:8px;">
           <button class="tbtn active" data-mode="image" onclick="setModo('image')"><span class="tbtn-icon">◈</span>Image</button>
           <button class="tbtn" data-mode="surface" onclick="setModo('surface')"><span class="tbtn-icon">⬡</span>Surface</button>
+          <button class="tbtn" data-mode="wall" onclick="setModo('wall')"><span class="tbtn-icon">▣</span>Wall</button>
         </div>
       </div>
 
@@ -154,6 +155,23 @@
             <button class="tbtn" data-type="model" onclick="setTipo('model')"><span class="tbtn-icon">⬡</span>3D</button>
             <button class="tbtn" data-type="audio" onclick="setTipo('audio')"><span class="tbtn-icon">♪</span>Audio</button>
           </div>
+        </div>
+      </div>
+
+      <!-- Tipos WALL -->
+      <div id="mode-wall" class="mode-panel" style="display:none;">
+        <div class="field">
+          <label>Tipo de contenido</label>
+          <div class="type-grid" style="grid-template-columns:repeat(3,1fr);">
+            <button class="tbtn active" data-wtype="wall-model" onclick="setTipo('wall-model')"><span class="tbtn-icon">⬡</span>3D</button>
+            <button class="tbtn" data-wtype="wall-video" onclick="setTipo('wall-video')"><span class="tbtn-icon">▶</span>Video</button>
+            <button class="tbtn" data-wtype="wall-gif" onclick="setTipo('wall-gif')"><span class="tbtn-icon">◈</span>GIF</button>
+          </div>
+        </div>
+        <div style="background:rgba(200,245,66,0.05);border:1px solid rgba(200,245,66,0.15);padding:12px;font-size:10px;color:#555;line-height:1.9;margin-bottom:16px;letter-spacing:0.05em;">
+          Wall AR detecta superficies verticales.<br>
+          El espectador apunta a una pared y toca para colocar.<br>
+          Ideal para murales y galerías al aire libre.
         </div>
       </div>
 
@@ -251,6 +269,30 @@
           <div class="uptext"><strong>Modelo 3D — GLB o GLTF</strong><br>Se coloca sobre cualquier superficie</div>
           <div class="uppreview" id="prSurfModel"></div>
         </div>
+        <div class="dim-box">
+          <div class="dim-title">Escala del modelo</div>
+          <div class="dim-presets" id="surfModelPresets">
+            <button class="dim-preset" onclick="setSurfScale(0.1)">Mini</button>
+            <button class="dim-preset" onclick="setSurfScale(0.25)">Pequeño</button>
+            <button class="dim-preset active" onclick="setSurfScale(0.5)">Mediano</button>
+            <button class="dim-preset" onclick="setSurfScale(1)">Grande</button>
+            <button class="dim-preset" onclick="setSurfScale(2)">XL</button>
+          </div>
+          <div class="dim-row" style="margin-top:8px;">
+            <span class="dim-label">Escala exacta</span>
+            <input type="number" class="dim-input" id="dimSurfScale" value="0.5" min="0.01" max="5" step="0.05">
+            <span class="dim-unit">× tamaño original</span>
+          </div>
+          <div class="dim-row" style="margin-top:6px;">
+            <span class="dim-label">Alto real</span>
+            <input type="number" class="dim-input" id="dimSurfH" placeholder="ej. 30" min="1" step="1">
+            <span class="dim-unit">cm (opcional)</span>
+          </div>
+          <div style="font-size:9px;color:#333;margin-top:8px;line-height:1.7;letter-spacing:0.05em;">
+            Si introduces el alto real en cm, ARA calcula la escala automáticamente.<br>
+            Depende de cómo fue exportado el modelo en Blender.
+          </div>
+        </div>
       </div>
       <div id="cp-surface-video" class="cpanel">
         <div class="upzone"><input type="file" id="fSurfVideo" accept="video/*">
@@ -264,6 +306,62 @@
           <span class="upicon">◈</span>
           <div class="uptext"><strong>GIF animado o WEBP</strong><br>Flota sobre la superficie</div>
           <div class="uppreview" id="prSurfGif"></div>
+        </div>
+      </div>
+
+      <!-- Paneles WALL -->
+      <div id="cp-wall-model" class="cpanel">
+        <div class="upzone"><input type="file" id="fWallModel" accept=".glb,.gltf">
+          <span class="upicon">⬡</span>
+          <div class="uptext"><strong>Modelo 3D — GLB o GLTF</strong><br>Se ancla en la pared vertical</div>
+          <div class="uppreview" id="prWallModel"></div>
+        </div>
+        <div class="dim-box">
+          <div class="dim-title">Escala del modelo</div>
+          <div class="dim-presets" id="wallModelPresets">
+            <button class="dim-preset" onclick="setWallScale(0.1)">Mini</button>
+            <button class="dim-preset" onclick="setWallScale(0.25)">Pequeño</button>
+            <button class="dim-preset active" onclick="setWallScale(0.5)">Mediano</button>
+            <button class="dim-preset" onclick="setWallScale(1)">Grande</button>
+          </div>
+          <div class="dim-row" style="margin-top:8px;">
+            <span class="dim-label">Escala exacta</span>
+            <input type="number" class="dim-input" id="dimWallScale" value="0.5" min="0.01" max="5" step="0.05">
+            <span class="dim-unit">× original</span>
+          </div>
+        </div>
+      </div>
+
+      <div id="cp-wall-video" class="cpanel">
+        <div class="upzone"><input type="file" id="fWallVideo" accept="video/*">
+          <span class="upicon">▶</span>
+          <div class="uptext"><strong>Video MP4 o WEBM</strong><br>Se proyecta sobre la pared</div>
+          <div class="uppreview" id="prWallVideo"></div>
+        </div>
+        <div class="dim-box">
+          <div class="dim-title">Proporción del video</div>
+          <div class="dim-presets" id="wallVideoPropPresets">
+            <button class="dim-preset active" onclick="setProp('wallVideo',16,9)">16:9</button>
+            <button class="dim-preset" onclick="setProp('wallVideo',1,1)">1:1</button>
+            <button class="dim-preset" onclick="setProp('wallVideo',4,3)">4:3</button>
+            <button class="dim-preset" onclick="setProp('wallVideo',9,16)">9:16</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="cp-wall-gif" class="cpanel">
+        <div class="upzone"><input type="file" id="fWallGif" accept="image/gif,image/webp">
+          <span class="upicon">◈</span>
+          <div class="uptext"><strong>GIF animado o WEBP</strong><br>Se proyecta sobre la pared</div>
+          <div class="uppreview" id="prWallGif"></div>
+        </div>
+        <div class="dim-box">
+          <div class="dim-title">Proporción</div>
+          <div class="dim-presets" id="wallGifPropPresets">
+            <button class="dim-preset active" onclick="setProp('wallGif',1,1)">1:1</button>
+            <button class="dim-preset" onclick="setProp('wallGif',16,9)">16:9</button>
+            <button class="dim-preset" onclick="setProp('wallGif',4,3)">4:3</button>
+          </div>
         </div>
       </div>
       <div id="cp-surface-model" class="cpanel" style="display:none;">
@@ -386,9 +484,26 @@ function setModelScale(sz) {
   const map = { pequeno: 0.2, mediano: 0.5, grande: 1, real: 1 };
   dimConfig.scale = map[sz] || 0.5;
   document.getElementById('modelRealDims').style.display = sz === 'real' ? 'flex' : 'none';
-  // Marcar preset
   document.querySelectorAll('#modelScalePresets .dim-preset').forEach(b => {
     b.classList.toggle('active', b.onclick?.toString().includes(`'${sz}'`));
+  });
+}
+
+function setSurfScale(val) {
+  dimConfig.scale = val;
+  const input = document.getElementById('dimSurfScale');
+  if (input) input.value = val;
+  document.querySelectorAll('#surfModelPresets .dim-preset').forEach(b => {
+    b.classList.toggle('active', b.onclick?.toString().includes(`(${val})`));
+  });
+}
+
+function setWallScale(val) {
+  dimConfig.scale = val;
+  const input = document.getElementById('dimWallScale');
+  if (input) input.value = val;
+  document.querySelectorAll('#wallModelPresets .dim-preset').forEach(b => {
+    b.classList.toggle('active', b.onclick?.toString().includes(`(${val})`));
   });
 }
 
@@ -421,6 +536,21 @@ function getDimensions() {
     if (ch > 0 && !isNaN(ch)) {
       scale = +(ch/100).toFixed(3);
     }
+  } else if (t === 'surface-model') {
+    const ch = parseFloat(document.getElementById('dimSurfH')?.value);
+    if (ch > 0 && !isNaN(ch)) {
+      scale = +(ch/100).toFixed(3);
+    } else {
+      const sc = parseFloat(document.getElementById('dimSurfScale')?.value);
+      if (sc > 0 && !isNaN(sc)) scale = sc;
+    }
+  } else if (t === 'wall-model') {
+    const sc = parseFloat(document.getElementById('dimWallScale')?.value);
+    if (sc > 0 && !isNaN(sc)) scale = sc;
+  } else if (t === 'wall-video') {
+    // Usa dimConfig.width/height que se actualiza con setProp
+  } else if (t === 'wall-gif') {
+    // Usa dimConfig.width/height
   }
 
   console.log('[ARA] Dimensiones finales:', {width, height, scale});
@@ -433,12 +563,13 @@ function setModo(m){
   document.querySelector(`[data-mode="${m}"]`).classList.add('active');
   document.querySelectorAll('.mode-panel').forEach(p=>p.style.display='none');
   document.getElementById(`mode-${m}`).style.display='block';
-  // Ocultar trigger en surface
+  // Ocultar trigger en surface y wall
   const tf=document.getElementById('triggerField');
-  if(tf) tf.style.display=(m==='surface'?'none':'block');
+  if(tf) tf.style.display=(m==='image'?'block':'none');
   // Reset tipo según modo
   if(m==='image') setTipo('video');
-  else setTipo('surface-model');
+  else if(m==='surface') setTipo('surface-model');
+  else if(m==='wall') setTipo('wall-model');
 }
 
 function setTipo(t){
@@ -463,11 +594,24 @@ document.querySelectorAll('.upzone').forEach(z=>{
   z.addEventListener('drop',e=>{e.preventDefault();z.classList.remove('over');const inp=z.querySelector('input[type="file"]');if(inp&&e.dataTransfer.files[0]){const dt=new DataTransfer();dt.items.add(e.dataTransfer.files[0]);inp.files=dt.files;inp.dispatchEvent(new Event('change'));}});
 });
 
-[['fTrigger','prTrigger'],['fVideo','prVideo'],['fGif','prGif'],['fModel','prModel'],['fAudio','prAudio'],['fSurfModel','prSurfModel'],['fSurfVideo','prSurfVideo'],['fSurfGif','prSurfGif']].forEach(([id,pid])=>{
+[['fTrigger','prTrigger'],['fVideo','prVideo'],['fGif','prGif'],['fModel','prModel'],['fAudio','prAudio'],['fSurfModel','prSurfModel'],['fSurfVideo','prSurfVideo'],['fSurfGif','prSurfGif'],['fWallModel','prWallModel'],['fWallVideo','prWallVideo'],['fWallGif','prWallGif']].forEach(([id,pid])=>{
   const el=document.getElementById(id);if(!el)return;
   el.addEventListener('change',function(){const p=document.getElementById(pid);if(this.files[0]){p.style.display='block';p.textContent=`✓ ${this.files[0].name} (${fmt(this.files[0].size)})`;}});
 });
 function fmt(b){if(b<1024)return b+'B';if(b<1048576)return(b/1024).toFixed(1)+'KB';return(b/1048576).toFixed(1)+'MB';}
+
+// Sync escala manual surface con dimConfig
+document.addEventListener('DOMContentLoaded', () => {
+  const scInput = document.getElementById('dimSurfScale');
+  if (scInput) scInput.addEventListener('input', function() {
+    const v = parseFloat(this.value);
+    if (v > 0) {
+      dimConfig.scale = v;
+      // Deseleccionar presets
+      document.querySelectorAll('#surfModelPresets .dim-preset').forEach(b => b.classList.remove('active'));
+    }
+  });
+});
 
 function logStep(msg,tipo=''){const log=document.getElementById('stepsLog');log.classList.add('visible');const l=document.createElement('div');l.className=`step-line ${tipo}`;l.textContent=msg;log.appendChild(l);log.scrollTop=log.scrollHeight;}
 function clearLog(){const log=document.getElementById('stepsLog');log.innerHTML='';log.classList.remove('visible');}
@@ -531,7 +675,7 @@ async function generarProyecto(){
   const nombre=document.getElementById('pNombre').value.trim();
 
   const fTrig=document.getElementById('fTrigger').files[0];
-  const fMap={video:'fVideo',gif:'fGif',model:'fModel',audio:'fAudio','surface-model':'fSurfModel','surface-video':'fSurfVideo','surface-gif':'fSurfGif'};
+  const fMap={video:'fVideo',gif:'fGif',model:'fModel',audio:'fAudio','surface-model':'fSurfModel','surface-video':'fSurfVideo','surface-gif':'fSurfGif','wall-model':'fWallModel','wall-video':'fWallVideo','wall-gif':'fWallGif'};
   const fCont=document.getElementById(fMap[tipoActual])?.files[0];
   const fAImg=document.getElementById('fAudioImg')?.files[0];
 
@@ -539,6 +683,7 @@ async function generarProyecto(){
   if(!nombre){toast('Ponle nombre al proyecto');return;}
   if(!/^[a-zA-Z0-9_-]+$/.test(nombre)){toast('Solo letras, números y guiones');return;}
   if(modoActual==='image'&&!fTrig){toast('Necesitas una imagen trigger');return;}
+  // wall y surface no necesitan trigger
   if(!fCont){toast(`Sube el archivo de ${tipoActual}`);return;}
 
   const slug=nombre.toLowerCase();
@@ -554,8 +699,8 @@ async function generarProyecto(){
     // Obtener dimensiones definidas por el usuario
     const dims = getDimensions();
 
-    if(modoActual==='surface'){
-      // Surface AR: solo subir el contenido, sin trigger ni .mind
+    if(modoActual==='surface' || modoActual==='wall'){
+      // Surface/Wall AR: solo subir el contenido, sin trigger ni .mind
       setProgress(50,'Subiendo archivos',`Subiendo contenido.${contentExt}...`);
       logStep(`◈ Subiendo contenido.${contentExt}...`,'act');
       await githubUpload(`proyectos/${slug}/contenido.${contentExt}`,await fileToBase64(fCont),`ARA: contenido ${slug}`);

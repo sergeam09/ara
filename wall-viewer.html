@@ -6,13 +6,11 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <title>ARA — Wall AR</title>
 
-  <!-- 8-Frame: versión modificada de A-Frame compatible con 8th Wall -->
-  <!-- 8-Frame: versión de A-Frame compatible con 8th Wall -->
-    <!-- 8-Frame: versión de A-Frame compatible con 8th Wall (CDN oficial) -->
-  <script src="//cdn.8thwall.com/web/aframe/8frame-1.4.1.min.js"></script>
-
-  <!-- 8th Wall Engine Binary con SLAM -->
+  <!-- 8th Wall Engine Binary con SLAM — debe cargar ANTES que 8-Frame -->
   <script src="./xr/xr.js" data-preload-chunks="slam"></script>
+
+  <!-- 8-Frame: versión de A-Frame compatible con 8th Wall -->
+  <script src="//cdn.8thwall.com/web/aframe/8frame-1.4.1.min.js"></script>
 
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -320,80 +318,85 @@
   }
 
   function setupPlacement(scene) {
-    dbg('setupPlacement() — registrando componente de hit-test');
+    dbg('setupPlacement() — configurando hit-test');
+    let placed   = false;
+    let hitPos   = null;
+    let slamReady = false;
 
-    // Registrar componente que hace hit-test en cada frame
-    AFRAME.registerComponent('world-tracking-placement', {
-      init: function() {
-        this.placed = false;
-        this.hitPos = null;
+    // Escuchar realityready — solo después de esto funciona hitTest
+    scene.addEventListener('realityready', () => {
+      slamReady = true;
+      dbg('realityready — SLAM listo para hit-test', '#42f58d');
+      document.getElementById('scanTxt').textContent = 'Mueve el teléfono hacia una superficie';
+      // Iniciar loop de hit-test
+      hitTestLoop();
+    });
 
-        // Escuchar realityready para confirmar que el SLAM arrancó
-        this.el.sceneEl.addEventListener('realityready', () => {
-          dbg('realityready — SLAM activo', '#42f58d');
-          document.getElementById('scanTxt').textContent = 'Mueve el teléfono lentamente';
-        });
+    scene.addEventListener('realityerror', (e) => {
+      dbg('realityerror: ' + JSON.stringify(e.detail), '#ff4545');
+      showErr('Error SLAM: ' + (e.detail && e.detail.msg || 'desconocido'));
+    });
 
-        this.el.sceneEl.addEventListener('realityerror', (e) => {
-          dbg('realityerror: ' + JSON.stringify(e.detail), '#ff4545');
-          showErr('Error AR: ' + (e.detail && e.detail.msg || 'desconocido'));
-        });
-
-        // Toque para colocar
-        this.el.sceneEl.canvas.addEventListener('touchstart', () => {
-          if (this.placed || !this.hitPos) {
-            dbg('toque sin posición todavía', '#f5a623');
-            return;
-          }
-          this.placed = true;
-
-          const anchor = document.getElementById('content-anchor');
-          const reticle = document.getElementById('reticle');
-
-          anchor.setAttribute('position', this.hitPos);
-          anchor.setAttribute('visible', true);
-
-          const contentEl = document.getElementById('content');
-          if (contentEl) contentEl.setAttribute('visible', true);
-
-          const vid = document.getElementById('wallVid');
-          if (vid) vid.play().catch(e => dbg('video: ' + e));
-
-          if (reticle) reticle.setAttribute('visible', false);
-          document.getElementById('scan').classList.remove('show');
-
-          const ping = document.getElementById('ping');
-          ping.classList.add('go');
-          setTimeout(() => ping.classList.remove('go'), 700);
-
-          dbg('contenido anclado', '#42f58d');
-        });
-      },
-
-      tick: function() {
-        if (this.placed) return;
-        if (!window.XR8 || !XR8.XrController || !XR8.XrController.hitTest) return;
-
-        // Hit-test en el centro de la pantalla
+    // Loop de hit-test — corre cada 100ms después de realityready
+    function hitTestLoop() {
+      if (placed) return;
+      if (!window.XR8 || !XR8.XrController || !XR8.XrController.hitTest) {
+        dbg('hitTest no disponible aún', '#f5a623');
+        setTimeout(hitTestLoop, 500);
+        return;
+      }
+      try {
         const hits = XR8.XrController.hitTest(0.5, 0.5, ['FEATURE_POINT', 'PLANE']);
         if (hits && hits.length > 0) {
           const h = hits[0];
-          this.hitPos = {x: h.position.x, y: h.position.y, z: h.position.z};
-
-          // Mover reticle a la posición detectada
+          hitPos = {x: h.position.x, y: h.position.y, z: h.position.z};
           const reticle = document.getElementById('reticle');
           if (reticle) {
             reticle.setAttribute('visible', true);
-            reticle.setAttribute('position', this.hitPos);
+            reticle.setAttribute('position', hitPos.x + ' ' + hitPos.y + ' ' + hitPos.z);
           }
           document.getElementById('scanTxt').textContent = 'Superficie detectada — toca para colocar';
         }
+      } catch(e) {
+        dbg('hitTest error: ' + e, '#ff4545');
       }
+      if (!placed) setTimeout(hitTestLoop, 100);
+    }
+
+    // Toque para colocar
+    document.addEventListener('touchstart', (e) => {
+      if (placed) return;
+      if (!hitPos) { dbg('sin posición todavía', '#f5a623'); return; }
+      placed = true;
+
+      const anchor  = document.getElementById('content-anchor');
+      const reticle = document.getElementById('reticle');
+      const vid     = document.getElementById('wallVid');
+
+      if (anchor) {
+        anchor.setAttribute('position', hitPos.x + ' ' + hitPos.y + ' ' + hitPos.z);
+        anchor.setAttribute('visible', true);
+      }
+
+      const contentEl = document.getElementById('content');
+      if (contentEl) contentEl.setAttribute('visible', true);
+
+      if (vid) {
+        vid.muted = true;
+        vid.play().then(() => dbg('video reproduciendo', '#42f58d'))
+                  .catch(err => dbg('video error: ' + err, '#f5a623'));
+      }
+
+      if (reticle) reticle.setAttribute('visible', false);
+      document.getElementById('scan').classList.remove('show');
+
+      const ping = document.getElementById('ping');
+      ping.classList.add('go');
+      setTimeout(() => ping.classList.remove('go'), 700);
+      dbg('contenido anclado en ' + hitPos.x.toFixed(2) + ',' + hitPos.y.toFixed(2) + ',' + hitPos.z.toFixed(2), '#42f58d');
     });
 
-    // Agregar el componente a la escena
-    scene.setAttribute('world-tracking-placement', '');
-    dbg('componente world-tracking-placement agregado');
+    dbg('listeners configurados — esperando realityready');
   }
 </script>
 </body>

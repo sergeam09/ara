@@ -604,24 +604,36 @@
     buildWallScene();
   }
   function buildWallScene() {
-    const w   = CFG.width  || URL_W  || 1;
-    const h   = CFG.height || URL_H  || 0.5625;
-    const pos = '0 0 0.05';
+    const w = CFG.width  || URL_W  || 1;
+    const h = CFG.height || URL_H  || 0.5625;
 
-    let entityHTML = '';
+    // Para video: usar a-video directamente — más compatible con WebXR
+    // Para gif: usar a-image
+    let assetHTML = '';
+    let contentHTML = '';
+
     if (TYPE === 'wall-video') {
-      // Usar a-entity con geometry y material para mejor compatibilidad
-      entityHTML = `<a-entity id="arc"
-        geometry="primitive: plane; width: ${w}; height: ${h}"
-        material="src: ${PATHS.content}; shader: standard; side: double; transparent: true"
-        position="${pos}"
-        ${CFG.loop ? '' : ''}>
-      </a-entity>`;
+      assetHTML = `<video id="wallVideo"
+        src="${PATHS.content}"
+        loop="${CFG.loop}"
+        muted
+        playsinline
+        webkit-playsinline
+        crossorigin="anonymous"
+        preload="auto"
+        style="display:none;">
+      </video>`;
+      contentHTML = `<a-video id="arc"
+        src="#wallVideo"
+        width="${w}" height="${h}"
+        position="0 0 0.05"
+        side="double">
+      </a-video>`;
     } else if (TYPE === 'wall-gif') {
-      entityHTML = `<a-image id="arc"
+      contentHTML = `<a-image id="arc"
         src="${PATHS.content}"
         width="${w}" height="${h}"
-        position="${pos}">
+        position="0 0 0.05">
       </a-image>`;
     }
 
@@ -634,8 +646,8 @@
         vr-mode-ui="enabled:false"
         device-orientation-permission-ui="enabled:false"
         style="width:100vw;height:100vh;">
-        <a-assets>
-          <video id="wallVideo" src="${PATHS.content}" loop="${CFG.loop}" autoplay="${CFG.autoplay}" playsinline crossorigin="anonymous" preload="auto" style="display:none;"></video>
+        <a-assets timeout="10000">
+          ${assetHTML}
         </a-assets>
         <a-light type="ambient" intensity="0.8"></a-light>
         <a-camera position="0 1.6 0"></a-camera>
@@ -647,7 +659,7 @@
         </a-entity>
 
         <a-entity id="arc-container" visible="false">
-          <a-plane id="arc-plane" width="${w}" height="${h}" position="${pos}" material="src: #wallVideo; side: double; transparent: true"></a-plane>
+          ${contentHTML}
         </a-entity>
       </a-scene>`;
 
@@ -663,12 +675,6 @@
         dbg('A-Frame scene loaded OK', '#42f58d');
         hideSplash();
         mostrarBotonWall(scene);
-        
-        // Intentar reproducir el video
-        const videoEl = document.getElementById('wallVideo');
-        if (videoEl) {
-          videoEl.play().catch(e => dbg(`Video autoplay error: ${e}`, '#f5a623'));
-        }
       });
 
       scene.addEventListener('arReady', () => {

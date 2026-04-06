@@ -6,8 +6,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <title>ARA — Face AR</title>
 
-  <!-- MindAR Face Tracking -->
-  <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+  <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-face-aframe.prod.js"></script>
 
   <style>
@@ -56,7 +55,8 @@
     #scan.show { display:flex; }
     .stxt { font-size:12px; color:rgba(255,255,255,0.75); letter-spacing:0.12em; text-transform:uppercase; }
 
-    #arScene { display:none; width:100vw; height:100vh; }
+    /* Scene siempre existe pero la ocultamos visualmente hasta activarla */
+    #arScene { display:none; width:100vw; height:100vh; position:absolute; top:0; left:0; z-index:100; }
     #arScene.show { display:block; }
 
     #splash {
@@ -112,21 +112,59 @@
   const SC       = parseFloat(P.get('sc'))  || 0.1;
   const IMGSIZE  = parseFloat(P.get('imgsize')) || 0.2;
 
-  const BASE = location.href.split('/face-viewer.html')[0];
+  const BASE = location.href.split('/face-viewer.html');
   const CONTENT_URL = BASE + '/proyectos/' + PROJECT + '/contenido.' + CE;
 
   if (PROJECT) {
     document.getElementById('startName').textContent = PROJECT.replace(/-/g,' ');
   }
 
+  // CONSTRUIR LA ESCENA AL CARGAR LA PÁGINA (No al hacer clic)
+  window.addEventListener('DOMContentLoaded', () => {
+    const sceneDiv = document.getElementById('arScene');
+    let contentHTML = '';
+    let assetHTML = '';
+
+    // Añadido crossorigin="anonymous" por si Cloudflare bloquea texturas externas
+    if (TYPE === 'face-model') {
+      assetHTML = `<a-asset-item id="faceAsset" src="${CONTENT_URL}"></a-asset-item>`;
+      contentHTML = `
+        <a-entity mindar-face-target="anchorIndex: ${ANCHOR}">
+          <a-gltf-model src="#faceAsset" scale="${SC} ${SC} ${SC}" position="0 0 0" rotation="0 0 0"></a-gltf-model>
+        </a-entity>`;
+    } else if (TYPE === 'face-image') {
+      assetHTML = `<img id="faceAsset" src="${CONTENT_URL}" crossorigin="anonymous">`;
+      contentHTML = `
+        <a-entity mindar-face-target="anchorIndex: ${ANCHOR}">
+          <a-image src="#faceAsset" width="${IMGSIZE}" height="${IMGSIZE}" position="0 0 0" transparent="true"></a-image>
+        </a-entity>`;
+    }
+
+    sceneDiv.innerHTML = `
+      <a-scene
+        id="mainScene"
+        mindar-face="autoStart: false;"
+        embedded
+        color-space="sRGB"
+        renderer="colorManagement: true; physicallyCorrectLights: true;"
+        vr-mode-ui="enabled: false"
+        device-orientation-permission-ui="enabled: false">
+        
+        <a-assets timeout="15000">
+          ${assetHTML}
+        </a-assets>
+
+        <a-camera active="false" position="0 0 0"></a-camera>
+        ${contentHTML}
+      </a-scene>`;
+  });
+
   function cerrar() {
-    // Detener MindAR
-    const scene = document.querySelector('a-scene');
+    const scene = document.getElementById('mainScene');
     if (scene && scene.systems && scene.systems['mindar-face-system']) {
       scene.systems['mindar-face-system'].stop();
     }
     document.getElementById('arScene').classList.remove('show');
-    document.getElementById('arScene').innerHTML = '';
     document.getElementById('hud').classList.remove('show');
     document.getElementById('scan').classList.remove('show');
     document.getElementById('splash').classList.remove('show');
@@ -139,77 +177,24 @@
     document.getElementById('splash').classList.add('show');
     document.body.classList.add('ar-active');
     document.getElementById('smsg').textContent = 'Iniciando cámara frontal...';
-    buildFaceScene();
-  }
+    
+    document.getElementById('arScene').classList.add('show');
+    const scene = document.getElementById('mainScene');
 
-  function buildFaceScene() {
-    const sceneDiv = document.getElementById('arScene');
-
-    // Contenido según tipo
-    let contentHTML = '';
-    if (TYPE === 'face-model') {
-      contentHTML = `
-        <a-entity mindar-face-target="anchorIndex: ${ANCHOR}">
-          <a-gltf-model
-            src="${CONTENT_URL}"
-            scale="${SC} ${SC} ${SC}"
-            position="0 0 0"
-            rotation="0 0 0">
-          </a-gltf-model>
-        </a-entity>`;
-    } else if (TYPE === 'face-image') {
-      contentHTML = `
-        <a-entity mindar-face-target="anchorIndex: ${ANCHOR}">
-          <a-image
-            src="${CONTENT_URL}"
-            width="${IMGSIZE}" height="${IMGSIZE}"
-            position="0 0 0"
-            transparent="true">
-          </a-image>
-        </a-entity>`;
+    // Aquí está el truco: Lanzamos la cámara de forma SÍNCRONA con el clic.
+    const arSystem = scene.systems['mindar-face-system'];
+    if (!arSystem) {
+      document.getElementById('smsg').textContent = 'Error: sistema AR no está listo. Recarga la página.';
+      return;
     }
 
-    sceneDiv.innerHTML = `
-      <a-scene
-        mindar-face="autoStart: false;"
-        embedded
-        color-space="sRGB"
-        renderer="colorManagement: true; physicallyCorrectLights: true;"
-        vr-mode-ui="enabled: false"
-        device-orientation-permission-ui="enabled: false">
-
-        <a-assets timeout="15000">
-          ${TYPE === 'face-model'
-            ? `<a-asset-item id="faceAsset" src="${CONTENT_URL}"></a-asset-item>`
-            : `<img id="faceAsset" src="${CONTENT_URL}">`}
-        </a-assets>
-
-        <a-camera active="false" position="0 0 0"></a-camera>
-
-        ${contentHTML}
-      </a-scene>`;
-
-    sceneDiv.classList.add('show');
-
-    const scene = sceneDiv.querySelector('a-scene');
-
-    scene.addEventListener('loaded', () => {
-      document.getElementById('smsg').textContent = 'Activando detección de rostro...';
-
-      const arSystem = scene.systems['mindar-face-system'];
-      if (!arSystem) {
-        document.getElementById('smsg').textContent = 'Error: sistema AR no disponible';
-        return;
-      }
-
-      arSystem.start().then(() => {
-        document.getElementById('splash').classList.remove('show');
-        document.getElementById('hud').classList.add('show');
-        document.getElementById('scan').classList.add('show');
-        document.getElementById('scanTxt').textContent = 'Apunta tu rostro a la cámara';
-      }).catch(e => {
-        document.getElementById('smsg').textContent = 'Error: ' + e.message;
-      });
+    arSystem.start().then(() => {
+      document.getElementById('splash').classList.remove('show');
+      document.getElementById('hud').classList.add('show');
+      document.getElementById('scan').classList.add('show');
+      document.getElementById('scanTxt').textContent = 'Apunta tu rostro a la cámara';
+    }).catch(e => {
+      document.getElementById('smsg').textContent = 'Permiso denegado o error: ' + e.message;
     });
   }
 </script>

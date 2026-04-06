@@ -6,9 +6,9 @@
   "rotY": 0,
   "rotZ": 0,
   "preset": "vertical",
-  "scale": 0.5,
+  "scale": 1,
   "width": 1,
-  "height": 1,
+  "height": 0.5625,
   "loop": true,
   "autoplay": true,
   "fade": false

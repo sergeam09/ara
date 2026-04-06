@@ -216,6 +216,19 @@
 </div>
 
 <div id="ping"></div>
+
+<!-- DEBUG LOG — visible en pantalla del móvil -->
+<div id="dbgLog" style="
+  position:fixed;bottom:0;left:0;right:0;
+  background:rgba(0,0,0,0.85);
+  color:#c8f542;
+  font-family:monospace;font-size:11px;
+  padding:8px 12px;
+  max-height:35vh;overflow-y:auto;
+  z-index:9000;
+  display:none;
+  pointer-events:none;
+"></div>
 <div id="arScene"></div>
 <div id="mvWrap"></div>
 
@@ -336,6 +349,23 @@
 <script>
   const P  = new URLSearchParams(location.search);
   const PROJECT = P.get('p');
+
+  // ── DEBUG LOG VISIBLE EN PANTALLA ──
+  const DBG = true; // cambiar a false para producción
+  function dbg(msg, color) {
+    console.log('[ARA]', msg);
+    if (!DBG) return;
+    const log = document.getElementById('dbgLog');
+    if (!log) return;
+    log.style.display = 'block';
+    const line = document.createElement('div');
+    line.style.color = color || '#c8f542';
+    line.style.borderBottom = '1px solid rgba(255,255,255,0.05)';
+    line.style.padding = '2px 0';
+    line.textContent = `${new Date().toLocaleTimeString()} ${msg}`;
+    log.appendChild(line);
+    log.scrollTop = log.scrollHeight;
+  }
   const TYPE    = P.get('t') || 'video';
   const CE      = P.get('ce') || 'mp4';
   const TE      = P.get('te') || 'jpg';
@@ -532,6 +562,7 @@
 
   // ── WALL AR (superficies verticales) ──
   function initWall() {
+    dbg(`initWall() tipo=${TYPE}`);
     setSplash('Preparando Wall AR...');
 
     // Para modelos 3D en pared usamos Model Viewer con ar-placement="wall"
@@ -650,7 +681,7 @@
   }
 
   function mostrarBotonWall(scene) {
-    // Botón explícito para activar AR — necesario para permisos de cámara
+    dbg('mostrarBotonWall() — escena cargada');
     const btn = document.createElement('button');
     btn.id = 'wallArBtn';
     btn.textContent = '▣ Activar Wall AR';
@@ -667,7 +698,10 @@
       btn.remove();
       document.getElementById('scan').classList.add('show');
       document.getElementById('scanTxt').textContent = 'Apunta a una pared';
-      scene.enterAR().catch(() => {
+      scene.enterAR().then(() => {
+        dbg('enterAR() OK', '#42f58d');
+      }).catch((e) => {
+        dbg(`enterAR() error: ${e}`, '#ff4545');
         // Fallback si WebXR no está disponible
         const container = document.getElementById('arc-container');
         container.setAttribute('position', '0 1.2 -1.5');
@@ -680,6 +714,7 @@
   }
 
   function initWallHitTest(scene) {
+    dbg('initWallHitTest() iniciado');
     let placed = false;
     let hitMatrix = null;
     let hitIsVertical = false;
@@ -688,12 +723,18 @@
     const container = document.getElementById('arc-container');
 
     scene.addEventListener('enter-vr', () => {
+      dbg('enter-vr disparado');
       const renderer = scene.renderer;
       const xrSession = renderer.xr.getSession();
-      if (!xrSession) return;
+      if (!xrSession) {
+        dbg('xrSession es null — WebXR no disponible', '#ff4545');
+        return;
+      }
+      dbg('xrSession OK — iniciando hit-test', '#42f58d');
 
       xrSession.requestReferenceSpace('viewer').then(viewerSpace => {
         xrSession.requestHitTestSource({ space: viewerSpace }).then(hitTestSource => {
+          dbg('hitTestSource OK', '#42f58d');
 
           renderer.setAnimationLoop((timestamp, frame) => {
             if (!frame || placed) return;
@@ -732,8 +773,8 @@
             }
           });
 
-        }).catch(() => {
-          // Hit-test no disponible
+        }).catch((e) => {
+          dbg(`hitTestSource error: ${e}`, '#ff4545');
           container.setAttribute('position', '0 1.2 -1.5');
           container.setAttribute('visible', true);
           document.getElementById('scan').classList.remove('show');

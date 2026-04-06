@@ -696,20 +696,29 @@
         showErr('No se pudo activar el AR. Verifica permisos de cámara.');
       });
 
-      // Log de progreso cada 2 segundos
+      // Polling: verificar hasLoaded cada 2s
       let loadTimer = 0;
+      let wallReady = false;
       const loadInterval = setInterval(() => {
         loadTimer += 2;
         const sc = document.querySelector('a-scene');
         const loaded = sc ? sc.hasLoaded : false;
-        dbg(`esperando loaded... ${loadTimer}s (hasLoaded:${loaded})`);
-        if (loaded || loadTimer >= 10) clearInterval(loadInterval);
+        dbg(`polling ${loadTimer}s hasLoaded:${loaded}`);
+        if (loaded && !wallReady) {
+          wallReady = true;
+          clearInterval(loadInterval);
+          dbg('hasLoaded=true — llamando mostrarBotonWall', '#42f58d');
+          hideSplash();
+          mostrarBotonWall(sc);
+        }
+        if (loadTimer >= 12 && !wallReady) {
+          clearInterval(loadInterval);
+          dbg('timeout 12s — forzando botón', '#f5a623');
+          hideSplash();
+          wallReady = true;
+          mostrarBotonWall(scene);
+        }
       }, 2000);
-
-      setTimeout(() => {
-        dbg('timeout 10s — forzando hideSplash');
-        hideSplash();
-      }, 10000);
     }, 600);
   }
 
@@ -725,7 +734,8 @@
       letter-spacing:0.12em;text-transform:uppercase;
       cursor:pointer;white-space:nowrap;
       box-shadow:0 4px 24px rgba(0,0,0,0.6);
-      font-family:system-ui,monospace;z-index:600;`;
+      font-family:system-ui,monospace;z-index:9999;`;
+    dbg('botón creado z-index:9999');
 
     btn.onclick = () => {
       btn.remove();
@@ -744,6 +754,8 @@
       initWallHitTest(scene);
     };
     document.body.appendChild(btn);
+    dbg(`botón en DOM: ${!!document.getElementById('wallArBtn') || !!btn.isConnected}`);
+    }, 300); // fin setTimeout
   }
 
   function initWallHitTest(scene) {

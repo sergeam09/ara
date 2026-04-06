@@ -623,40 +623,50 @@
     document.getElementById('hud').classList.add('show');
     if (EDIT_MODE) document.getElementById('btnEdit').style.display = 'block';
 
-    // Cargar Three.js
-    const s3 = document.createElement('script');
-    s3.src = 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js';
-    s3.onload = () => {
-      dbg('Three.js listo — cargando xr.js');
-
-      // Escuchar xrloaded ANTES de insertar el script
-      window.addEventListener('xrloaded', () => {
-        dbg('xrloaded disparado — iniciando Wall', '#42f58d');
-        _startXR8Wall(canvas, w, h);
-      }, {once: true});
-
-      // Si XR8 ya estaba cargado
-      if (window.XR8) {
-        dbg('XR8 ya disponible', '#42f58d');
-        _startXR8Wall(canvas, w, h);
-        return;
-      }
-
-      const sxr = document.createElement('script');
-      sxr.src = BASE + '/xr/xr.js';
-      sxr.setAttribute('data-preload-chunks', 'slam');
-      sxr.async = true;
-      sxr.onerror = () => showErr('No se pudo cargar xr.js');
-      document.head.appendChild(sxr);
-      dbg('xr.js insertado — esperando xrloaded');
+    // Función que arranca todo cuando Three.js y XR8 estén listos
+    const startWhenReady = () => {
+      if (!window.THREE) { dbg('Three.js no disponible', '#ff4545'); return; }
+      if (!window.XR8)   { dbg('XR8 no disponible', '#ff4545'); return; }
+      dbg('Three.js + XR8 listos — iniciando', '#42f58d');
+      _startXR8Wall(canvas, w, h);
     };
-    document.head.appendChild(s3);
+
+    // Cargar Three.js primero
+    if (!window.THREE) {
+      const s3 = document.createElement('script');
+      s3.src = 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js';
+      s3.onload  = () => { dbg('Three.js OK'); _loadXR8(startWhenReady); };
+      s3.onerror = () => showErr('Error cargando Three.js');
+      document.head.appendChild(s3);
+    } else {
+      _loadXR8(startWhenReady);
+    }
+  }
+
+  function _loadXR8(callback) {
+    if (window.XR8) { callback(); return; }
+    dbg('cargando xr.js...');
+    // Registrar listener ANTES de insertar el script
+    window.addEventListener('xrloaded', () => {
+      dbg('xrloaded OK', '#42f58d');
+      callback();
+    }, {once: true});
+    const sxr = document.createElement('script');
+    sxr.src = BASE + '/xr/xr.js';
+    sxr.setAttribute('data-preload-chunks', 'slam');
+    // NO async en iOS — causa problemas con el evento xrloaded
+    sxr.onerror = (e) => {
+      dbg('Error cargando xr.js: ' + e, '#ff4545');
+      showErr('No se pudo cargar el engine AR. Verifica la conexión.');
+    };
+    document.head.appendChild(sxr);
+    dbg('xr.js insertado');
   }
 
   function _startXR8Wall(canvas, w, h) {
     dbg('_startXR8Wall()');
     let placed = false;
-    let surface = null;
+    let hitPos  = null; // posición del hit-test en la superficie real
 
     // Video
     let videoEl = null;
@@ -675,7 +685,7 @@
     let scene, camera, renderer, contentMesh;
 
     const onStart = ({canvas: c, canvasWidth, canvasHeight}) => {
-      dbg('XR8 onStart — cámara activa ' + canvasWidth + 'x' + canvasHeight, '#42f58d');
+      dbg('onStart ' + canvasWidth + 'x' + canvasHeight, '#42f58d');
 
       scene    = new THREE.Scene();
       camera   = new THREE.PerspectiveCamera(60, canvasWidth/canvasHeight, 0.01, 1000);
@@ -687,6 +697,7 @@
       let material;
       if (TYPE === 'wall-video' && videoEl) {
         videoTexture = new THREE.VideoTexture(videoEl);
+        videoTexture.minFilter = THREE.LinearFilter;
         material = new THREE.MeshBasicMaterial({map: videoTexture, side: THREE.DoubleSide});
       } else if (TYPE === 'wall-gif') {
         const tex = new THREE.TextureLoader().load(PATHS.content);
@@ -702,41 +713,73 @@
       hideSplash();
       document.getElementById('scan').classList.add('show');
       document.getElementById('scanTxt').textContent = 'Mueve el teléfono lentamente';
+      dbg('escena Three.js lista', '#42f58d');
     };
 
     const onUpdate = ({processCpuResult}) => {
+      if (!scene || !camera || !renderer) return;
       if (!processCpuResult || !processCpuResult.reality) return;
+
       const {rotation, position, intrinsics} = processCpuResult.reality;
 
+      // Actualizar cámara con datos del SLAM
       if (rotation) camera.quaternion.set(rotation.x, rotation.y, rotation.z, rotation.w);
-      if (position) {
-        camera.position.set(position.x, position.y, position.z);
-        surface = {x: position.x, y: position.y - 0.3, z: position.z - 0.8};
-        if (!placed) document.getElementById('scanTxt').textContent = 'Superficie detectada — toca para colocar';
-      }
+      if (position) camera.position.set(position.x, position.y, position.z);
       if (intrinsics) {
         camera.projectionMatrix.fromArray(intrinsics);
         camera.projectionMatrixInverse.copy(camera.projectionMatrix).invert();
       }
+
+      // Hit-test en el centro de la pantalla para detectar superficie
+      if (!placed && XR8.XrController.hitTest) {
+        const hits = XR8.XrController.hitTest(0.5, 0.5, ['FEATURE_POINT', 'PLANE']);
+        if (hits && hits.length > 0) {
+          const hit = hits[0];
+          hitPos = hit.position;
+          document.getElementById('scanTxt').textContent = 'Superficie detectada — toca para colocar';
+        }
+      }
+
       if (videoTexture && videoEl && videoEl.readyState >= 2) videoTexture.needsUpdate = true;
-      if (renderer && scene && camera) { renderer.clearDepth(); renderer.render(scene, camera); }
+      renderer.clearDepth();
+      renderer.render(scene, camera);
     };
 
     XR8.XrController.configure({disableWorldTracking: false});
     XR8.addCameraPipelineModules([
       XR8.GlTextureRenderer.pipelineModule(),
       XR8.XrController.pipelineModule(),
-      { name: 'wall', onStart, onUpdate,
-        onException: (e) => { dbg('XR8 error: ' + e, '#ff4545'); showErr('Error Wall AR: ' + e); }
+      {
+        name: 'wall',
+        onStart,
+        onUpdate,
+        onException: (e) => { dbg('XR8 error: ' + e, '#ff4545'); showErr('Error: ' + e); },
       },
     ]);
     XR8.run({canvas, allowedDevices: XR8.XrConfig.device().ANY});
-    dbg('XR8.run() OK', '#42f58d');
+    dbg('XR8.run() llamado', '#42f58d');
 
-    canvas.addEventListener('touchstart', () => {
-      if (placed || !surface || !contentMesh) return;
+    // Toque para colocar
+    canvas.addEventListener('touchstart', (e) => {
+      if (placed || !contentMesh) return;
+
+      // Hit-test en el punto tocado
+      let pos = hitPos;
+      if (XR8.XrController.hitTest && e.touches.length > 0) {
+        const t = e.touches[0];
+        const nx = t.clientX / window.innerWidth;
+        const ny = t.clientY / window.innerHeight;
+        const hits = XR8.XrController.hitTest(nx, ny, ['FEATURE_POINT', 'PLANE']);
+        if (hits && hits.length > 0) pos = hits[0].position;
+      }
+
+      if (!pos) {
+        dbg('no hay posición de superficie todavía', '#f5a623');
+        return;
+      }
+
       placed = true;
-      contentMesh.position.set(surface.x, surface.y, surface.z);
+      contentMesh.position.set(pos.x, pos.y, pos.z);
       contentMesh.visible = true;
       if (videoEl) videoEl.play().catch(e => dbg('video: ' + e));
       document.getElementById('scan').classList.remove('show');
@@ -744,7 +787,7 @@
       const ping = document.getElementById('ping');
       ping.classList.add('go');
       setTimeout(() => ping.classList.remove('go'), 700);
-      dbg('contenido anclado', '#42f58d');
+      dbg('contenido anclado en ' + pos.x.toFixed(2) + ',' + pos.y.toFixed(2) + ',' + pos.z.toFixed(2), '#42f58d');
     });
   }
 

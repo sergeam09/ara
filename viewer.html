@@ -8,7 +8,7 @@
   <title>ARA — Experiencia AR</title>
   <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
-  <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.3.0/model-viewer.min.js"></script>
+  <!-- Model Viewer se carga dinámicamente solo cuando se necesita -->
   <style>
     :root { --a: #c8f542; --bg: #0a0a0a; --s: rgba(10,10,10,0.82); --b: rgba(255,255,255,0.08); }
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -518,8 +518,23 @@
   // ── MODEL VIEWER ──
   function initModelViewer() {
     setSplash('Cargando modelo 3D...');
+    dbg('initModelViewer() — cargando Model Viewer');
 
-    // Escala: desde URL param sc, o desde CFG, o default 0.5
+    // Cargar Model Viewer dinámicamente para evitar conflicto con Three.js
+    if (!document.querySelector('script[src*="model-viewer"]')) {
+      const s = document.createElement('script');
+      s.type = 'module';
+      s.src = 'https://ajax.googleapis.com/ajax/libs/model-viewer/3.3.0/model-viewer.min.js';
+      document.head.appendChild(s);
+      // Esperar a que cargue
+      s.onload = () => { dbg('Model Viewer cargado'); _initMV(); };
+      s.onerror = () => { dbg('Model Viewer error de carga', '#ff4545'); _initMV(); };
+    } else {
+      _initMV();
+    }
+  }
+
+  function _initMV() {
     const sc = URL_SC || CFG.scale || 0.5;
     const scaleStr = `${sc} ${sc} ${sc}`;
 
@@ -667,16 +682,34 @@
       if (!scene) return;
 
       scene.addEventListener('loaded', () => {
+        dbg('A-Frame scene loaded OK', '#42f58d');
         hideSplash();
-        // Mostrar botón para activar AR — requiere gesto del usuario
         mostrarBotonWall(scene);
       });
 
-      scene.addEventListener('arError', () =>
-        showErr('No se pudo activar el AR. Verifica permisos de cámara.')
-      );
+      scene.addEventListener('arReady', () => {
+        dbg('arReady disparado', '#42f58d');
+      });
 
-      setTimeout(() => hideSplash(), 8000);
+      scene.addEventListener('arError', (e) => {
+        dbg(`arError: ${JSON.stringify(e.detail)}`, '#ff4545');
+        showErr('No se pudo activar el AR. Verifica permisos de cámara.');
+      });
+
+      // Log de progreso cada 2 segundos
+      let loadTimer = 0;
+      const loadInterval = setInterval(() => {
+        loadTimer += 2;
+        const sc = document.querySelector('a-scene');
+        const loaded = sc ? sc.hasLoaded : false;
+        dbg(`esperando loaded... ${loadTimer}s (hasLoaded:${loaded})`);
+        if (loaded || loadTimer >= 10) clearInterval(loadInterval);
+      }, 2000);
+
+      setTimeout(() => {
+        dbg('timeout 10s — forzando hideSplash');
+        hideSplash();
+      }, 10000);
     }, 600);
   }
 

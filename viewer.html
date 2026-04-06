@@ -607,59 +607,58 @@
     const w = CFG.width  || URL_W  || 1;
     const h = CFG.height || URL_H  || 0.5625;
 
-    dbg('buildWallScene() — cargando 8th Wall');
+    dbg('buildWallScene()');
     setSplash('Cargando Wall AR...');
 
-    // Cargar Three.js si no está (8th Wall lo necesita)
-    const loadThree = () => new Promise(resolve => {
-      if (window.THREE) { resolve(); return; }
-      const s = document.createElement('script');
-      s.src = 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js';
-      s.onload = resolve;
-      document.head.appendChild(s);
-    });
-
-    // Cargar xr.js de 8th Wall
-    const loadXR8 = () => new Promise((resolve, reject) => {
-      if (window.XR8) { resolve(); return; }
-      const s = document.createElement('script');
-      s.src = BASE + '/xr/xr.js';
-      s.setAttribute('data-preload-chunks', 'slam');
-      s.async = true;
-      s.onerror = reject;
-      document.head.appendChild(s);
-      // XR8 dispara 'xrloaded' cuando está listo
-      window.addEventListener('xrloaded', resolve, {once: true});
-    });
-
-    // Canvas fullscreen para 8th Wall
+    // Canvas fullscreen
     const sceneDiv = document.getElementById('arScene');
     sceneDiv.innerHTML = '';
     const canvas = document.createElement('canvas');
     canvas.id = 'wallCanvas';
-    canvas.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;';
     canvas.width  = window.innerWidth;
     canvas.height = window.innerHeight;
+    canvas.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;';
     sceneDiv.appendChild(canvas);
     sceneDiv.classList.add('show');
     document.getElementById('hud').classList.add('show');
     if (EDIT_MODE) document.getElementById('btnEdit').style.display = 'block';
 
-    Promise.all([loadThree(), loadXR8()]).then(() => {
-      dbg('Three.js y XR8 listos', '#42f58d');
-      _startXR8Wall(canvas, w, h);
-    }).catch(e => {
-      dbg('Error cargando engine: ' + e, '#ff4545');
-      showErr('No se pudo cargar el engine AR.');
-    });
+    // Cargar Three.js
+    const s3 = document.createElement('script');
+    s3.src = 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js';
+    s3.onload = () => {
+      dbg('Three.js listo — cargando xr.js');
+
+      // Escuchar xrloaded ANTES de insertar el script
+      window.addEventListener('xrloaded', () => {
+        dbg('xrloaded disparado — iniciando Wall', '#42f58d');
+        _startXR8Wall(canvas, w, h);
+      }, {once: true});
+
+      // Si XR8 ya estaba cargado
+      if (window.XR8) {
+        dbg('XR8 ya disponible', '#42f58d');
+        _startXR8Wall(canvas, w, h);
+        return;
+      }
+
+      const sxr = document.createElement('script');
+      sxr.src = BASE + '/xr/xr.js';
+      sxr.setAttribute('data-preload-chunks', 'slam');
+      sxr.async = true;
+      sxr.onerror = () => showErr('No se pudo cargar xr.js');
+      document.head.appendChild(sxr);
+      dbg('xr.js insertado — esperando xrloaded');
+    };
+    document.head.appendChild(s3);
   }
 
   function _startXR8Wall(canvas, w, h) {
-    dbg('_startXR8Wall() iniciando');
+    dbg('_startXR8Wall()');
     let placed = false;
-    let surface = null; // posición de la última superficie detectada
+    let surface = null;
 
-    // Preparar video
+    // Video
     let videoEl = null;
     let videoTexture = null;
     if (TYPE === 'wall-video') {
@@ -673,118 +672,79 @@
       document.body.appendChild(videoEl);
     }
 
-    // Escena Three.js
     let scene, camera, renderer, contentMesh;
 
-    const initScene = ({canvas: c, canvasWidth, canvasHeight}) => {
-      dbg('initScene Three.js ' + canvasWidth + 'x' + canvasHeight, '#42f58d');
+    const onStart = ({canvas: c, canvasWidth, canvasHeight}) => {
+      dbg('XR8 onStart — cámara activa ' + canvasWidth + 'x' + canvasHeight, '#42f58d');
 
       scene    = new THREE.Scene();
-      camera   = new THREE.PerspectiveCamera(60, canvasWidth / canvasHeight, 0.01, 1000);
-      renderer = new THREE.WebGLRenderer({canvas: c, alpha: true, antialias: true});
+      camera   = new THREE.PerspectiveCamera(60, canvasWidth/canvasHeight, 0.01, 1000);
+      renderer = new THREE.WebGLRenderer({canvas: c, alpha: true});
       renderer.setSize(canvasWidth, canvasHeight);
       renderer.setPixelRatio(window.devicePixelRatio);
-      renderer.xr = {enabled: false};
-
-      // Luz
       scene.add(new THREE.AmbientLight(0xffffff, 1));
 
-      // Crear plano con el contenido
       let material;
       if (TYPE === 'wall-video' && videoEl) {
         videoTexture = new THREE.VideoTexture(videoEl);
         material = new THREE.MeshBasicMaterial({map: videoTexture, side: THREE.DoubleSide});
       } else if (TYPE === 'wall-gif') {
-        const loader = new THREE.TextureLoader();
-        const tex = loader.load(PATHS.content);
+        const tex = new THREE.TextureLoader().load(PATHS.content);
         material = new THREE.MeshBasicMaterial({map: tex, side: THREE.DoubleSide, transparent: true});
       } else {
-        material = new THREE.MeshBasicMaterial({color: 0xc8f542, side: THREE.DoubleSide});
+        material = new THREE.MeshBasicMaterial({color: 0xc8f542});
       }
 
-      const geo = new THREE.PlaneGeometry(w, h);
-      contentMesh = new THREE.Mesh(geo, material);
+      contentMesh = new THREE.Mesh(new THREE.PlaneGeometry(w, h), material);
       contentMesh.visible = false;
       scene.add(contentMesh);
-    };
 
-    const onUpdate = ({processCpuResult, cameraTexture}) => {
-      if (!processCpuResult || !processCpuResult.reality) return;
-      const {rotation, position, intrinsics} = processCpuResult.reality;
-
-      // Actualizar cámara Three.js con datos de 8th Wall
-      if (rotation) {
-        camera.quaternion.set(rotation.x, rotation.y, rotation.z, rotation.w);
-      }
-      if (position) {
-        camera.position.set(position.x, position.y, position.z);
-        // Guardar como posición de superficie detectada
-        surface = {x: position.x, y: position.y, z: position.z - 0.5};
-        if (!placed) {
-          document.getElementById('scanTxt').textContent = 'Superficie detectada — toca para colocar';
-        }
-      }
-      if (intrinsics) {
-        camera.projectionMatrix.fromArray(intrinsics);
-        camera.projectionMatrixInverse.copy(camera.projectionMatrix).invert();
-      }
-
-      // Actualizar textura de video
-      if (videoTexture && videoEl && !videoEl.paused) {
-        videoTexture.needsUpdate = true;
-      }
-
-      // Renderizar
-      if (renderer && scene && camera) {
-        renderer.clearDepth();
-        renderer.render(scene, camera);
-      }
-    };
-
-    const onStart = ({canvas: c, canvasWidth, canvasHeight}) => {
-      dbg('XR8 onStart — cámara activa', '#42f58d');
-      initScene({canvas: c, canvasWidth, canvasHeight});
       hideSplash();
       document.getElementById('scan').classList.add('show');
       document.getElementById('scanTxt').textContent = 'Mueve el teléfono lentamente';
     };
 
-    // Pipeline de 8th Wall
+    const onUpdate = ({processCpuResult}) => {
+      if (!processCpuResult || !processCpuResult.reality) return;
+      const {rotation, position, intrinsics} = processCpuResult.reality;
+
+      if (rotation) camera.quaternion.set(rotation.x, rotation.y, rotation.z, rotation.w);
+      if (position) {
+        camera.position.set(position.x, position.y, position.z);
+        surface = {x: position.x, y: position.y - 0.3, z: position.z - 0.8};
+        if (!placed) document.getElementById('scanTxt').textContent = 'Superficie detectada — toca para colocar';
+      }
+      if (intrinsics) {
+        camera.projectionMatrix.fromArray(intrinsics);
+        camera.projectionMatrixInverse.copy(camera.projectionMatrix).invert();
+      }
+      if (videoTexture && videoEl && videoEl.readyState >= 2) videoTexture.needsUpdate = true;
+      if (renderer && scene && camera) { renderer.clearDepth(); renderer.render(scene, camera); }
+    };
+
     XR8.XrController.configure({disableWorldTracking: false});
     XR8.addCameraPipelineModules([
       XR8.GlTextureRenderer.pipelineModule(),
       XR8.XrController.pipelineModule(),
-      {
-        name: 'wall-scene',
-        onStart,
-        onUpdate,
-        onException: (e) => {
-          dbg('XR8 exception: ' + e, '#ff4545');
-          showErr('Error en Wall AR: ' + e);
-        },
+      { name: 'wall', onStart, onUpdate,
+        onException: (e) => { dbg('XR8 error: ' + e, '#ff4545'); showErr('Error Wall AR: ' + e); }
       },
     ]);
-
     XR8.run({canvas, allowedDevices: XR8.XrConfig.device().ANY});
-    dbg('XR8.run() llamado', '#42f58d');
+    dbg('XR8.run() OK', '#42f58d');
 
-    // Toque para colocar el contenido anclado
     canvas.addEventListener('touchstart', () => {
       if (placed || !surface || !contentMesh) return;
       placed = true;
-      dbg('colocando en superficie', '#42f58d');
-
       contentMesh.position.set(surface.x, surface.y, surface.z);
       contentMesh.visible = true;
-
       if (videoEl) videoEl.play().catch(e => dbg('video: ' + e));
-
       document.getElementById('scan').classList.remove('show');
       arContent = contentMesh;
-
       const ping = document.getElementById('ping');
       ping.classList.add('go');
       setTimeout(() => ping.classList.remove('go'), 700);
+      dbg('contenido anclado', '#42f58d');
     });
   }
 

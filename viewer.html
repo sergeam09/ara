@@ -607,60 +607,37 @@
     const w = CFG.width  || URL_W  || 1;
     const h = CFG.height || URL_H  || 0.5625;
 
-    // Para video: usar a-video directamente — más compatible con WebXR
-    // Para gif: usar a-image
     let assetHTML = '';
     let contentHTML = '';
 
     if (TYPE === 'wall-video') {
       assetHTML = `<video id="wallVideo"
         src="${PATHS.content}"
-        loop="${CFG.loop}"
-        muted
-        playsinline
-        webkit-playsinline
-        crossorigin="anonymous"
-        preload="auto"
-        style="display:none;">
-      </video>`;
+        loop="${CFG.loop}" muted playsinline
+        webkit-playsinline crossorigin="anonymous"
+        preload="auto" style="display:none;"></video>`;
       contentHTML = `<a-video id="arc"
-        src="#wallVideo"
-        width="${w}" height="${h}"
-        position="0 0 0.05"
-        side="double">
+        src="#wallVideo" width="${w}" height="${h}"
+        position="0 0 -1.5" visible="false">
       </a-video>`;
     } else if (TYPE === 'wall-gif') {
       contentHTML = `<a-image id="arc"
-        src="${PATHS.content}"
-        width="${w}" height="${h}"
-        position="0 0 0.05">
+        src="${PATHS.content}" width="${w}" height="${h}"
+        position="0 0 -1.5" visible="false">
       </a-image>`;
     }
 
     const sceneDiv = document.getElementById('arScene');
     sceneDiv.innerHTML = `
       <a-scene
-        webxr="requiredFeatures: hit-test; optionalFeatures: dom-overlay;"
+        arjs="sourceType: webcam; videoTexture: true; debugUIEnabled: false;"
         embedded
-        renderer="colorManagement:true;physicallyCorrectLights:true"
         vr-mode-ui="enabled:false"
         device-orientation-permission-ui="enabled:false"
         style="width:100vw;height:100vh;">
-        <a-assets timeout="10000">
-          ${assetHTML}
-        </a-assets>
-        <a-light type="ambient" intensity="0.8"></a-light>
-        <a-camera position="0 1.6 0"></a-camera>
-
-        <a-entity id="reticle"
-          geometry="primitive: ring; radiusInner: 0.04; radiusOuter: 0.07"
-          material="color:#c8f542;shader:flat;side:double"
-          visible="false">
-        </a-entity>
-
-        <a-entity id="arc-container" visible="false">
-          ${contentHTML}
-        </a-entity>
+        <a-assets timeout="10000">${assetHTML}</a-assets>
+        <a-camera position="0 1.6 0" look-controls wasd-controls="enabled:false"></a-camera>
+        ${contentHTML}
       </a-scene>`;
 
     sceneDiv.classList.add('show');
@@ -671,40 +648,23 @@
       const scene = sceneDiv.querySelector('a-scene');
       if (!scene) return;
 
-      scene.addEventListener('loaded', () => {
-        dbg('A-Frame scene loaded OK', '#42f58d');
-        hideSplash();
-        mostrarBotonWall(scene);
-      });
-
-      scene.addEventListener('arReady', () => {
-        dbg('arReady disparado', '#42f58d');
-      });
-
-      scene.addEventListener('arError', (e) => {
-        dbg(`arError: ${JSON.stringify(e.detail)}`, '#ff4545');
-        showErr('No se pudo activar el AR. Verifica permisos de cámara.');
-      });
-
-      let loadTimer = 0;
       let wallReady = false;
+      let loadTimer = 0;
       const loadInterval = setInterval(() => {
         loadTimer += 2;
-        const sc = document.querySelector('a-scene');
-        const loaded = sc ? sc.hasLoaded : false;
+        const loaded = scene.hasLoaded;
         dbg(`polling ${loadTimer}s hasLoaded:${loaded}`);
         if (loaded && !wallReady) {
           wallReady = true;
           clearInterval(loadInterval);
-          dbg('hasLoaded=true — llamando mostrarBotonWall', '#42f58d');
+          dbg('escena lista', '#42f58d');
           hideSplash();
-          mostrarBotonWall(sc);
+          mostrarBotonWall(scene);
         }
         if (loadTimer >= 12 && !wallReady) {
           clearInterval(loadInterval);
-          dbg('timeout 12s — forzando botón', '#f5a623');
-          hideSplash();
           wallReady = true;
+          hideSplash();
           mostrarBotonWall(scene);
         }
       }, 2000);
@@ -731,36 +691,28 @@
     
     dbg('botón creado z-index:9999');
 
-    btn.onclick = async () => {
-      dbg('🔘 BOTÓN CLICKEADO - iniciando AR', '#f5a623');
+    btn.onclick = () => {
+      dbg('Activar Wall AR tocado', '#f5a623');
       btn.remove();
+      // Mostrar instrucción de toque
       document.getElementById('scan').classList.add('show');
-      document.getElementById('scanTxt').textContent = 'Apunta a una pared';
-      
-      const sceneDiv = document.getElementById('arScene');
-      
-      try {
-        dbg('Llamando scene.enterAR()...', '#42f58d');
-        await scene.enterAR();
-        dbg('✅ enterAR() completado con éxito', '#42f58d');
-        
-        setTimeout(() => {
-          initWallHitTest(scene, sceneDiv);
-        }, 500);
-        
-      } catch (e) {
-        dbg(`❌ enterAR() error: ${e.message || e}`, '#ff4545');
-        const container = document.getElementById('arc-container');
-        if (container) {
-          container.setAttribute('position', '0 1.2 -1.5');
-          container.setAttribute('visible', true);
-        }
-        document.getElementById('scan').classList.remove('show');
-        document.getElementById('scanTxt').textContent = '⚠️ Error: No se pudo activar AR';
-        setTimeout(() => {
+      document.getElementById('scanTxt').textContent = 'Toca la pantalla para colocar';
+      // Reproducir video si aplica
+      const videoEl = document.getElementById('wallVideo');
+      if (videoEl) videoEl.play().catch(e => dbg(`video: ${e}`, '#f5a623'));
+      // Al tocar la pantalla — colocar el contenido
+      document.getElementById('arScene').addEventListener('click', () => {
+        const arc = document.getElementById('arc');
+        if (arc && arc.getAttribute('visible') === 'false') {
+          arc.setAttribute('visible', true);
           document.getElementById('scan').classList.remove('show');
-        }, 3000);
-      }
+          arContent = arc;
+          const ping = document.getElementById('ping');
+          ping.classList.add('go');
+          setTimeout(() => ping.classList.remove('go'), 700);
+          dbg('contenido colocado', '#42f58d');
+        }
+      }, { once: true });
     };
     
     document.body.appendChild(btn);
@@ -1254,14 +1206,6 @@
       const base = window.location.href.split('/viewer.html')[0];
       window.location.replace(base + '/index.html');
       return;
-    }
-
-    if (animationLoopId) {
-      const scene = document.querySelector('a-scene');
-      if (scene && scene.renderer) {
-        scene.renderer.setAnimationLoop(null);
-      }
-      animationLoopId = null;
     }
 
     try {

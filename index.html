@@ -34,7 +34,7 @@
     .token-dot{width:6px;height:6px;border-radius:50%;background:var(--muted)}
     .token-dot.ok{background:var(--ok)}.token-dot.err{background:var(--danger)}
     .wrap{max-width:1160px;margin:0 auto;padding:40px}
-    .cols{display:grid;grid-template-columns:1fr 1fr;gap:2px;background:var(--border)}
+    .cols{display:grid;grid-template-columns:1fr 1fr;gap:2px;background:var(--border);overflow:hidden}
     .panel{background:var(--surface);padding:32px}
     .plabel{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:#666;margin-bottom:24px;display:flex;align-items:center;gap:10px}
     .plabel::after{content:'';flex:1;height:1px;background:var(--border)}
@@ -70,14 +70,178 @@
     .btn-primary:hover{background:#d4ff55}.btn-primary:disabled{opacity:.35;cursor:not-allowed}
     .btn-ghost{background:transparent;border:1px solid var(--border);color:var(--muted)}
     .btn-ghost:hover{border-color:var(--accent);color:var(--accent)}
-    .out-panel{background:var(--surface);padding:32px;display:flex;flex-direction:column;gap:18px}
+    .out-panel{background:var(--surface);padding:32px;display:flex;flex-direction:column;gap:18px;min-width:0;overflow:hidden}
     .out-empty{flex:1;min-height:300px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;color:var(--muted);gap:14px}
     .out-empty-icon{font-size:44px;opacity:.2}
     .out-empty p{font-size:11px;line-height:1.9;max-width:200px}
     .out-content{display:none;flex-direction:column;gap:16px}.out-content.visible{display:flex}
     .qr-wrap{background:#fff;padding:16px;display:inline-flex;justify-content:center;align-self:center;}
     .linkbox{display:flex;gap:2px;background:var(--border)}
-    .linkdisplay{flex:1;background:var(--bg);padding:11px 14px;font-size:11px;color:var(--accent);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .linkdisplay{flex:1;background:var(--bg);padding:11px 14px;font-size:11px;color:var(--accent);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+    .btn-copy{background:var(--surface);border:none;color:var(--muted);font-family:var(--fm);font-size:11px;padding:11px 14px;cursor:pointer;transition:color .15s;white-space:nowrap}
+    .btn-copy:hover{color:var(--accent)}.btn-copy.copied{color:var(--ok)}
+    .prog-wrap{background:var(--bg);border:1px solid var(--border);padding:14px}
+    .prog-label{display:flex;justify-content:space-between;font-size:10px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px}
+    .prog-bar{height:2px;background:var(--border);position:relative;overflow:hidden}
+    .prog-fill{height:100%;background:var(--accent);transition:width .3s;width:0%}
+    .prog-msg{margin-top:8px;font-size:11px;color:var(--muted)}
+    .prog-msg.ok{color:var(--ok)}.prog-msg.err{color:var(--danger)}
+    .steps-log{background:var(--bg);border:1px solid var(--border);padding:14px;font-size:11px;line-height:2;display:none;max-height:150px;overflow-y:auto}
+    .steps-log.visible{display:block}
+    .step-line{color:var(--muted)}.step-line.ok{color:var(--ok)}.step-line.err{color:var(--danger)}.step-line.act{color:var(--accent2)}
+    .plist-wrap{margin-top:2px;background:var(--surface);border:1px solid var(--border);border-top:none}
+    .plist-head{padding:16px 32px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+    .plist-title{font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted)}
+    .plist-count{font-size:11px;color:var(--accent)}
+    .plist-body{padding:12px 32px;display:flex;flex-direction:column;gap:2px}
+    .pitem{display:flex;align-items:center;gap:14px;padding:10px 14px;background:var(--bg);cursor:pointer;transition:all .15s;border:1px solid transparent}
+    .pitem:hover{border-color:var(--border)}
+    .pdot{width:7px;height:7px;border-radius:50%;background:var(--accent);flex-shrink:0}
+    .pdot.video{background:#5b8def}.pdot.gif{background:var(--accent2)}.pdot.model{background:#c471ed}.pdot.audio{background:#12c2e9}
+    .pname{flex:1;font-size:12px}.ptype{font-size:10px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase}.pdate{font-size:10px;color:var(--muted)}
+    .pactions{display:flex;gap:6px;opacity:0;transition:opacity .15s}.pitem:hover .pactions{opacity:1}
+    .pact{background:none;border:none;color:var(--muted);cursor:pointer;font-size:13px;padding:2px 4px;transition:color .15s}
+    .pact:hover{color:var(--accent)}.pact.del:hover{color:var(--danger)}
+    .plist-empty{padding:24px;text-align:center;color:var(--muted);font-size:11px;line-height:1.9}
+    .toast{position:fixed;bottom:28px;right:28px;background:var(--accent);color:#0a0a0a;padding:11px 18px;font-size:11px;transform:translateY(70px);opacity:0;transition:all .3s cubic-bezier(.34,1.56,.64,1);z-index:2000}
+    .toast.show{transform:translateY(0);opacity:1}
+    @media(max-width:760px){header{padding:16px 20px;flex-direction:column;gap:12px;align-items:flex-start}.token-input{width:100%}.wrap{padding:16px}.cols{grid-template-columns:1fr}.type-grid{grid-template-columns:repeat(2,1fr)}.plist-body{padding:10px}.field label{font-size:13px}.dim-row{gap:14px;margin-bottom:14px}.dim-input{width:90px;padding:10px 12px;font-size:13px}.dim-label{font-size:12px}.tbtn{padding:14px 6px;font-size:12px}.uptext{font-size:13px}.dim-preset{padding:8px 14px;font-size:10px}}
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <span class="logo-text">ARA</span>
+    <span class="logo-sub">Augmented Reality Atelier</span>
+  </div>
+  <div style="font-size:10px;color:#333;letter-spacing:0.1em;">
+    ara.sergeam09.workers.dev ●
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="cols">
+    <div class="panel">
+      <div class="plabel">Nuevo proyecto AR</div>
+      <div class="field">
+        <label>Nombre del proyecto</label>
+        <input type="text" id="pNombre" placeholder="ej. mural-xalapa-2025">
+      </div>
+      <div class="field" id="triggerField">
+        <label>Imagen trigger — la obra física</label>
+        <div class="upzone" id="zTrigger">
+          <input type="file" id="fTrigger" accept="image/*">
+          <span class="upicon">◈</span>
+          <div class="uptext"><strong>Selecciona o arrastra</strong><br>JPG · PNG · WEBP — mín. 300px</div>
+          <div class="uppreview" id="prTrigger"></div>
+        </div>
+      </div>
+      <div class="field">
+        <label>Modo AR</label>
+        <div class="type-grid" style="grid-template-columns:1fr 1fr;margin-bottom:8px;">
+          <button class="tbtn active" data-mode="image" onclick="setModo('image')"><span class="tbtn-icon">◈</span>Image</button>
+          <button class="tbtn" data-mode="surface" onclick="setModo('surface')"><span class="tbtn-icon">⬡</span>Surface</button>
+        </div>
+      </div>
+
+      <!-- Tipos IMAGE -->
+      <div id="mode-image" class="mode-panel active">
+        <div class="field">
+          <label>Tipo de contenido</label>
+          <div class="type-grid">
+            <button class="tbtn active" data-type="video" onclick="setTipo('video')"><span class="tbtn-icon">▶</span>Video</button>
+            <button class="tbtn" data-type="gif" onclick="setTipo('gif')"><span class="tbtn-icon">◈</span>GIF</button>
+            <button class="tbtn" data-type="model" onclick="setTipo('model')"><span class="tbtn-icon">⬡</span>3D</button>
+            <button class="tbtn" data-type="audio" onclick="setTipo('audio')"><span class="tbtn-icon">♪</span>Audio</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tipos SURFACE -->
+   id="mode-surface" class="mode-panel" style="display:none;">
+        <div style="background:rgba(200,245,66,0.05);border:1px solid rgba(200,245,66,0.15);padding:12px;font-size:11px;color:#555;line-height:1.9;margin-bottom:16px;letter-spacing:0.05em;">
+          Surface AR usa la cámara trasera.<br>El espectador apunta al suelo o pared y toca para colocar.
+        </div>YPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>◈</text></svg>">
+  <title>ARA — Augmented Reality Atelier</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+  <script type="importmap">
+  {
+    "imports": {
+      "./controller-mGt1s8dJ.js": "https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/controller-mGt1s8dJ.js",
+      "./controller-d1-OMKPY.js": "https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/controller-d1-OMKPY.js",
+      "./ui-fBadYuor.js": "https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/ui-fBadYuor.js"
+    }
+  }
+  </script>
+  <script type="module" src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image.prod.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <style>
+    :root{--bg:#0a0a0a;--surface:#111111;--border:#1e1e1e;--accent:#c8f542;--accent2:#f5a623;--text:#e8e8e0;--muted:#444440;--danger:#ff4545;--ok:#42f58d;--fd:'DM Serif Display',serif;--fm:'DM Mono',monospace}
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    body{background:var(--bg);color:var(--text);font-family:var(--fm);font-size:13px;min-height:100vh}
+    header{display:flex;align-items:center;justify-content:space-between;padding:22px 40px;border-bottom:1px solid var(--border);position:sticky;top:0;background:rgba(10,10,10,.94);backdrop-filter:blur(16px);z-index:100}
+    .logo{display:flex;align-items:baseline;gap:12px}
+    .logo-text{font-family:var(--fd);font-size:26px;color:var(--accent);letter-spacing:-.02em}
+    .logo-sub{font-size:10px;color:var(--muted);letter-spacing:.18em;text-transform:uppercase}
+    .token-area{display:flex;align-items:center;gap:8px}
+    .token-input{background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--fm);font-size:11px;padding:7px 12px;width:220px;outline:none;transition:border-color .2s}
+    .token-input:focus{border-color:var(--accent)}
+    .token-input::placeholder{color:var(--muted)}
+    .token-label{font-size:10px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase}
+    .token-dot{width:6px;height:6px;border-radius:50%;background:var(--muted)}
+    .token-dot.ok{background:var(--ok)}.token-dot.err{background:var(--danger)}
+    .wrap{max-width:1160px;margin:0 auto;padding:40px}
+    .cols{display:grid;grid-template-columns:1fr 1fr;gap:2px;background:var(--border);overflow:hidden}
+    .panel{background:var(--surface);padding:32px}
+    .plabel{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:#666;margin-bottom:24px;display:flex;align-items:center;gap:10px}
+    .plabel::after{content:'';flex:1;height:1px;background:var(--border)}
+    .field{margin-bottom:18px}
+    .field label{display:block;font-size:12px;color:#888;letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px}
+    .field input[type=text]{width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--fm);font-size:13px;padding:11px 14px;outline:none;transition:border-color .2s}
+    .field input[type=text]:focus{border-color:var(--accent)}
+    .field input[type=text]::placeholder{color:var(--muted)}
+    .type-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:2px;background:var(--border);margin-bottom:18px}
+    .tbtn{background:var(--bg);border:none;color:#666;font-family:var(--fm);font-size:11px;letter-spacing:.08em;text-transform:uppercase;padding:12px 6px;cursor:pointer;transition:all .15s;text-align:center}
+    .tbtn:hover{color:var(--text)}.tbtn.active{background:var(--surface);color:var(--accent)}
+    .tbtn-icon{display:block;font-size:15px;margin-bottom:3px}
+    .upzone{border:1px dashed var(--border);padding:20px;text-align:center;cursor:pointer;transition:all .2s;position:relative;background:var(--bg)}
+    .upzone:hover,.upzone.over{border-color:var(--accent);background:rgba(200,245,66,.02)}
+    .upzone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+    .upicon{font-size:20px;margin-bottom:6px;display:block}
+    .uptext{color:#666;font-size:12px;line-height:1.7}
+    .uptext strong{color:var(--accent);font-weight:500}
+    .uppreview{margin-top:8px;font-size:11px;color:var(--accent2);display:none}
+    .cpanel{display:none}.cpanel.active{display:block}.mode-panel{display:none}.mode-panel.active{display:block}
+.dim-box{background:rgba(200,245,66,0.04);border:1px solid rgba(200,245,66,0.12);padding:12px;margin-top:10px;}
+.dim-title{font-size:11px;color:#666;letter-spacing:0.15em;text-transform:uppercase;margin-bottom:10px;}
+.dim-row{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+.dim-label{font-size:11px;color:#777;letter-spacing:0.08em;text-transform:uppercase;width:80px;flex-shrink:0;}
+.dim-input{background:#0a0a0a;border:1px solid #1e1e1e;color:#e8e8e0;font-family:var(--fm);font-size:12px;padding:7px 10px;width:80px;outline:none;transition:border-color .2s;}
+.dim-input:focus{border-color:#c8f542;}
+.dim-unit{font-size:10px;color:#444;}
+.dim-presets{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px;}
+.dim-preset{background:rgba(255,255,255,0.04);border:1px solid #1e1e1e;color:#555;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;padding:5px 10px;cursor:pointer;font-family:var(--fm);}
+.dim-preset:hover,.dim-preset.active{border-color:#c8f542;color:#c8f542;}
+    .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:13px 22px;font-family:var(--fm);font-size:11px;letter-spacing:.12em;text-transform:uppercase;cursor:pointer;border:none;transition:all .15s}
+    .btn-primary{background:var(--accent);color:#0a0a0a;width:100%;margin-top:8px}
+    .btn-primary:hover{background:#d4ff55}.btn-primary:disabled{opacity:.35;cursor:not-allowed}
+    .btn-ghost{background:transparent;border:1px solid var(--border);color:var(--muted)}
+    .btn-ghost:hover{border-color:var(--accent);color:var(--accent)}
+    .out-panel{background:var(--surface);padding:32px;display:flex;flex-direction:column;gap:18px;min-width:0;overflow:hidden}
+    .out-empty{flex:1;min-height:300px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;color:var(--muted);gap:14px}
+    .out-empty-icon{font-size:44px;opacity:.2}
+    .out-empty p{font-size:11px;line-height:1.9;max-width:200px}
+    .out-content{display:none;flex-direction:column;gap:16px}.out-content.visible{display:flex}
+    .qr-wrap{background:#fff;padding:16px;display:inline-flex;justify-content:center;align-self:center;}
+    .linkbox{display:flex;gap:2px;background:var(--border)}
+    .linkdisplay{flex:1;background:var(--bg);padding:11px 14px;font-size:11px;color:var(--accent);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
     .btn-copy{background:var(--surface);border:none;color:var(--muted);font-family:var(--fm);font-size:11px;padding:11px 14px;cursor:pointer;transition:color .15s;white-space:nowrap}
     .btn-copy:hover{color:var(--accent)}.btn-copy.copied{color:var(--ok)}
     .prog-wrap{background:var(--bg);border:1px solid var(--border);padding:14px}

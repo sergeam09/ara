@@ -3,7 +3,6 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>◈</text></svg>">
   <title>ARA — Augmented Reality Atelier</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
@@ -36,29 +35,29 @@
     .wrap{max-width:1160px;margin:0 auto;padding:40px}
     .cols{display:grid;grid-template-columns:1fr 1fr;gap:2px;background:var(--border)}
     .panel{background:var(--surface);padding:32px}
-    .plabel{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:#666;margin-bottom:24px;display:flex;align-items:center;gap:10px}
+    .plabel{font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);margin-bottom:24px;display:flex;align-items:center;gap:10px}
     .plabel::after{content:'';flex:1;height:1px;background:var(--border)}
     .field{margin-bottom:18px}
-    .field label{display:block;font-size:12px;color:#888;letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px}
+    .field label{display:block;font-size:10px;color:var(--muted);letter-spacing:.12em;text-transform:uppercase;margin-bottom:7px}
     .field input[type=text]{width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--fm);font-size:13px;padding:11px 14px;outline:none;transition:border-color .2s}
     .field input[type=text]:focus{border-color:var(--accent)}
     .field input[type=text]::placeholder{color:var(--muted)}
     .type-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:2px;background:var(--border);margin-bottom:18px}
-    .tbtn{background:var(--bg);border:none;color:#666;font-family:var(--fm);font-size:11px;letter-spacing:.08em;text-transform:uppercase;padding:12px 6px;cursor:pointer;transition:all .15s;text-align:center}
+    .tbtn{background:var(--bg);border:none;color:var(--muted);font-family:var(--fm);font-size:10px;letter-spacing:.1em;text-transform:uppercase;padding:10px 4px;cursor:pointer;transition:all .15s;text-align:center}
     .tbtn:hover{color:var(--text)}.tbtn.active{background:var(--surface);color:var(--accent)}
     .tbtn-icon{display:block;font-size:15px;margin-bottom:3px}
     .upzone{border:1px dashed var(--border);padding:20px;text-align:center;cursor:pointer;transition:all .2s;position:relative;background:var(--bg)}
     .upzone:hover,.upzone.over{border-color:var(--accent);background:rgba(200,245,66,.02)}
     .upzone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
     .upicon{font-size:20px;margin-bottom:6px;display:block}
-    .uptext{color:#666;font-size:12px;line-height:1.7}
+    .uptext{color:var(--muted);font-size:11px;line-height:1.7}
     .uptext strong{color:var(--accent);font-weight:500}
     .uppreview{margin-top:8px;font-size:11px;color:var(--accent2);display:none}
     .cpanel{display:none}.cpanel.active{display:block}.mode-panel{display:none}.mode-panel.active{display:block}
 .dim-box{background:rgba(200,245,66,0.04);border:1px solid rgba(200,245,66,0.12);padding:12px;margin-top:10px;}
-.dim-title{font-size:11px;color:#666;letter-spacing:0.15em;text-transform:uppercase;margin-bottom:10px;}
+.dim-title{font-size:9px;color:#444;letter-spacing:0.18em;text-transform:uppercase;margin-bottom:10px;}
 .dim-row{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
-.dim-label{font-size:11px;color:#777;letter-spacing:0.08em;text-transform:uppercase;width:80px;flex-shrink:0;}
+.dim-label{font-size:10px;color:#555;letter-spacing:0.08em;text-transform:uppercase;width:80px;flex-shrink:0;}
 .dim-input{background:#0a0a0a;border:1px solid #1e1e1e;color:#e8e8e0;font-family:var(--fm);font-size:12px;padding:7px 10px;width:80px;outline:none;transition:border-color .2s;}
 .dim-input:focus{border-color:#c8f542;}
 .dim-unit{font-size:10px;color:#444;}
@@ -79,10 +78,9 @@
     .out-empty-icon{font-size:44px;opacity:.2}
     .out-empty p{font-size:11px;line-height:1.9;max-width:200px}
     .out-content{display:none;flex-direction:column;gap:16px}.out-content.visible{display:flex}
-    .qr-wrap{background:#fff;padding:16px;display:inline-flex;justify-content:center;width:192px;height:192px;border-radius:4px;flex-shrink:0}
-    .qr-center{display:flex;justify-content:center;width:100%}
+    .qr-wrap{background:#fff;padding:20px;display:flex;justify-content:center}
     .linkbox{display:flex;gap:2px;background:var(--border)}
-    .linkdisplay{flex:1;background:var(--bg);padding:11px 14px;font-size:12px;color:var(--accent);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .linkdisplay{flex:1;background:var(--bg);padding:11px 14px;font-size:11px;color:var(--accent);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
     .btn-copy{background:var(--surface);border:none;color:var(--muted);font-family:var(--fm);font-size:11px;padding:11px 14px;cursor:pointer;transition:color .15s;white-space:nowrap}
     .btn-copy:hover{color:var(--accent)}.btn-copy.copied{color:var(--ok)}
     .prog-wrap{background:var(--bg);border:1px solid var(--border);padding:14px}
@@ -110,7 +108,7 @@
     .plist-empty{padding:24px;text-align:center;color:var(--muted);font-size:11px;line-height:1.9}
     .toast{position:fixed;bottom:28px;right:28px;background:var(--accent);color:#0a0a0a;padding:11px 18px;font-size:11px;transform:translateY(70px);opacity:0;transition:all .3s cubic-bezier(.34,1.56,.64,1);z-index:2000}
     .toast.show{transform:translateY(0);opacity:1}
-    @media(max-width:760px){header{padding:16px 20px;flex-direction:column;gap:12px;align-items:flex-start}.token-input{width:100%}.wrap{padding:16px}.cols{grid-template-columns:1fr}.type-grid{grid-template-columns:repeat(2,1fr)}.plist-body{padding:10px}.field label{font-size:13px}.dim-row{gap:14px;margin-bottom:14px}.dim-input{width:90px;padding:10px 12px;font-size:13px}.dim-label{font-size:12px}.tbtn{padding:14px 6px;font-size:12px}.uptext{font-size:13px}.behav-btn{padding:10px;font-size:11px}.dim-preset{padding:8px 14px;font-size:10px}}
+    @media(max-width:760px){header{padding:16px 20px;flex-direction:column;gap:12px;align-items:flex-start}.token-input{width:100%}.wrap{padding:20px}.cols{grid-template-columns:1fr}.type-grid{grid-template-columns:repeat(2,1fr)}.plist-body{padding:10px}}
   </style>
 </head>
 <body>
@@ -144,9 +142,10 @@
       </div>
       <div class="field">
         <label>Modo AR</label>
-        <div class="type-grid" style="grid-template-columns:1fr 1fr;margin-bottom:8px;">
+        <div class="type-grid" style="grid-template-columns:1fr 1fr 1fr;margin-bottom:8px;">
           <button class="tbtn active" data-mode="image" onclick="setModo('image')"><span class="tbtn-icon">◈</span>Image</button>
           <button class="tbtn" data-mode="surface" onclick="setModo('surface')"><span class="tbtn-icon">⬡</span>Surface</button>
+          <button class="tbtn" data-mode="face" onclick="setModo('face')"><span class="tbtn-icon">◉</span>Face</button>
         </div>
       </div>
 
@@ -160,6 +159,32 @@
             <button class="tbtn" data-type="model" onclick="setTipo('model')"><span class="tbtn-icon">⬡</span>3D</button>
             <button class="tbtn" data-type="audio" onclick="setTipo('audio')"><span class="tbtn-icon">♪</span>Audio</button>
           </div>
+        </div>
+      </div>
+
+      <!-- Tipos FACE -->
+      <div id="mode-face" class="mode-panel" style="display:none;">
+        <div class="field">
+          <label>Tipo de efecto</label>
+          <div class="type-grid" style="grid-template-columns:1fr 1fr;">
+            <button class="tbtn active" data-ftype="face-model" onclick="setTipo('face-model')"><span class="tbtn-icon">⬡</span>3D</button>
+            <button class="tbtn" data-ftype="face-image" onclick="setTipo('face-image')"><span class="tbtn-icon">◈</span>Imagen</button>
+          </div>
+        </div>
+        <div class="field">
+          <label>Punto de anclaje</label>
+          <div class="type-grid" style="grid-template-columns:1fr 1fr 1fr;">
+            <button class="tbtn active" data-anchor="1" onclick="setAnchor(1)">Nariz</button>
+            <button class="tbtn" data-anchor="10" onclick="setAnchor(10)">Frente</button>
+            <button class="tbtn" data-anchor="168" onclick="setAnchor(168)">Centro</button>
+            <button class="tbtn" data-anchor="234" onclick="setAnchor(234)">Mejilla I</button>
+            <button class="tbtn" data-anchor="454" onclick="setAnchor(454)">Mejilla D</button>
+            <button class="tbtn" data-anchor="0" onclick="setAnchor(0)">Barbilla</button>
+          </div>
+        </div>
+        <div style="background:rgba(200,245,66,0.05);border:1px solid rgba(200,245,66,0.15);padding:12px;font-size:10px;color:#555;line-height:1.9;margin-bottom:16px;letter-spacing:0.05em;">
+          Face AR usa la cámara frontal y detecta el rostro automáticamente.<br>
+          Ideal para máscaras, filtros y efectos artísticos.
         </div>
       </div>
 
@@ -262,7 +287,41 @@
         </div>
       </div>
       <!-- Paneles FACE -->
+      <div id="cp-face-model" class="cpanel">
+        <div class="upzone"><input type="file" id="fFaceModel" accept=".glb,.gltf">
+          <span class="upicon">⬡</span>
+          <div class="uptext"><strong>Modelo 3D — GLB o GLTF</strong><br>Máscara, gafas, sombrero, etc.</div>
+          <div class="uppreview" id="prFaceModel"></div>
+        </div>
+        <div class="dim-box">
+          <div class="dim-title">Escala del efecto</div>
+          <div class="dim-presets" id="faceModelPresets">
+            <button class="dim-preset" onclick="setFaceScale(0.05)">Mini</button>
+            <button class="dim-preset active" onclick="setFaceScale(0.1)">Normal</button>
+            <button class="dim-preset" onclick="setFaceScale(0.2)">Grande</button>
+          </div>
+          <div class="dim-row" style="margin-top:8px;">
+            <span class="dim-label">Escala exacta</span>
+            <input type="number" class="dim-input" id="dimFaceScale" value="0.1" min="0.01" max="1" step="0.01">
+          </div>
+        </div>
+      </div>
 
+      <div id="cp-face-image" class="cpanel">
+        <div class="upzone"><input type="file" id="fFaceImage" accept="image/png,image/webp,image/gif">
+          <span class="upicon">◈</span>
+          <div class="uptext"><strong>Imagen PNG o GIF</strong><br>Overlay sobre el rostro (fondo transparente)</div>
+          <div class="uppreview" id="prFaceImage"></div>
+        </div>
+        <div class="dim-box">
+          <div class="dim-title">Tamaño</div>
+          <div class="dim-presets" id="faceImagePresets">
+            <button class="dim-preset" onclick="setFaceImgSize(0.1)">Pequeño</button>
+            <button class="dim-preset active" onclick="setFaceImgSize(0.2)">Normal</button>
+            <button class="dim-preset" onclick="setFaceImgSize(0.4)">Grande</button>
+          </div>
+        </div>
+      </div>
 
       <div id="cp-surface-model" class="cpanel">
         <div class="upzone"><input type="file" id="fSurfModel" accept=".glb,.gltf">
@@ -353,9 +412,7 @@
           <div class="prog-msg" id="progMsg">Iniciando...</div>
         </div>
         <div class="steps-log" id="stepsLog"></div>
-        <div style="display:flex;justify-content:center;width:100%;">
-          <div class="qr-wrap" style="width:192px;height:192px;flex-shrink:0;"><div id="qrcode"></div></div>
-        </div>
+        <div class="qr-wrap"><div id="qrcode"></div></div>
         <div>
           <div class="plabel">Link del espectador</div>
           <div class="linkbox">
@@ -402,6 +459,9 @@ let proyectos=JSON.parse(localStorage.getItem('ara-proyectos')||'[]');
 
 // ── DIMENSIONES ──
 let dimConfig = { prop: '16:9', width: 1, height: 0.5625, scale: 0.5, loop: true, autoplay: true };
+let faceAnchor = 1;
+let faceScale = 0.1;
+let faceImgSize = 0.2;
 // Inicializar preset activo según tipo al cargar
 
 function setProp(tipo, w, h) {
@@ -416,6 +476,29 @@ function setProp(tipo, w, h) {
     b.classList.toggle('active', b.textContent === `${w}:${h}`);
   });
   console.log('[ARA] Proporción:', dimConfig.prop, dimConfig.width, 'x', dimConfig.height);
+}
+
+function setAnchor(idx) {
+  faceAnchor = idx;
+  document.querySelectorAll('[data-anchor]').forEach(b => {
+    b.classList.toggle('active', parseInt(b.dataset.anchor) === idx);
+  });
+}
+
+function setFaceScale(v) {
+  faceScale = v;
+  const inp = document.getElementById('dimFaceScale');
+  if (inp) inp.value = v;
+  document.querySelectorAll('#faceModelPresets .dim-preset').forEach(b => {
+    b.classList.toggle('active', b.onclick?.toString().includes('(' + v + ')'));
+  });
+}
+
+function setFaceImgSize(v) {
+  faceImgSize = v;
+  document.querySelectorAll('#faceImagePresets .dim-preset').forEach(b => {
+    b.classList.toggle('active', b.onclick?.toString().includes('(' + v + ')'));
+  });
 }
 
 function setModelScale(sz) {
@@ -475,6 +558,7 @@ function getDimensions() {
     }
   }
 
+  console.log('[ARA] Dimensiones finales:', {width, height, scale});
   return { width, height, scale };
 }
 
@@ -489,6 +573,10 @@ function setModo(m){
   // Reset tipo según modo
   if(m==='image') setTipo('video');
   else if(m==='surface') setTipo('surface-model');
+  else if(m==='face') setTipo('face-model');
+  // Face no necesita trigger
+  const tf=document.getElementById('triggerField');
+  if(tf) tf.style.display=(m==='image'?'block':'none');
 
 }
 
@@ -503,6 +591,10 @@ function setTipo(t){
     document.querySelectorAll('[data-stype]').forEach(b=>b.classList.remove('active'));
     const sbtn=document.querySelector(`[data-stype="${t}"]`);
     if(sbtn) sbtn.classList.add('active');
+  } else if(modoActual==='face'){
+    document.querySelectorAll('[data-ftype]').forEach(b=>b.classList.remove('active'));
+    const fbtn=document.querySelector(`[data-ftype="${t}"]`);
+    if(fbtn) fbtn.classList.add('active');
   }
 
   // Mostrar el panel correcto
@@ -598,7 +690,7 @@ async function generarProyecto(){
   const nombre=document.getElementById('pNombre').value.trim();
 
   const fTrig=document.getElementById('fTrigger').files[0];
-  const fMap={video:'fVideo',gif:'fGif',model:'fModel',audio:'fAudio','surface-model':'fSurfModel','surface-video':'fSurfVideo','surface-gif':'fSurfGif'};
+  const fMap={video:'fVideo',gif:'fGif',model:'fModel',audio:'fAudio','surface-model':'fSurfModel','surface-video':'fSurfVideo','surface-gif':'fSurfGif','face-model':'fFaceModel','face-image':'fFaceImage'};
   const fCont=document.getElementById(fMap[tipoActual])?.files[0];
   const fAImg=document.getElementById('fAudioImg')?.files[0];
 
@@ -621,7 +713,7 @@ async function generarProyecto(){
     // Obtener dimensiones definidas por el usuario
     const dims = getDimensions();
 
-    if(modoActual==='surface'){
+    if(modoActual==='surface'||modoActual==='face'){
       // Surface AR: solo subir el contenido, sin trigger ni .mind
       setProgress(50,'Subiendo archivos',`Subiendo contenido.${contentExt}...`);
       logStep(`◈ Subiendo contenido.${contentExt}...`,'act');
@@ -686,7 +778,9 @@ async function generarProyecto(){
     const lp = dimConfig.loop    ? '1' : '0';
     const ap = dimConfig.autoplay ? '1' : '0';
     // Wall usa su propio viewer con 8th Wall engine
-    const viewerUrl=`${BASE_URL}/viewer.html?p=${slug}&t=${tipoActual}&ce=${contentExt}&te=${triggerExt}&w=${dims.width}&h=${dims.height}&sc=${dims.scale}&lp=${lp}&ap=${ap}`;
+    const faceViewerFile = modoActual === 'face' ? 'face-viewer.html' : 'viewer.html';
+    const faceParams = modoActual === 'face' ? `&anchor=${faceAnchor}&sc=${faceScale}&imgsize=${faceImgSize}` : `&w=${dims.width}&h=${dims.height}&sc=${dims.scale}&lp=${lp}&ap=${ap}`;
+    const viewerUrl=`${BASE_URL}/${faceViewerFile}?p=${slug}&t=${tipoActual}&ce=${contentExt}&te=${triggerExt}${faceParams}`;
     viewerUrlActual=viewerUrl;
 
     const proyecto={slug,nombre,tipo:tipoActual,contentExt,triggerExt,url:viewerUrl,creado:new Date().toLocaleDateString('es-MX')};
@@ -712,29 +806,18 @@ async function generarProyecto(){
   }
 }
 
-async function mostrarOutput(url){
+function mostrarOutput(url){
+  // Link espectador (sin edit)
   const urlEspectador = url.replace('&edit=1','');
+  // Link editor (con edit=1)
   const urlEditor = urlEspectador + '&edit=1';
 
-  // Mostrar URL larga primero
   document.getElementById('linkDisplay').textContent = urlEspectador;
   document.getElementById('linkEditor').textContent  = urlEditor;
 
-  // Intentar acortar via TinyURL
-  try {
-    const r = await fetch('https://tinyurl.com/api-create.php?url=' + encodeURIComponent(urlEspectador));
-    if (r.ok) {
-      const short = await r.text();
-      if (short.startsWith('http')) {
-        document.getElementById('linkDisplay').textContent = short;
-        document.getElementById('linkDisplay').dataset.full = urlEspectador;
-      }
-    }
-  } catch(e) { /* silencioso — usa URL larga */ }
-
   document.getElementById('qrcode').innerHTML='';
   new QRCode(document.getElementById('qrcode'),{
-    text:urlEspectador,width:160,height:160,
+    text:urlEspectador,width:176,height:176,
     colorDark:'#0a0a0a',colorLight:'#ffffff',
     correctLevel:QRCode.CorrectLevel.H
   });

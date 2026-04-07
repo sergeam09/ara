@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>◈</text></svg>">
   <title>ARA — Augmented Reality Atelier</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
@@ -35,36 +36,32 @@
     .wrap{max-width:1160px;margin:0 auto;padding:40px}
     .cols{display:grid;grid-template-columns:1fr 1fr;gap:2px;background:var(--border)}
     .panel{background:var(--surface);padding:32px}
-    .plabel{font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);margin-bottom:24px;display:flex;align-items:center;gap:10px}
+    .plabel{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:#666;margin-bottom:24px;display:flex;align-items:center;gap:10px}
     .plabel::after{content:'';flex:1;height:1px;background:var(--border)}
     .field{margin-bottom:18px}
-    .field label{display:block;font-size:10px;color:var(--muted);letter-spacing:.12em;text-transform:uppercase;margin-bottom:7px}
+    .field label{display:block;font-size:12px;color:#888;letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px}
     .field input[type=text]{width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--fm);font-size:13px;padding:11px 14px;outline:none;transition:border-color .2s}
     .field input[type=text]:focus{border-color:var(--accent)}
     .field input[type=text]::placeholder{color:var(--muted)}
     .type-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:2px;background:var(--border);margin-bottom:18px}
-    .tbtn{background:var(--bg);border:none;color:var(--muted);font-family:var(--fm);font-size:10px;letter-spacing:.1em;text-transform:uppercase;padding:10px 4px;cursor:pointer;transition:all .15s;text-align:center}
+    .tbtn{background:var(--bg);border:none;color:#666;font-family:var(--fm);font-size:11px;letter-spacing:.08em;text-transform:uppercase;padding:12px 6px;cursor:pointer;transition:all .15s;text-align:center}
     .tbtn:hover{color:var(--text)}.tbtn.active{background:var(--surface);color:var(--accent)}
     .tbtn-icon{display:block;font-size:15px;margin-bottom:3px}
     .upzone{border:1px dashed var(--border);padding:20px;text-align:center;cursor:pointer;transition:all .2s;position:relative;background:var(--bg)}
     .upzone:hover,.upzone.over{border-color:var(--accent);background:rgba(200,245,66,.02)}
     .upzone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
     .upicon{font-size:20px;margin-bottom:6px;display:block}
-    .uptext{color:var(--muted);font-size:11px;line-height:1.7}
+    .uptext{color:#666;font-size:12px;line-height:1.7}
     .uptext strong{color:var(--accent);font-weight:500}
     .uppreview{margin-top:8px;font-size:11px;color:var(--accent2);display:none}
     .cpanel{display:none}.cpanel.active{display:block}.mode-panel{display:none}.mode-panel.active{display:block}
 .dim-box{background:rgba(200,245,66,0.04);border:1px solid rgba(200,245,66,0.12);padding:12px;margin-top:10px;}
-.dim-title{font-size:9px;color:#444;letter-spacing:0.18em;text-transform:uppercase;margin-bottom:10px;}
+.dim-title{font-size:11px;color:#666;letter-spacing:0.15em;text-transform:uppercase;margin-bottom:10px;}
 .dim-row{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
-.dim-label{font-size:10px;color:#555;letter-spacing:0.08em;text-transform:uppercase;width:80px;flex-shrink:0;}
+.dim-label{font-size:11px;color:#777;letter-spacing:0.08em;text-transform:uppercase;width:80px;flex-shrink:0;}
 .dim-input{background:#0a0a0a;border:1px solid #1e1e1e;color:#e8e8e0;font-family:var(--fm);font-size:12px;padding:7px 10px;width:80px;outline:none;transition:border-color .2s;}
 .dim-input:focus{border-color:#c8f542;}
 .dim-unit{font-size:10px;color:#444;}
-.behav-row{display:flex;gap:6px;margin-top:8px;}
-.behav-btn{flex:1;background:rgba(255,255,255,0.04);border:1px solid #1e1e1e;color:#555;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;padding:6px;cursor:pointer;text-align:center;font-family:var(--fm);transition:all .15s;}
-.behav-btn:hover{border-color:#555;color:#888;}
-.behav-btn.active{background:rgba(200,245,66,0.08);border-color:rgba(200,245,66,0.3);color:#c8f542;}
 .dim-presets{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px;}
 .dim-preset{background:rgba(255,255,255,0.04);border:1px solid #1e1e1e;color:#555;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;padding:5px 10px;cursor:pointer;font-family:var(--fm);}
 .dim-preset:hover,.dim-preset.active{border-color:#c8f542;color:#c8f542;}
@@ -78,7 +75,7 @@
     .out-empty-icon{font-size:44px;opacity:.2}
     .out-empty p{font-size:11px;line-height:1.9;max-width:200px}
     .out-content{display:none;flex-direction:column;gap:16px}.out-content.visible{display:flex}
-    .qr-wrap{background:#fff;padding:20px;display:flex;justify-content:center}
+    .qr-wrap{background:#fff;padding:16px;display:inline-flex;justify-content:center;align-self:center;}
     .linkbox{display:flex;gap:2px;background:var(--border)}
     .linkdisplay{flex:1;background:var(--bg);padding:11px 14px;font-size:11px;color:var(--accent);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
     .btn-copy{background:var(--surface);border:none;color:var(--muted);font-family:var(--fm);font-size:11px;padding:11px 14px;cursor:pointer;transition:color .15s;white-space:nowrap}
@@ -108,7 +105,7 @@
     .plist-empty{padding:24px;text-align:center;color:var(--muted);font-size:11px;line-height:1.9}
     .toast{position:fixed;bottom:28px;right:28px;background:var(--accent);color:#0a0a0a;padding:11px 18px;font-size:11px;transform:translateY(70px);opacity:0;transition:all .3s cubic-bezier(.34,1.56,.64,1);z-index:2000}
     .toast.show{transform:translateY(0);opacity:1}
-    @media(max-width:760px){header{padding:16px 20px;flex-direction:column;gap:12px;align-items:flex-start}.token-input{width:100%}.wrap{padding:20px}.cols{grid-template-columns:1fr}.type-grid{grid-template-columns:repeat(2,1fr)}.plist-body{padding:10px}}
+    @media(max-width:760px){header{padding:16px 20px;flex-direction:column;gap:12px;align-items:flex-start}.token-input{width:100%}.wrap{padding:16px}.cols{grid-template-columns:1fr}.type-grid{grid-template-columns:repeat(2,1fr)}.plist-body{padding:10px}.field label{font-size:13px}.dim-row{gap:14px;margin-bottom:14px}.dim-input{width:90px;padding:10px 12px;font-size:13px}.dim-label{font-size:12px}.tbtn{padding:14px 6px;font-size:12px}.uptext{font-size:13px}.dim-preset{padding:8px 14px;font-size:10px}}
   </style>
 </head>
 <body>
@@ -142,10 +139,9 @@
       </div>
       <div class="field">
         <label>Modo AR</label>
-        <div class="type-grid" style="grid-template-columns:1fr 1fr 1fr;margin-bottom:8px;">
+        <div class="type-grid" style="grid-template-columns:1fr 1fr;margin-bottom:8px;">
           <button class="tbtn active" data-mode="image" onclick="setModo('image')"><span class="tbtn-icon">◈</span>Image</button>
           <button class="tbtn" data-mode="surface" onclick="setModo('surface')"><span class="tbtn-icon">⬡</span>Surface</button>
-          <button class="tbtn" data-mode="face" onclick="setModo('face')"><span class="tbtn-icon">◉</span>Face</button>
         </div>
       </div>
 
@@ -159,32 +155,6 @@
             <button class="tbtn" data-type="model" onclick="setTipo('model')"><span class="tbtn-icon">⬡</span>3D</button>
             <button class="tbtn" data-type="audio" onclick="setTipo('audio')"><span class="tbtn-icon">♪</span>Audio</button>
           </div>
-        </div>
-      </div>
-
-      <!-- Tipos FACE -->
-      <div id="mode-face" class="mode-panel" style="display:none;">
-        <div class="field">
-          <label>Tipo de efecto</label>
-          <div class="type-grid" style="grid-template-columns:1fr 1fr;">
-            <button class="tbtn active" data-ftype="face-model" onclick="setTipo('face-model')"><span class="tbtn-icon">⬡</span>3D</button>
-            <button class="tbtn" data-ftype="face-image" onclick="setTipo('face-image')"><span class="tbtn-icon">◈</span>Imagen</button>
-          </div>
-        </div>
-        <div class="field">
-          <label>Punto de anclaje</label>
-          <div class="type-grid" style="grid-template-columns:1fr 1fr 1fr;">
-            <button class="tbtn active" data-anchor="1" onclick="setAnchor(1)">Nariz</button>
-            <button class="tbtn" data-anchor="10" onclick="setAnchor(10)">Frente</button>
-            <button class="tbtn" data-anchor="168" onclick="setAnchor(168)">Centro</button>
-            <button class="tbtn" data-anchor="234" onclick="setAnchor(234)">Mejilla I</button>
-            <button class="tbtn" data-anchor="454" onclick="setAnchor(454)">Mejilla D</button>
-            <button class="tbtn" data-anchor="0" onclick="setAnchor(0)">Barbilla</button>
-          </div>
-        </div>
-        <div style="background:rgba(200,245,66,0.05);border:1px solid rgba(200,245,66,0.15);padding:12px;font-size:10px;color:#555;line-height:1.9;margin-bottom:16px;letter-spacing:0.05em;">
-          Face AR usa la cámara frontal y detecta el rostro automáticamente.<br>
-          Ideal para máscaras, filtros y efectos artísticos.
         </div>
       </div>
 
@@ -227,11 +197,6 @@
             <input type="number" class="dim-input" id="dimVideoH" placeholder="ej. 60" min="1" step="1">
             <span class="dim-unit">cm (opcional)</span>
           </div>
-          <div class="dim-title" style="margin-top:10px;">Comportamiento</div>
-          <div class="behav-row">
-            <button class="behav-btn active" data-behav="loop" onclick="toggleBehav('loop',this)">↺ Loop</button>
-            <button class="behav-btn active" data-behav="autoplay" onclick="toggleBehav('autoplay',this)">▶ Autoplay</button>
-          </div>
         </div>
       </div>
       <div id="cp-gif" class="cpanel">
@@ -258,11 +223,6 @@
             <input type="number" class="dim-input" id="dimGifH" placeholder="ej. 50" min="1" step="1">
             <span class="dim-unit">cm (opcional)</span>
           </div>
-          <div class="dim-title" style="margin-top:10px;">Comportamiento</div>
-          <div class="behav-row">
-            <button class="behav-btn active" data-behav="loop" onclick="toggleBehav('loop',this)">↺ Loop</button>
-            <button class="behav-btn active" data-behav="autoplay" onclick="toggleBehav('autoplay',this)">▶ Autoplay</button>
-          </div>
         </div>
       </div>
       <div id="cp-model" class="cpanel">
@@ -286,43 +246,6 @@
           </div>
         </div>
       </div>
-      <!-- Paneles FACE -->
-      <div id="cp-face-model" class="cpanel">
-        <div class="upzone"><input type="file" id="fFaceModel" accept=".glb,.gltf">
-          <span class="upicon">⬡</span>
-          <div class="uptext"><strong>Modelo 3D — GLB o GLTF</strong><br>Máscara, gafas, sombrero, etc.</div>
-          <div class="uppreview" id="prFaceModel"></div>
-        </div>
-        <div class="dim-box">
-          <div class="dim-title">Escala del efecto</div>
-          <div class="dim-presets" id="faceModelPresets">
-            <button class="dim-preset" onclick="setFaceScale(0.05)">Mini</button>
-            <button class="dim-preset active" onclick="setFaceScale(0.1)">Normal</button>
-            <button class="dim-preset" onclick="setFaceScale(0.2)">Grande</button>
-          </div>
-          <div class="dim-row" style="margin-top:8px;">
-            <span class="dim-label">Escala exacta</span>
-            <input type="number" class="dim-input" id="dimFaceScale" value="0.1" min="0.01" max="1" step="0.01">
-          </div>
-        </div>
-      </div>
-
-      <div id="cp-face-image" class="cpanel">
-        <div class="upzone"><input type="file" id="fFaceImage" accept="image/png,image/webp,image/gif">
-          <span class="upicon">◈</span>
-          <div class="uptext"><strong>Imagen PNG o GIF</strong><br>Overlay sobre el rostro (fondo transparente)</div>
-          <div class="uppreview" id="prFaceImage"></div>
-        </div>
-        <div class="dim-box">
-          <div class="dim-title">Tamaño</div>
-          <div class="dim-presets" id="faceImagePresets">
-            <button class="dim-preset" onclick="setFaceImgSize(0.1)">Pequeño</button>
-            <button class="dim-preset active" onclick="setFaceImgSize(0.2)">Normal</button>
-            <button class="dim-preset" onclick="setFaceImgSize(0.4)">Grande</button>
-          </div>
-        </div>
-      </div>
-
       <div id="cp-surface-model" class="cpanel">
         <div class="upzone"><input type="file" id="fSurfModel" accept=".glb,.gltf">
           <span class="upicon">⬡</span>
@@ -360,19 +283,6 @@
           <div class="uptext"><strong>Video MP4 o WEBM</strong><br>Flota sobre la superficie como pantalla</div>
           <div class="uppreview" id="prSurfVideo"></div>
         </div>
-        <div class="dim-box">
-          <div class="dim-title">Proporción</div>
-          <div class="dim-presets">
-            <button class="dim-preset active" onclick="setProp('surfVideo',16,9)">16:9</button>
-            <button class="dim-preset" onclick="setProp('surfVideo',1,1)">1:1</button>
-            <button class="dim-preset" onclick="setProp('surfVideo',4,3)">4:3</button>
-          </div>
-          <div class="dim-title" style="margin-top:10px;">Comportamiento</div>
-          <div class="behav-row">
-            <button class="behav-btn active" data-behav="loop" onclick="toggleBehav('loop',this)">↺ Loop</button>
-            <button class="behav-btn active" data-behav="autoplay" onclick="toggleBehav('autoplay',this)">▶ Autoplay</button>
-          </div>
-        </div>
       </div>
       <div id="cp-surface-gif" class="cpanel">
         <div class="upzone"><input type="file" id="fSurfGif" accept="image/gif,image/webp">
@@ -381,8 +291,29 @@
           <div class="uppreview" id="prSurfGif"></div>
         </div>
       </div>
+      <div id="cp-surface-model" class="cpanel" style="display:none;">
+        <div class="upzone"><input type="file" id="fSurfModel" accept=".glb,.gltf">
+          <span class="upicon">⬡</span>
+          <div class="uptext"><strong>Modelo 3D — GLB o GLTF</strong><br>Se proyectará sobre la superficie<br>Recomendado &lt; 20MB</div>
+          <div class="uppreview" id="prSurfModel"></div>
+        </div>
+      </div>
+      <div id="cp-surface-video" class="cpanel" style="display:none;">
+        <div class="upzone"><input type="file" id="fSurfVideo" accept="video/*">
+          <span class="upicon">▶</span>
+          <div class="uptext"><strong>Video MP4 o WEBM</strong><br>Aparece como pantalla flotante<br>Recomendado &lt; 30MB</div>
+          <div class="uppreview" id="prSurfVideo"></div>
+        </div>
+      </div>
+      <div id="cp-surface-gif" class="cpanel" style="display:none;">
+        <div class="upzone"><input type="file" id="fSurfGif" accept="image/gif,image/webp">
+          <span class="upicon">◈</span>
+          <div class="uptext"><strong>GIF animado o WEBP</strong><br>Aparece flotando sobre la superficie<br>Recomendado &lt; 10MB</div>
+          <div class="uppreview" id="prSurfGif"></div>
+        </div>
+      </div>
 
-                            <div id="cp-audio" class="cpanel">
+      <div id="cp-audio" class="cpanel">
         <div class="upzone"><input type="file" id="fAudio" accept="audio/*">
           <span class="upicon">♪</span>
           <div class="uptext"><strong>Audio MP3 o WAV</strong></div>
@@ -412,7 +343,7 @@
           <div class="prog-msg" id="progMsg">Iniciando...</div>
         </div>
         <div class="steps-log" id="stepsLog"></div>
-        <div class="qr-wrap"><div id="qrcode"></div></div>
+        <div style="display:flex;justify-content:center;"><div class="qr-wrap"><div id="qrcode"></div></div></div>
         <div>
           <div class="plabel">Link del espectador</div>
           <div class="linkbox">
@@ -458,11 +389,9 @@ let proyectos=JSON.parse(localStorage.getItem('ara-proyectos')||'[]');
 // Token gestionado por Cloudflare Worker — no se necesita aquí
 
 // ── DIMENSIONES ──
-let dimConfig = { prop: '16:9', width: 1, height: 0.5625, scale: 0.5, loop: true, autoplay: true };
-let faceAnchor = 1;
-let faceScale = 0.1;
-let faceImgSize = 0.2;
+let dimConfig = { prop: '16:9', width: 1, height: 0.5625, scale: 0.5 };
 // Inicializar preset activo según tipo al cargar
+// (16:9 para video, 1:1 para gif, mediano para model)
 
 function setProp(tipo, w, h) {
   // Calcular width y height manteniendo el lado mayor en 1 unidad
@@ -476,29 +405,6 @@ function setProp(tipo, w, h) {
     b.classList.toggle('active', b.textContent === `${w}:${h}`);
   });
   console.log('[ARA] Proporción:', dimConfig.prop, dimConfig.width, 'x', dimConfig.height);
-}
-
-function setAnchor(idx) {
-  faceAnchor = idx;
-  document.querySelectorAll('[data-anchor]').forEach(b => {
-    b.classList.toggle('active', parseInt(b.dataset.anchor) === idx);
-  });
-}
-
-function setFaceScale(v) {
-  faceScale = v;
-  const inp = document.getElementById('dimFaceScale');
-  if (inp) inp.value = v;
-  document.querySelectorAll('#faceModelPresets .dim-preset').forEach(b => {
-    b.classList.toggle('active', b.onclick?.toString().includes('(' + v + ')'));
-  });
-}
-
-function setFaceImgSize(v) {
-  faceImgSize = v;
-  document.querySelectorAll('#faceImagePresets .dim-preset').forEach(b => {
-    b.classList.toggle('active', b.onclick?.toString().includes('(' + v + ')'));
-  });
 }
 
 function setModelScale(sz) {
@@ -549,6 +455,7 @@ function getDimensions() {
       scale = +(ch/100).toFixed(3);
     }
   } else if (t === 'surface-model') {
+    // Alto real en cm tiene prioridad sobre escala manual
     const ch = parseFloat(document.getElementById('dimSurfH')?.value);
     if (ch > 0 && !isNaN(ch)) {
       scale = +(ch/100).toFixed(3);
@@ -569,35 +476,24 @@ function setModo(m){
   document.querySelectorAll('.mode-panel').forEach(p=>p.style.display='none');
   document.getElementById(`mode-${m}`).style.display='block';
   // Ocultar trigger en surface
-
+  const tf=document.getElementById('triggerField');
+  if(tf) tf.style.display=(m==='surface'?'none':'block');
   // Reset tipo según modo
   if(m==='image') setTipo('video');
-  else if(m==='surface') setTipo('surface-model');
-  else if(m==='face') setTipo('face-model');
-  // Face no necesita trigger
-  const tf=document.getElementById('triggerField');
-  if(tf) tf.style.display=(m==='image'?'block':'none');
-
+  else setTipo('surface-model');
 }
 
 function setTipo(t){
   tipoActual=t;
-
-  if(modoActual==='image'){
-    document.querySelectorAll('[data-type]').forEach(b=>b.classList.remove('active'));
-    const btn=document.querySelector(`[data-type="${t}"]`);
-    if(btn) btn.classList.add('active');
-  } else if(modoActual==='surface'){
-    document.querySelectorAll('[data-stype]').forEach(b=>b.classList.remove('active'));
-    const sbtn=document.querySelector(`[data-stype="${t}"]`);
-    if(sbtn) sbtn.classList.add('active');
-  } else if(modoActual==='face'){
-    document.querySelectorAll('[data-ftype]').forEach(b=>b.classList.remove('active'));
-    const fbtn=document.querySelector(`[data-ftype="${t}"]`);
-    if(fbtn) fbtn.classList.add('active');
-  }
-
-  // Mostrar el panel correcto
+  // Botones de modo image
+  document.querySelectorAll('[data-type]').forEach(b=>b.classList.remove('active'));
+  const btn=document.querySelector(`[data-type="${t}"]`)||document.querySelector(`[data-stype="${t}"]`);
+  if(btn) btn.classList.add('active');
+  // Botones de modo surface
+  document.querySelectorAll('[data-stype]').forEach(b=>b.classList.remove('active'));
+  const sbtn=document.querySelector(`[data-stype="${t}"]`);
+  if(sbtn) sbtn.classList.add('active');
+  // Paneles
   document.querySelectorAll('.cpanel').forEach(p=>p.classList.remove('active'));
   const panel=document.getElementById(`cp-${t}`);
   if(panel) panel.classList.add('active');
@@ -609,7 +505,7 @@ document.querySelectorAll('.upzone').forEach(z=>{
   z.addEventListener('drop',e=>{e.preventDefault();z.classList.remove('over');const inp=z.querySelector('input[type="file"]');if(inp&&e.dataTransfer.files[0]){const dt=new DataTransfer();dt.items.add(e.dataTransfer.files[0]);inp.files=dt.files;inp.dispatchEvent(new Event('change'));}});
 });
 
-[['fTrigger','prTrigger'],['fVideo','prVideo'],['fGif','prGif'],['fModel','prModel'],['fAudio','prAudio'],['fSurfModel','prSurfModel'],['fSurfVideo','prSurfVideo'],['fSurfGif','prSurfGif'],].forEach(([id,pid])=>{
+[['fTrigger','prTrigger'],['fVideo','prVideo'],['fGif','prGif'],['fModel','prModel'],['fAudio','prAudio'],['fSurfModel','prSurfModel'],['fSurfVideo','prSurfVideo'],['fSurfGif','prSurfGif']].forEach(([id,pid])=>{
   const el=document.getElementById(id);if(!el)return;
   el.addEventListener('change',function(){const p=document.getElementById(pid);if(this.files[0]){p.style.display='block';p.textContent=`✓ ${this.files[0].name} (${fmt(this.files[0].size)})`;}});
 });
@@ -690,7 +586,7 @@ async function generarProyecto(){
   const nombre=document.getElementById('pNombre').value.trim();
 
   const fTrig=document.getElementById('fTrigger').files[0];
-  const fMap={video:'fVideo',gif:'fGif',model:'fModel',audio:'fAudio','surface-model':'fSurfModel','surface-video':'fSurfVideo','surface-gif':'fSurfGif','face-model':'fFaceModel','face-image':'fFaceImage'};
+  const fMap={video:'fVideo',gif:'fGif',model:'fModel',audio:'fAudio','surface-model':'fSurfModel','surface-video':'fSurfVideo','surface-gif':'fSurfGif'};
   const fCont=document.getElementById(fMap[tipoActual])?.files[0];
   const fAImg=document.getElementById('fAudioImg')?.files[0];
 
@@ -713,7 +609,7 @@ async function generarProyecto(){
     // Obtener dimensiones definidas por el usuario
     const dims = getDimensions();
 
-    if(modoActual==='surface'||modoActual==='face'){
+    if(modoActual==='surface'){
       // Surface AR: solo subir el contenido, sin trigger ni .mind
       setProgress(50,'Subiendo archivos',`Subiendo contenido.${contentExt}...`);
       logStep(`◈ Subiendo contenido.${contentExt}...`,'act');
@@ -774,13 +670,8 @@ async function generarProyecto(){
     setProgress(100,'Publicado','✓ Experiencia AR disponible en GitHub Pages','ok');
     logStep('✓ ¡Publicado en GitHub Pages!','ok');
 
-    // Pasar dimensiones y comportamiento directamente en la URL
-    const lp = dimConfig.loop    ? '1' : '0';
-    const ap = dimConfig.autoplay ? '1' : '0';
-    // Wall usa su propio viewer con 8th Wall engine
-    const faceViewerFile = modoActual === 'face' ? 'face-viewer.html' : 'viewer.html';
-    const faceParams = modoActual === 'face' ? `&anchor=${faceAnchor}&sc=${faceScale}&imgsize=${faceImgSize}` : `&w=${dims.width}&h=${dims.height}&sc=${dims.scale}&lp=${lp}&ap=${ap}`;
-    const viewerUrl=`${BASE_URL}/${faceViewerFile}?p=${slug}&t=${tipoActual}&ce=${contentExt}&te=${triggerExt}${faceParams}`;
+    // Pasar dimensiones directamente en la URL — sin depender de config.json
+    const viewerUrl=`${BASE_URL}/viewer.html?p=${slug}&t=${tipoActual}&ce=${contentExt}&te=${triggerExt}&w=${dims.width}&h=${dims.height}&sc=${dims.scale}`;
     viewerUrlActual=viewerUrl;
 
     const proyecto={slug,nombre,tipo:tipoActual,contentExt,triggerExt,url:viewerUrl,creado:new Date().toLocaleDateString('es-MX')};
@@ -806,18 +697,26 @@ async function generarProyecto(){
   }
 }
 
-function mostrarOutput(url){
-  // Link espectador (sin edit)
+async function mostrarOutput(url){
   const urlEspectador = url.replace('&edit=1','');
-  // Link editor (con edit=1)
   const urlEditor = urlEspectador + '&edit=1';
 
   document.getElementById('linkDisplay').textContent = urlEspectador;
   document.getElementById('linkEditor').textContent  = urlEditor;
 
+  try {
+    const r = await fetch('https://tinyurl.com/api-create.php?url=' + encodeURIComponent(urlEspectador));
+    if (r.ok) {
+      const short = (await r.text()).trim();
+      if (short.startsWith('http')) {
+        document.getElementById('linkDisplay').textContent = short;
+      }
+    }
+  } catch(e) {}
+
   document.getElementById('qrcode').innerHTML='';
   new QRCode(document.getElementById('qrcode'),{
-    text:urlEspectador,width:176,height:176,
+    text:urlEspectador,width:160,height:160,
     colorDark:'#0a0a0a',colorLight:'#ffffff',
     correctLevel:QRCode.CorrectLevel.H
   });

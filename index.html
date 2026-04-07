@@ -71,7 +71,7 @@
     .btn-ghost{background:transparent;border:1px solid var(--border);color:var(--muted)}
     .btn-ghost:hover{border-color:var(--accent);color:var(--accent)}
     .out-panel{background:var(--surface);padding:32px;display:flex;flex-direction:column;gap:18px}
-    .out-empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;color:var(--muted);gap:14px}
+    .out-empty{flex:1;min-height:300px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;color:var(--muted);gap:14px}
     .out-empty-icon{font-size:44px;opacity:.2}
     .out-empty p{font-size:11px;line-height:1.9;max-width:200px}
     .out-content{display:none;flex-direction:column;gap:16px}.out-content.visible{display:flex}
@@ -343,7 +343,7 @@
           <div class="prog-msg" id="progMsg">Iniciando...</div>
         </div>
         <div class="steps-log" id="stepsLog"></div>
-        <div style="display:flex;justify-content:center;"><div class="qr-wrap"><div id="qrcode"></div></div></div>
+        <div style="display:flex;justify-content:center;margin:0;"><div style="background:#fff;padding:10px;display:inline-flex;"><div id="qrcode"></div></div></div>
         <div>
           <div class="plabel">Link del espectador</div>
           <div class="linkbox">
@@ -716,7 +716,7 @@ async function mostrarOutput(url){
 
   document.getElementById('qrcode').innerHTML='';
   new QRCode(document.getElementById('qrcode'),{
-    text:urlEspectador,width:160,height:160,
+    text:urlEspectador,width:120,height:120,
     colorDark:'#0a0a0a',colorLight:'#ffffff',
     correctLevel:QRCode.CorrectLevel.H
   });

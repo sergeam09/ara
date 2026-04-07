@@ -8,11 +8,11 @@
   <title>ARA — Experiencia AR</title>
   <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
+  <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.3.0/model-viewer.min.js"></script>
   <style>
     :root { --a: #c8f542; --bg: #0a0a0a; --s: rgba(10,10,10,0.82); --b: rgba(255,255,255,0.08); }
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    body { background: var(--bg); color: #e8e8e0; font-family: system-ui, monospace; height: 100vh; overflow: hidden; touch-action: auto; }
-    body.ar-active { touch-action: none; }
+    body { background: var(--bg); color: #e8e8e0; font-family: system-ui, monospace; height: 100vh; overflow: hidden; touch-action: none; }
 
     /* SPLASH */
     #splash { position: fixed; inset: 0; background: var(--bg); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 24px; z-index: 1000; transition: opacity 0.5s; }
@@ -216,19 +216,6 @@
 </div>
 
 <div id="ping"></div>
-
-<!-- DEBUG LOG -->
-<div id="dbgLog" style="
-  position:fixed;bottom:0;left:0;right:0;
-  background:rgba(0,0,0,0.85);
-  color:#c8f542;
-  font-family:monospace;font-size:11px;
-  padding:8px 12px;
-  max-height:35vh;overflow-y:auto;
-  z-index:9000;
-  display:none;
-  pointer-events:none;
-"></div>
 <div id="arScene"></div>
 <div id="mvWrap"></div>
 
@@ -239,6 +226,7 @@
     <button class="ed-save" onclick="guardarConfig()">✓ Guardar</button>
   </div>
 
+  <!-- Orientación -->
   <div class="ed-section">Orientación</div>
   <div class="ed-preset-row" id="presetOri">
     <button class="ed-preset active" onclick="aplicarPreset('horizontal')">Horizontal</button>
@@ -247,6 +235,7 @@
     <button class="ed-preset" onclick="aplicarPreset('libre')">Libre</button>
   </div>
 
+  <!-- Posición -->
   <div class="ed-section">Posición</div>
   <div class="ed-row">
     <div class="ed-label">Altura</div>
@@ -267,6 +256,7 @@
     <span class="ed-unit">m</span>
   </div>
 
+  <!-- Rotación manual (solo en modo libre) -->
   <div id="secRotacion" style="display:none;">
     <div class="ed-section">Rotación</div>
     <div class="ed-row">
@@ -286,6 +276,7 @@
     </div>
   </div>
 
+  <!-- Escala -->
   <div class="ed-section">Tamaño</div>
   <div class="ed-row">
     <div class="ed-label">Escala</div>
@@ -293,6 +284,7 @@
     <input type="number" class="ed-num" id="numScale" value="1" step="0.05" min="0.05" max="3" oninput="syncSlider('numScale','slScale',0.05,3);updateContent()">
   </div>
 
+  <!-- Proporción y tamaño real (solo para video/gif) -->
   <div id="secProp">
     <div class="ed-section">Proporción del contenido</div>
     <div class="ed-preset-row" id="presetProp">
@@ -314,6 +306,7 @@
       <span class="ed-unit">m</span>
     </div>
 
+    <!-- Tamaño real de la obra -->
     <div class="ed-realsize">
       <div class="ed-realsize-title">Tamaño real de la obra → calcula automáticamente</div>
       <div class="ed-row">
@@ -330,34 +323,19 @@
     </div>
   </div>
 
+  <!-- Comportamiento -->
   <div class="ed-section">Comportamiento</div>
   <div class="ed-toggle-row">
     <button class="ed-toggle active" id="togLoop" onclick="toggleLoop()">↺ Loop</button>
     <button class="ed-toggle active" id="togAuto" onclick="toggleAuto()">▶ Autoplay</button>
     <button class="ed-toggle" id="togFade" onclick="toggleFade()">◌ Fade in</button>
   </div>
+
 </div>
 
 <script>
   const P  = new URLSearchParams(location.search);
   const PROJECT = P.get('p');
-
-  const DBG = true;
-  function dbg(msg, color) {
-    console.log('[ARA]', msg);
-    if (!DBG) return;
-    const log = document.getElementById('dbgLog');
-    if (!log) return;
-    log.style.display = 'block';
-    const line = document.createElement('div');
-    line.style.color = color || '#c8f542';
-    line.style.borderBottom = '1px solid rgba(255,255,255,0.05)';
-    line.style.padding = '2px 0';
-    line.textContent = `${new Date().toLocaleTimeString()} ${msg}`;
-    log.appendChild(line);
-    log.scrollTop = log.scrollHeight;
-  }
-  
   const TYPE    = P.get('t') || 'video';
   const CE      = P.get('ce') || 'mp4';
   const TE      = P.get('te') || 'jpg';
@@ -375,88 +353,85 @@
     config:   `${BASE}/proyectos/${PROJECT}/config.json`,
   };
 
-  const URL_W    = parseFloat(P.get('w'))  || null;
-  const URL_H    = parseFloat(P.get('h'))  || null;
-  const URL_SC   = parseFloat(P.get('sc')) || null;
-  const URL_LOOP = P.get('lp') !== '0';
-  const URL_AUTO = P.get('ap') !== '0';
+  // Dimensiones desde URL (pasadas por el Creator)
+  const URL_W  = parseFloat(P.get('w'))  || null;
+  const URL_H  = parseFloat(P.get('h'))  || null;
+  const URL_SC = parseFloat(P.get('sc')) || null;
 
+  // ── CONFIG DEL PROYECTO ──
+  // Defaults neutros — no afectan la proyección sin que el usuario los cambie
   const defaultConfig = {
     posX: 0, posY: 0, posZ: 0.01,
     rotX: 0, rotY: 0, rotZ: 0,
     scale: 1,
-    width: 1, height: 0.5625,
-    preset: 'vertical',
+    width: 1, height: 0.552,  // 16:9 aprox como punto de partida razonable
+    preset: 'vertical',       // vertical = sin rotación en image tracking
     loop: true, autoplay: true, fade: false,
   };
   let CFG = {...defaultConfig};
 
-  const isVideo = ['video','surface-video','wall-video'].includes(TYPE);
-  const isGif   = ['gif','surface-gif','wall-gif'].includes(TYPE);
-  const isModel = ['model','surface-model','wall-model'].includes(TYPE);
+  // Tipo de contenido
+  const isVideo = ['video','surface-video'].includes(TYPE);
+  const isGif   = ['gif','surface-gif'].includes(TYPE);
+  const isModel = ['model','surface-model'].includes(TYPE);
   const isAudio = TYPE === 'audio';
   const isSurface = TYPE.startsWith('surface-');
-  const isWall    = TYPE.startsWith('wall-');
-  
-  let arContent = null;
-  let animationLoopId = null;
+  const isImage = !isSurface;
 
+  // ── ELEMENTO AR ACTIVO ──
+  let arContent = null;
+
+  // ── INIT ──
+  // Nombre del proyecto en pantalla de inicio
   const startName = document.getElementById('startProjectName');
   if (startName) startName.textContent = PROJECT ? PROJECT.replace(/-/g,' ') : '';
 
+  // El modo edición solo se activa con &edit=1 en la URL
   const EDIT_MODE = P.get('edit') === '1';
 
   if (!PROJECT) {
     document.getElementById('startScreen').style.display = 'none';
     showErr('No se especificó ningún proyecto.');
   }
+  // Esperar al botón de inicio — arrancarExperiencia() lo llama el usuario
 
   function arrancarExperiencia() {
-    dbg('arrancarExperiencia() llamado');
-    document.body.classList.add('ar-active');
     document.getElementById('startScreen').style.display = 'none';
     document.getElementById('splash').style.display = 'flex';
-    dbg('splash visible — llamando loadConfigAndInit()');
-    try {
-      loadConfigAndInit();
-    } catch(e) {
-      dbg(`ERROR en loadConfigAndInit: ${e.message}`, '#ff4545');
-    }
+    loadConfigAndInit();
   }
 
   async function loadConfigAndInit() {
-    dbg('loadConfigAndInit() iniciado');
     setSplash('Cargando configuración...');
+    // Intentar cargar config guardada
     try {
-      dbg(`fetching config: ${PATHS.config}`);
       const r = await fetch(PATHS.config);
       if (r.ok) {
         const saved = await r.json();
         CFG = {...defaultConfig, ...saved};
-        dbg('config.json cargado OK', '#42f58d');
-      } else {
-        dbg(`config.json ${r.status} — usando defaults`);
       }
-    } catch(e) {
-      dbg(`config fetch error: ${e.message}`);
-    }
+    } catch(e) { /* usa defaults */ }
 
+    // Si NO hay config.json guardado, usar URL params como punto de partida
+    // Si SÍ hay config.json (editor guardó), respetarlo completamente
     const hasConfig = CFG.width !== defaultConfig.width || CFG.height !== defaultConfig.height
                    || CFG.scale !== defaultConfig.scale || CFG.posX !== 0 || CFG.posY !== 0;
 
     if (!hasConfig) {
+      // Sin config guardado — usar URL params del Creator
       if (URL_W  > 0) CFG.width  = URL_W;
       if (URL_H  > 0) CFG.height = URL_H;
       if (URL_SC > 0) CFG.scale  = URL_SC;
-      CFG.loop     = URL_LOOP;
-      CFG.autoplay = URL_AUTO;
     }
+    // Si hay config guardado, los valores del editor ya están en CFG — no tocar
 
-    if (isVideo || isGif) {
+    // Forzar orientación correcta siempre
+    if (isVideo || isGif || isAudio) {
       CFG.preset = CFG.preset || 'vertical';
       if (CFG.rotX === undefined) CFG.rotX = 0;
       if (CFG.rotY === undefined) CFG.rotY = 0;
       if (CFG.rotZ === undefined) CFG.rotZ = 0;
+      // Tamaño mínimo razonable si viene vacío
       if (!CFG.width  || CFG.width  <= 0) CFG.width  = URL_W  || (isVideo ? 1 : 1);
       if (!CFG.height || CFG.height <= 0) CFG.height = URL_H  || (isVideo ? 0.5625 : 1);
     }
@@ -467,57 +442,48 @@
     if (!CFG.posZ || CFG.posZ === 0) CFG.posZ = 0.01;
 
     applyConfigToSliders();
-    dbg(`llamando init() tipo=${TYPE}`);
     init();
   }
 
   function applyConfigToSliders() {
     const set = (id, v) => { const el = document.getElementById(id); if(el) el.value = v; };
+    // Sliders
     set('slPosX', CFG.posX); set('slPosY', CFG.posY); set('slPosZ', CFG.posZ);
     set('slRotX', CFG.rotX); set('slRotY', CFG.rotY); set('slRotZ', CFG.rotZ);
     set('slScale', CFG.scale);
     set('slWidth', CFG.width); set('slHeight', CFG.height);
+    // Inputs numéricos
     set('numPosX', CFG.posX); set('numPosY', CFG.posY); set('numPosZ', CFG.posZ);
     set('numScale', CFG.scale);
     set('numWidth', CFG.width); set('numHeight', CFG.height);
     updateVals();
 
+    // Presets
     document.querySelectorAll('#presetOri .ed-preset').forEach(b => {
       b.classList.toggle('active', b.textContent.toLowerCase().includes(CFG.preset));
     });
 
+    // Toggles
     document.getElementById('togLoop')?.classList.toggle('active', CFG.loop);
     document.getElementById('togAuto')?.classList.toggle('active', CFG.autoplay);
     document.getElementById('togFade')?.classList.toggle('active', CFG.fade);
 
+    // Mostrar/ocultar sección de proporciones
     document.getElementById('secProp').style.display = (isVideo || isGif) ? 'block' : 'none';
   }
 
   async function init() {
     setSplash('Preparando experiencia...');
-    if (isWall)    { initWall(); return; }
     if (isSurface) { initSurface(); return; }
     if (isModel)   { initModelViewer(); return; }
     await initMindAR();
   }
 
+  // ── MODEL VIEWER ──
   function initModelViewer() {
     setSplash('Cargando modelo 3D...');
-    dbg('initModelViewer() — cargando Model Viewer');
 
-    if (!document.querySelector('script[src*="model-viewer"]')) {
-      const s = document.createElement('script');
-      s.type = 'module';
-      s.src = 'https://ajax.googleapis.com/ajax/libs/model-viewer/3.3.0/model-viewer.min.js';
-      document.head.appendChild(s);
-      s.onload = () => { dbg('Model Viewer cargado'); _initMV(); };
-      s.onerror = () => { dbg('Model Viewer error de carga', '#ff4545'); _initMV(); };
-    } else {
-      _initMV();
-    }
-  }
-
-  function _initMV() {
+    // Escala: desde URL param sc, o desde CFG, o default 0.5
     const sc = URL_SC || CFG.scale || 0.5;
     const scaleStr = `${sc} ${sc} ${sc}`;
 
@@ -549,6 +515,7 @@
     document.getElementById('hud').classList.add('show');
     if (EDIT_MODE) document.getElementById('btnEdit').style.display = 'block';
 
+    // Instrucción
     const hint = document.createElement('div');
     hint.id = 'mvHint';
     hint.style.cssText = 'position:fixed;top:70px;left:0;right:0;text-align:center;font-size:11px;color:rgba(255,255,255,0.4);letter-spacing:0.1em;text-transform:uppercase;pointer-events:none;z-index:500;';
@@ -557,416 +524,16 @@
     hideSplash();
   }
 
-  function initWall() {
-    dbg(`initWall() tipo=${TYPE}`);
-    setSplash('Preparando Wall AR...');
-
-    if (TYPE === 'wall-model') {
-      const sc = URL_SC || CFG.scale || 0.5;
-      document.getElementById('mvWrap').innerHTML = `
-        <model-viewer
-          src="${PATHS.content}"
-          ar
-          ar-modes="webxr scene-viewer quick-look"
-          ar-placement="wall"
-          ar-scale="fixed"
-          scale="${sc} ${sc} ${sc}"
-          camera-controls
-          auto-rotate
-          shadow-intensity="0.8"
-          style="width:100%;height:100%;background:#0a0a0a;">
-          <button slot="ar-button" style="
-            position:absolute;bottom:80px;left:50%;
-            transform:translateX(-50%);
-            background:#c8f542;color:#0a0a0a;border:none;
-            padding:16px 36px;font-size:13px;
-            letter-spacing:0.12em;text-transform:uppercase;
-            cursor:pointer;white-space:nowrap;
-            box-shadow:0 4px 24px rgba(0,0,0,0.6);
-            font-family:system-ui,monospace;">
-            ▣ Colocar en pared
-          </button>
-        </model-viewer>`;
-
-      document.getElementById('mvWrap').classList.add('show');
-      document.getElementById('hud').classList.add('show');
-      if (EDIT_MODE) document.getElementById('btnEdit').style.display = 'block';
-
-      const hint = document.createElement('div');
-      hint.id = 'mvHint';
-      hint.style.cssText = 'position:fixed;top:70px;left:0;right:0;text-align:center;font-size:11px;color:rgba(255,255,255,0.4);letter-spacing:0.1em;text-transform:uppercase;pointer-events:none;z-index:500;';
-      hint.textContent = 'Apunta a una pared · Toca el botón para colocar';
-      document.body.appendChild(hint);
-      hideSplash();
-      return;
-    }
-
-    buildWallScene();
-  }
-  function buildWallScene() {
-    const w = CFG.width  || URL_W  || 1;
-    const h = CFG.height || URL_H  || 0.5625;
-
-    dbg('buildWallScene()');
-    setSplash('Cargando Wall AR...');
-
-    // Canvas fullscreen
-    const sceneDiv = document.getElementById('arScene');
-    sceneDiv.innerHTML = '';
-    const canvas = document.createElement('canvas');
-    canvas.id = 'wallCanvas';
-    canvas.width  = window.innerWidth;
-    canvas.height = window.innerHeight;
-    canvas.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;';
-    sceneDiv.appendChild(canvas);
-    sceneDiv.classList.add('show');
-    document.getElementById('hud').classList.add('show');
-    if (EDIT_MODE) document.getElementById('btnEdit').style.display = 'block';
-
-    // Función que arranca todo cuando Three.js y XR8 estén listos
-    const startWhenReady = () => {
-      if (!window.THREE) { dbg('Three.js no disponible', '#ff4545'); return; }
-      if (!window.XR8)   { dbg('XR8 no disponible', '#ff4545'); return; }
-      dbg('Three.js + XR8 listos — iniciando', '#42f58d');
-      _startXR8Wall(canvas, w, h);
-    };
-
-    // Cargar Three.js primero
-    if (!window.THREE) {
-      const s3 = document.createElement('script');
-      s3.src = 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js';
-      s3.onload  = () => { dbg('Three.js OK'); _loadXR8(startWhenReady); };
-      s3.onerror = () => showErr('Error cargando Three.js');
-      document.head.appendChild(s3);
-    } else {
-      _loadXR8(startWhenReady);
-    }
-  }
-
-  function _loadXR8(callback) {
-    if (window.XR8) { callback(); return; }
-    dbg('cargando xr.js...');
-    // Registrar listener ANTES de insertar el script
-    window.addEventListener('xrloaded', () => {
-      dbg('xrloaded OK', '#42f58d');
-      callback();
-    }, {once: true});
-    const sxr = document.createElement('script');
-    sxr.src = BASE + '/xr/xr.js';
-    sxr.setAttribute('data-preload-chunks', 'slam');
-    // NO async en iOS — causa problemas con el evento xrloaded
-    sxr.onerror = (e) => {
-      dbg('Error cargando xr.js: ' + e, '#ff4545');
-      showErr('No se pudo cargar el engine AR. Verifica la conexión.');
-    };
-    document.head.appendChild(sxr);
-    dbg('xr.js insertado');
-  }
-
-  function _startXR8Wall(canvas, w, h) {
-    dbg('_startXR8Wall()');
-    let placed = false;
-    let hitPos  = null; // posición del hit-test en la superficie real
-
-    // Video
-    let videoEl = null;
-    let videoTexture = null;
-    if (TYPE === 'wall-video') {
-      videoEl = document.createElement('video');
-      videoEl.src = PATHS.content;
-      videoEl.loop = CFG.loop;
-      videoEl.muted = true;
-      videoEl.setAttribute('playsinline', '');
-      videoEl.setAttribute('webkit-playsinline', '');
-      videoEl.crossOrigin = 'anonymous';
-      document.body.appendChild(videoEl);
-    }
-
-    let scene, camera, renderer, contentMesh;
-
-    const onStart = ({canvas: c, canvasWidth, canvasHeight}) => {
-      dbg('onStart ' + canvasWidth + 'x' + canvasHeight, '#42f58d');
-
-      scene    = new THREE.Scene();
-      camera   = new THREE.PerspectiveCamera(60, canvasWidth/canvasHeight, 0.01, 1000);
-      renderer = new THREE.WebGLRenderer({canvas: c, alpha: true});
-      renderer.setSize(canvasWidth, canvasHeight);
-      renderer.setPixelRatio(window.devicePixelRatio);
-      scene.add(new THREE.AmbientLight(0xffffff, 1));
-
-      let material;
-      if (TYPE === 'wall-video' && videoEl) {
-        videoTexture = new THREE.VideoTexture(videoEl);
-        videoTexture.minFilter = THREE.LinearFilter;
-        material = new THREE.MeshBasicMaterial({map: videoTexture, side: THREE.DoubleSide});
-      } else if (TYPE === 'wall-gif') {
-        const tex = new THREE.TextureLoader().load(PATHS.content);
-        material = new THREE.MeshBasicMaterial({map: tex, side: THREE.DoubleSide, transparent: true});
-      } else {
-        material = new THREE.MeshBasicMaterial({color: 0xc8f542});
-      }
-
-      contentMesh = new THREE.Mesh(new THREE.PlaneGeometry(w, h), material);
-      contentMesh.visible = false;
-      scene.add(contentMesh);
-
-      hideSplash();
-      document.getElementById('scan').classList.add('show');
-      document.getElementById('scanTxt').textContent = 'Mueve el teléfono lentamente';
-      dbg('escena Three.js lista', '#42f58d');
-    };
-
-    const onUpdate = ({processCpuResult}) => {
-      if (!scene || !camera || !renderer) return;
-      if (!processCpuResult || !processCpuResult.reality) return;
-
-      const {rotation, position, intrinsics} = processCpuResult.reality;
-
-      // Actualizar cámara con datos del SLAM
-      if (rotation) camera.quaternion.set(rotation.x, rotation.y, rotation.z, rotation.w);
-      if (position) camera.position.set(position.x, position.y, position.z);
-      if (intrinsics) {
-        camera.projectionMatrix.fromArray(intrinsics);
-        camera.projectionMatrixInverse.copy(camera.projectionMatrix).invert();
-      }
-
-      // Hit-test en el centro de la pantalla para detectar superficie
-      if (!placed && XR8.XrController.hitTest) {
-        const hits = XR8.XrController.hitTest(0.5, 0.5, ['FEATURE_POINT', 'PLANE']);
-        if (hits && hits.length > 0) {
-          const hit = hits[0];
-          hitPos = hit.position;
-          document.getElementById('scanTxt').textContent = 'Superficie detectada — toca para colocar';
-        }
-      }
-
-      if (videoTexture && videoEl && videoEl.readyState >= 2) videoTexture.needsUpdate = true;
-      renderer.clearDepth();
-      renderer.render(scene, camera);
-    };
-
-    XR8.XrController.configure({disableWorldTracking: false});
-    XR8.addCameraPipelineModules([
-      XR8.GlTextureRenderer.pipelineModule(),
-      XR8.XrController.pipelineModule(),
-      {
-        name: 'wall',
-        onStart,
-        onUpdate,
-        onException: (e) => { dbg('XR8 error: ' + e, '#ff4545'); showErr('Error: ' + e); },
-      },
-    ]);
-    XR8.run({canvas, allowedDevices: XR8.XrConfig.device().ANY});
-    dbg('XR8.run() llamado', '#42f58d');
-
-    // Toque para colocar
-    canvas.addEventListener('touchstart', (e) => {
-      if (placed || !contentMesh) return;
-
-      // Hit-test en el punto tocado
-      let pos = hitPos;
-      if (XR8.XrController.hitTest && e.touches.length > 0) {
-        const t = e.touches[0];
-        const nx = t.clientX / window.innerWidth;
-        const ny = t.clientY / window.innerHeight;
-        const hits = XR8.XrController.hitTest(nx, ny, ['FEATURE_POINT', 'PLANE']);
-        if (hits && hits.length > 0) pos = hits[0].position;
-      }
-
-      if (!pos) {
-        dbg('no hay posición de superficie todavía', '#f5a623');
-        return;
-      }
-
-      placed = true;
-      contentMesh.position.set(pos.x, pos.y, pos.z);
-      contentMesh.visible = true;
-      if (videoEl) videoEl.play().catch(e => dbg('video: ' + e));
-      document.getElementById('scan').classList.remove('show');
-      arContent = contentMesh;
-      const ping = document.getElementById('ping');
-      ping.classList.add('go');
-      setTimeout(() => ping.classList.remove('go'), 700);
-      dbg('contenido anclado en ' + pos.x.toFixed(2) + ',' + pos.y.toFixed(2) + ',' + pos.z.toFixed(2), '#42f58d');
-    });
-  }
-
-  function mostrarBotonWall(scene) {
-    dbg('mostrarBotonWall() — escena cargada');
-    
-    const existingBtn = document.getElementById('wallArBtn');
-    if (existingBtn) existingBtn.remove();
-    
-    const btn = document.createElement('button');
-    btn.id = 'wallArBtn';
-    btn.textContent = '▣ Activar Wall AR';
-    btn.style.cssText = `
-      position:fixed;bottom:80px;left:50%;transform:translateX(-50%);
-      background:#c8f542;color:#0a0a0a;border:none;
-      padding:16px 36px;font-size:13px;
-      letter-spacing:0.12em;text-transform:uppercase;
-      cursor:pointer;white-space:nowrap;
-      box-shadow:0 4px 24px rgba(0,0,0,0.6);
-      font-family:system-ui,monospace;z-index:9999;`;
-    
-    dbg('botón creado z-index:9999');
-
-    btn.onclick = () => {
-      dbg('Activar Wall AR tocado', '#f5a623');
-      btn.remove();
-      // Mostrar instrucción de toque
-      document.getElementById('scan').classList.add('show');
-      document.getElementById('scanTxt').textContent = 'Toca la pantalla para colocar';
-      // Reproducir video si aplica
-      const videoEl = document.getElementById('wallVideo');
-      if (videoEl) videoEl.play().catch(e => dbg(`video: ${e}`, '#f5a623'));
-      // Al tocar la pantalla — colocar el contenido
-      document.getElementById('arScene').addEventListener('click', () => {
-        const arc = document.getElementById('arc');
-        if (arc && arc.getAttribute('visible') === 'false') {
-          arc.setAttribute('visible', true);
-          document.getElementById('scan').classList.remove('show');
-          arContent = arc;
-          const ping = document.getElementById('ping');
-          ping.classList.add('go');
-          setTimeout(() => ping.classList.remove('go'), 700);
-          dbg('contenido colocado', '#42f58d');
-        }
-      }, { once: true });
-    };
-    
-    document.body.appendChild(btn);
-    dbg(`botón en DOM: ${!!document.getElementById('wallArBtn')}`);
-    
-    btn.addEventListener('touchstart', (e) => {
-      dbg('📱 TOUCH detectado en botón', '#f5a623');
-      e.stopPropagation();
-    });
-    btn.addEventListener('click', (e) => {
-      dbg('🖱️ CLICK detectado en botón', '#f5a623');
-      e.stopPropagation();
-    });
-  }
-
-  function initWallHitTest(scene, sceneDiv) {
-    dbg('initWallHitTest() iniciado');
-    let placed = false;
-    let hitMatrix = null;
-    let hitTestSource = null;
-    let viewerSpace = null;
-
-    const reticle   = document.getElementById('reticle');
-    const container = document.getElementById('arc-container');
-    const renderer = scene.renderer;
-
-    scene.addEventListener('enter-vr', () => {
-      dbg('enter-vr disparado');
-      const xrSession = renderer.xr.getSession();
-      if (!xrSession) {
-        dbg('xrSession es null — WebXR no disponible', '#ff4545');
-        return;
-      }
-      dbg('xrSession OK — iniciando hit-test', '#42f58d');
-
-      xrSession.requestReferenceSpace('viewer').then(space => {
-        viewerSpace = space;
-        return xrSession.requestHitTestSource({ space: viewerSpace });
-      }).then(source => {
-        hitTestSource = source;
-        dbg('hitTestSource OK', '#42f58d');
-
-        if (animationLoopId) {
-          renderer.setAnimationLoop(null);
-        }
-
-        renderer.setAnimationLoop((timestamp, frame) => {
-          if (!frame || placed) return;
-          
-          const refSpace = renderer.xr.getReferenceSpace();
-          if (!refSpace) return;
-          
-          const hits = frame.getHitTestResults(hitTestSource);
-
-          if (hits.length > 0) {
-            const hit  = hits[0];
-            const pose = hit.getPose(refSpace);
-            if (!pose) return;
-
-            const m = pose.transform.matrix;
-            const px = m[12], py = m[13], pz = m[14];
-            
-            const normalY = m[5];
-            const isVertical = Math.abs(normalY) < 0.3;
-
-            if (isVertical) {
-              reticle.setAttribute('visible', true);
-              reticle.setAttribute('position', `${px} ${py} ${pz}`);
-              reticle.setAttribute('rotation', '0 0 0');
-              hitMatrix = { px, py, pz };
-              document.getElementById('scanTxt').textContent = '✅ Pared detectada — toca para colocar';
-            } else {
-              reticle.setAttribute('visible', false);
-              hitMatrix = null;
-              document.getElementById('scanTxt').textContent = '↻ Apunta a una pared vertical';
-            }
-          } else {
-            reticle.setAttribute('visible', false);
-            hitMatrix = null;
-            document.getElementById('scanTxt').textContent = '🔍 Mueve la cámara para detectar una pared';
-          }
-        });
-
-      }).catch((e) => {
-        dbg(`hitTestSource error: ${e}`, '#ff4545');
-        container.setAttribute('position', '0 1.2 -1.5');
-        container.setAttribute('visible', true);
-        document.getElementById('scan').classList.remove('show');
-      });
-    });
-
-    if (sceneDiv) {
-      sceneDiv.addEventListener('click', (e) => {
-        if (e.target.id === 'wallArBtn') return;
-        
-        if (!hitMatrix || placed) return;
-        
-        placed = true;
-        dbg(`Colocando contenido en pared: ${hitMatrix.px}, ${hitMatrix.py}, ${hitMatrix.pz}`, '#42f58d');
-
-        container.setAttribute('position', `${hitMatrix.px} ${hitMatrix.py} ${hitMatrix.pz}`);
-        container.setAttribute('visible', true);
-        
-        // Forzar reproducción del video
-        const videoEl = document.getElementById('wallVideo');
-        if (videoEl) {
-          videoEl.play().catch(e => dbg(`Error playing video: ${e}`, '#f5a623'));
-        }
-        
-        reticle.setAttribute('visible', false);
-        document.getElementById('scan').classList.remove('show');
-
-        const ping = document.getElementById('ping');
-        ping.classList.add('go');
-        setTimeout(() => ping.classList.remove('go'), 700);
-
-        arContent = document.getElementById('arc-plane');
-        
-        if (animationLoopId) {
-          renderer.setAnimationLoop(null);
-          animationLoopId = null;
-        }
-      });
-    } else {
-      dbg('ERROR: sceneDiv no está definido en initWallHitTest', '#ff4545');
-    }
-  }
-
+  // ── SURFACE AR ──
   function initSurface() {
     setSplash('Cargando Surface AR...');
+    // Modelos 3D: Model Viewer con AR nativo (WebXR + ARKit + Scene Viewer)
     if (TYPE === 'surface-model') { initModelViewer(); return; }
+    // Video/GIF sobre superficie: A-Frame sin tracking de imagen
     buildAFrameScene(false);
   }
 
+  // ── MINDAR IMAGE TRACKING ──
   async function initMindAR() {
     setSplash('Cargando motor de tracking...');
     const mindOk = await fileExists(PATHS.mind);
@@ -978,6 +545,7 @@
     buildAFrameScene(true);
   }
 
+  // ── CONSTRUIR ESCENA A-FRAME ──
   function buildAFrameScene(withTracking) {
     const pos   = `${CFG.posX} ${CFG.posY} ${CFG.posZ}`;
     const rot   = getRotation();
@@ -1073,6 +641,7 @@
     }, 600);
   }
 
+  // ── EDITOR ──
   function toggleEditor() {
     const ed = document.getElementById('editor');
     const btn = document.getElementById('btnEdit');
@@ -1083,20 +652,22 @@
 
   function getRotation() {
     switch(CFG.preset) {
-      case 'horizontal': return '-90 0 0';
-      case 'vertical':   return '0 0 0';
-      case 'inclinado':  return '-45 0 0';
+      case 'horizontal': return '-90 0 0';   // plano sobre la superficie
+      case 'vertical':   return '0 0 0';     // de frente a la cámara — DEFAULT
+      case 'inclinado':  return '-45 0 0';   // 45 grados
       case 'libre':      return `${CFG.rotX} ${CFG.rotY} ${CFG.rotZ}`;
       default:           return '0 0 0';
     }
   }
 
+  // Sincronizar slider → input numérico
   function syncNum(sliderId, numId) {
     const sl = document.getElementById(sliderId);
     const nm = document.getElementById(numId);
     if (sl && nm) nm.value = parseFloat(sl.value).toFixed(2);
   }
 
+  // Sincronizar input numérico → slider (con clamp)
   function syncSlider(numId, sliderId, min, max) {
     const nm = document.getElementById(numId);
     const sl = document.getElementById(sliderId);
@@ -1107,14 +678,17 @@
     sl.value = v;
   }
 
+  // Calculadora de tamaño real (cm → unidades A-Frame)
   function calcTamanoReal() {
     const rw = parseFloat(document.getElementById('numRealW')?.value);
     const rh = parseFloat(document.getElementById('numRealH')?.value);
     if (!rw || !rh || isNaN(rw) || isNaN(rh)) return;
 
+    // 1 unidad A-Frame = 1 metro = 100 cm
     const aw = (rw / 100).toFixed(3);
     const ah = (rh / 100).toFixed(3);
 
+    // Aplicar a los sliders e inputs
     const slW = document.getElementById('slWidth');
     const slH = document.getElementById('slHeight');
     const nmW = document.getElementById('numWidth');
@@ -1125,6 +699,7 @@
     if (nmW) nmW.value = aw;
     if (nmH) nmH.value = ah;
 
+    // Mostrar resultado
     const res = document.getElementById('realSizeResult');
     if (res) {
       res.style.display = 'block';
@@ -1137,6 +712,7 @@
 
   function updateVals() {
     const g = id => document.getElementById(id)?.value || 0;
+    // Sincronizar todos los nums con sus sliders
     ['PosX','PosY','PosZ','Scale','Width','Height'].forEach(k => {
       syncNum(`sl${k}`, `num${k}`);
     });
@@ -1147,6 +723,7 @@
   }
 
   function readSliders() {
+    // Leer desde inputs numéricos si existen, sino desde sliders
     const g = (numId, slId) => {
       const nm = document.getElementById(numId);
       const sl = document.getElementById(slId);
@@ -1188,6 +765,7 @@
     if (!arContent) return;
     arContent.setAttribute('width',  CFG.width);
     arContent.setAttribute('height', CFG.height);
+    // Deseleccionar preset de proporción
     document.querySelectorAll('#presetProp .ed-preset').forEach(b => b.classList.remove('active'));
   }
 
@@ -1215,8 +793,6 @@
   function toggleLoop() {
     CFG.loop = !CFG.loop;
     document.getElementById('togLoop').classList.toggle('active', CFG.loop);
-    const videoEl = document.getElementById('wallVideo');
-    if (videoEl) videoEl.loop = CFG.loop;
     const v = document.querySelector('a-video');
     if (v) v.setAttribute('loop', CFG.loop);
   }
@@ -1224,11 +800,6 @@
   function toggleAuto() {
     CFG.autoplay = !CFG.autoplay;
     document.getElementById('togAuto').classList.toggle('active', CFG.autoplay);
-    const videoEl = document.getElementById('wallVideo');
-    if (videoEl) {
-      if (CFG.autoplay) videoEl.play();
-      else videoEl.pause();
-    }
   }
 
   function toggleFade() {
@@ -1239,13 +810,16 @@
   async function guardarConfig() {
     readSliders();
 
+    // Si el preset es vertical, forzar rotación 0 para evitar inclinaciones residuales
     if (CFG.preset === 'vertical') {
       CFG.rotX = 0; CFG.rotY = 0; CFG.rotZ = 0;
     }
 
+    // Token: primero desde URL, luego desde sessionStorage
     let token = new URLSearchParams(location.search).get('tk')
              || sessionStorage.getItem('ara-tk');
     if (!token) {
+      // Pedir token con input flotante (no alert)
       token = await pedirToken();
       if (!token) return;
       sessionStorage.setItem('ara-tk', token);
@@ -1287,6 +861,7 @@
 
   function pedirToken() {
     return new Promise(resolve => {
+      // Crear modal de token
       const overlay = document.createElement('div');
       overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:2000;display:flex;align-items:center;justify-content:center;padding:24px;';
       overlay.innerHTML = `
@@ -1323,11 +898,15 @@
 
   function cerrarViewer() {
     if (EDIT_MODE) {
+      // Modo editor: regresar al Creator
       const base = window.location.href.split('/viewer.html')[0];
       window.location.replace(base + '/index.html');
       return;
     }
 
+    // Modo espectador: limpiar TODO y volver a la pantalla de inicio
+
+    // 1. Detener y limpiar la escena A-Frame (MindAR e Image tracking)
     try {
       const scene = document.querySelector('a-scene');
       if (scene && scene.renderer) {
@@ -1338,28 +917,30 @@
     arScene.classList.remove('show');
     arScene.innerHTML = '';
 
+    // 2. Limpiar Model Viewer (Surface 3D)
     const mvWrap = document.getElementById('mvWrap');
     mvWrap.classList.remove('show');
     mvWrap.innerHTML = '';
 
+    // 3. Ocultar HUD, scan, ping, editor
     document.getElementById('hud').classList.remove('show');
     document.getElementById('scan').classList.remove('show');
     document.getElementById('ping').classList.remove('go');
     document.getElementById('editor').classList.remove('open');
     document.getElementById('btnEdit').style.display = 'none';
 
+    // 4. Ocultar splash por si acaso
     document.getElementById('splash').classList.remove('hidden');
     document.getElementById('splash').style.display = 'none';
 
+    // 5. Mostrar pantalla de inicio
     document.getElementById('startScreen').style.display = 'flex';
 
+    // 6. Limpiar hint de instrucción si existe
     const hint = document.getElementById('mvHint');
     if (hint) hint.remove();
-    const wallBtn = document.getElementById('wallArBtn');
-    if (wallBtn) wallBtn.remove();
 
-    document.body.classList.remove('ar-active');
-
+    // 7. Resetear variable de contenido AR activo
     arContent = null;
   }
 

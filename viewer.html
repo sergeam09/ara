@@ -645,21 +645,20 @@
 
   async function guardarConfig() {
     readSliders();
-    const token = localStorage.getItem('ara-gh-token') || '';
-    if (!token) { alert('No hay token guardado. Abre el Creator y agrega tu token.'); return; }
     try {
-      const url = `https://api.github.com/repos/sergeam09/ara/contents/proyectos/${PROJECT}/config.json`;
-      let sha = null;
-      try {
-        const r = await fetch(url, { headers: { Authorization:'token '+token,'User-Agent':'ARA' } });
-        if (r.ok) sha = (await r.json()).sha;
-      } catch(e) {}
-      const body = { message:`ARA: config ${PROJECT}`, content: btoa(JSON.stringify(CFG, null, 2)), branch:'main' };
-      if (sha) body.sha = sha;
-      await fetch(url, { method:'PUT', headers:{ Authorization:'token '+token,'Content-Type':'application/json','User-Agent':'ARA' }, body:JSON.stringify(body) });
+      const res = await fetch('https://ara.sergeam09.workers.dev', {
+        method: 'POST',
+        headers: { 'Content-Type':'application/json', 'User-Agent':'Mozilla/5.0 (ARA Viewer)' },
+        body: JSON.stringify({
+          path: `proyectos/${PROJECT}/config.json`,
+          content: btoa(JSON.stringify(CFG, null, 2)),
+          message: `ARA: config ${PROJECT}`
+        })
+      });
+      if (!res.ok) throw new Error('Error ' + res.status);
       showToast('Configuración guardada ✓');
       document.getElementById('editor').classList.remove('open');
-    } catch(e) { alert('Error al guardar: ' + e.message); }
+    } catch(e) { showToast('Error al guardar: ' + e.message); }
   }
 
   // ── HELPERS ──

@@ -1035,23 +1035,24 @@ function logStep(msg, type) {
 }
 
 // ── GITHUB ──
+const WORKER_URL = 'https://ara.sergeam09.workers.dev';
+
 async function githubUpload(path, content, message) {
-  const token = localStorage.getItem('ara-gh-token') || '';
-  const url = 'https://api.github.com/repos/sergeam09/ara/contents/' + path;
-  let sha = null;
-  try {
-    const r = await fetch(url, { headers: { Authorization: 'token ' + token, 'User-Agent': 'ARA' } });
-    if (r.ok) sha = (await r.json()).sha;
-  } catch(e) {}
-  const body = { message, content, branch: 'main' };
-  if (sha) body.sha = sha;
-  const res = await fetch(url, {
-    method: 'PUT',
-    headers: { Authorization: 'token ' + token, 'Content-Type': 'application/json', 'User-Agent': 'ARA' },
-    body: JSON.stringify(body)
+  const res = await fetch(WORKER_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'User-Agent': 'Mozilla/5.0 (ARA Creator)'
+    },
+    body: JSON.stringify({ path, content, message })
   });
-  if (!res.ok) { const e = await res.json(); throw new Error(e.message || 'GitHub error ' + res.status); }
-  return res.json();
+  if (!res.ok) {
+    const e = await res.json().catch(() => ({}));
+    throw new Error(e.error || 'Error subiendo a GitHub: ' + res.status);
+  }
+  const result = await res.json();
+  if (!result.ok) throw new Error(result.error || 'Error en Worker');
+  return result;
 }
 
 function fileToBase64(file) {

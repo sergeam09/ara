@@ -98,6 +98,7 @@
     #formPanel {
       flex: 1;
       min-width: 0;
+      max-width: 680px;
       height: 100vh;
       overflow-y: auto;
       border-right: 1px solid var(--border);
@@ -212,21 +213,21 @@
     /* ── TYPE CHIPS ── */
     .chips { display: flex; gap: 6px; flex-wrap: wrap; }
     .chip {
-      padding: 8px 14px;
+      padding: 11px 18px;
       border: 1px solid var(--border2);
       border-radius: 8px;
       background: var(--bg2);
       color: var(--muted2);
       font-family: var(--fd);
-      font-size: 11px;
-      font-weight: 600;
-      letter-spacing: 0.06em;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
       text-transform: uppercase;
       cursor: pointer;
       transition: all 0.15s;
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: 8px;
     }
     .chip:hover { border-color: var(--muted); color: var(--text); }
     .chip.active { border-color: var(--accent); color: var(--accent); background: rgba(200,245,66,0.06); }
@@ -565,14 +566,7 @@
     <span class="s-btn-txt">Surface</span>
   </button>
 
-  <div class="s-sep"></div>
-
-  <div class="s-bottom">
-    <button class="s-btn" onclick="document.getElementById('tokenPanel').style.display = document.getElementById('tokenPanel').style.display === 'none' ? 'block' : 'none'">
-      <span class="s-btn-icon">⚿</span>
-      <span class="s-btn-txt">Token</span>
-    </button>
-  </div>
+  <div class="s-bottom"></div>
 </nav>
 
 <!-- TOKEN PANEL (flotante) -->
@@ -618,7 +612,13 @@
 
         <!-- Trigger -->
         <div class="field" id="triggerField">
-          <div class="field-label">Imagen Trigger — la obra física</div>
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+            <div style="width:24px;height:24px;border-radius:50%;background:var(--accent);color:#0d0d0d;font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;">1</div>
+            <div>
+              <div style="font-size:13px;font-weight:700;color:var(--text);">Imagen Trigger</div>
+              <div style="font-size:11px;color:var(--muted);margin-top:1px;">La obra física que activará el AR</div>
+            </div>
+          </div>
           <div class="upzone" id="uzTrigger">
             <input type="file" id="fTrigger" accept="image/jpeg,image/png,image/webp">
             <div class="upzone-icon">◈</div>
@@ -631,7 +631,13 @@
         <!-- Paneles de contenido image -->
         <div id="cp-video" class="cpanel active">
           <div class="field">
-            <div class="field-label">Archivo de video</div>
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+              <div style="width:24px;height:24px;border-radius:50%;background:var(--border2);color:var(--text);font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;">2</div>
+              <div>
+                <div style="font-size:13px;font-weight:700;color:var(--text);">Archivo de Video</div>
+                <div style="font-size:11px;color:var(--muted);margin-top:1px;">El video que aparecerá sobre la obra</div>
+              </div>
+            </div>
             <div class="upzone">
               <input type="file" id="fVideo" accept="video/mp4,video/webm">
               <div class="upzone-icon">▶</div>
@@ -663,7 +669,13 @@
 
         <div id="cp-gif" class="cpanel">
           <div class="field">
-            <div class="field-label">Archivo GIF</div>
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+              <div style="width:24px;height:24px;border-radius:50%;background:var(--border2);color:var(--text);font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;">2</div>
+              <div>
+                <div style="font-size:13px;font-weight:700;color:var(--text);">Archivo GIF</div>
+                <div style="font-size:11px;color:var(--muted);margin-top:1px;">El GIF que aparecerá sobre la obra</div>
+              </div>
+            </div>
             <div class="upzone">
               <input type="file" id="fGif" accept="image/gif,image/webp">
               <div class="upzone-icon">◈</div>
@@ -689,7 +701,13 @@
 
         <div id="cp-model" class="cpanel">
           <div class="field">
-            <div class="field-label">Modelo 3D</div>
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+              <div style="width:24px;height:24px;border-radius:50%;background:var(--border2);color:var(--text);font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;">2</div>
+              <div>
+                <div style="font-size:13px;font-weight:700;color:var(--text);">Modelo 3D</div>
+                <div style="font-size:11px;color:var(--muted);margin-top:1px;">El modelo que aparecerá sobre la obra</div>
+              </div>
+            </div>
             <div class="upzone">
               <input type="file" id="fModel" accept=".glb,.gltf">
               <div class="upzone-icon">⬡</div>
@@ -710,7 +728,13 @@
 
         <div id="cp-audio" class="cpanel">
           <div class="field">
-            <div class="field-label">Archivo de audio</div>
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+              <div style="width:24px;height:24px;border-radius:50%;background:var(--border2);color:var(--text);font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;">2</div>
+              <div>
+                <div style="font-size:13px;font-weight:700;color:var(--text);">Archivo de Audio</div>
+                <div style="font-size:11px;color:var(--muted);margin-top:1px;">El audio que se reproducirá</div>
+              </div>
+            </div>
             <div class="upzone">
               <input type="file" id="fAudio" accept="audio/mpeg,audio/ogg,audio/wav">
               <div class="upzone-icon">♪</div>

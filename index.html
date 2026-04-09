@@ -3,1236 +3,878 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ARA 2.0 — Augmented Reality Atelier</title>
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>◈</text></svg>">
+  <title>ARA — Augmented Reality Atelier</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@300;400;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
-  <script type="importmap">{"imports":{"./controller-mGt1s8dJ.js":"https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/controller-mGt1s8dJ.js","./controller-d1-OMKPY.js":"https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/controller-d1-OMKPY.js","./ui-fBadYuor.js":"https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/ui-fBadYuor.js"}}</script>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+  <script type="importmap">
+  {
+    "imports": {
+      "./controller-mGt1s8dJ.js": "https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/controller-mGt1s8dJ.js",
+      "./controller-d1-OMKPY.js": "https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/controller-d1-OMKPY.js",
+      "./ui-fBadYuor.js": "https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/ui-fBadYuor.js"
+    }
+  }
+  </script>
   <script type="module" src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image.prod.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <style>
-    :root {
-      --bg:      #0d0d0d;
-      --bg2:     #141414;
-      --bg3:     #1a1a1a;
-      --border:  #242424;
-      --border2: #2e2e2e;
-      --accent:  #c8f542;
-      --accent2: #f5a623;
-      --text:    #e2e2e2;
-      --muted:   #555;
-      --muted2:  #777;
-      --ok:      #42f58d;
-      --err:     #ff4545;
-      --fd: 'Nunito Sans', sans-serif;
-      --fm: 'DM Mono', monospace;
-      --sidebar: 64px;
-      --result:  320px;
-    }
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      background: var(--bg);
-      color: var(--text);
-      font-family: var(--fm);
-      font-size: 12px;
-      min-height: 100vh;
-      display: flex;
-      overflow: hidden;
-    }
-
-    /* ── SIDEBAR ── */
-    #sidebar {
-      width: 90px;
-      min-height: 100vh;
-      background: var(--bg2);
-      border-right: 1px solid var(--border);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: 20px 10px;
-      gap: 6px;
-      flex-shrink: 0;
-      z-index: 10;
-    }
-    .s-logo {
-      font-family: var(--fd);
-      font-size: 16px;
-      color: var(--accent);
-      font-weight: 800;
-      letter-spacing: 0.05em;
-      margin-bottom: 20px;
-      text-align: center;
-    }
-    .s-btn {
-      width: 70px;
-      padding: 10px 6px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 5px;
-      border: 1px solid transparent;
-      background: transparent;
-      color: var(--muted);
-      cursor: pointer;
-      border-radius: 10px;
-      transition: all 0.15s;
-      position: relative;
-    }
-    .s-btn-icon { font-size: 16px; line-height: 1; }
-    .s-btn-txt { font-family: var(--fd); font-size: 9px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; }
-    .s-btn:hover { color: var(--text); background: var(--bg3); border-color: var(--border); }
-    .s-btn.active { color: var(--accent); background: rgba(200,245,66,0.08); border-color: rgba(200,245,66,0.2); }
-    .s-sep { width: 50px; height: 1px; background: var(--border); margin: 6px 0; }
-    .s-bottom { margin-top: auto; }
-
-    /* ── MAIN ── */
-    #main {
-      flex: 1;
-      display: flex;
-      min-width: 0;
-      height: 100vh;
-      overflow: hidden;
-    }
-
-    /* ── FORM PANEL ── */
-    #formPanel {
-      flex: 1;
-      min-width: 0;
-      height: 100vh;
-      overflow-y: auto;
-      border-right: 1px solid var(--border);
-      display: flex;
-      flex-direction: column;
-    }
-    .fp-header {
-      padding: 24px 28px 20px;
-      border-bottom: 1px solid var(--border);
-      position: sticky;
-      top: 0;
-      background: var(--bg);
-      z-index: 5;
-      display: flex;
-      align-items: baseline;
-      gap: 12px;
-    }
-    .fp-title {
-      font-family: var(--fd);
-      font-size: 20px;
-      font-weight: 600;
-      color: var(--text);
-      letter-spacing: -0.01em;
-    }
-    .fp-sub {
-      font-size: 10px;
-      color: var(--muted);
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-    }
-    .fp-body { padding: 24px 28px; display: flex; flex-direction: column; gap: 20px; }
-
-    /* ── FIELD ── */
-    .field { display: flex; flex-direction: column; gap: 8px; }
-    .field-label {
-      font-size: 10px;
-      color: var(--muted2);
-      letter-spacing: 0.14em;
-      text-transform: uppercase;
-    }
-    .field input[type=text] {
-      background: var(--bg2);
-      border: 1px solid var(--border2);
-      color: var(--text);
-      font-family: var(--fm);
-      font-size: 13px;
-      padding: 11px 14px;
-      outline: none;
-      border-radius: 6px;
-      transition: border-color 0.15s;
-      width: 100%;
-    }
-    .field input[type=text]:focus { border-color: var(--accent); }
-    .field input[type=text]::placeholder { color: var(--muted); }
-
-    /* ── TOKEN ── */
-    .token-row {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 10px 14px;
-      background: var(--bg2);
-      border: 1px solid var(--border);
-      border-radius: 6px;
-    }
-    .token-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--muted); flex-shrink: 0; }
-    .token-dot.ok { background: var(--ok); }
-    .token-dot.err { background: var(--err); }
-    .token-input {
-      flex: 1;
-      background: transparent;
-      border: none;
-      color: var(--text);
-      font-family: var(--fm);
-      font-size: 11px;
-      outline: none;
-    }
-    .token-input::placeholder { color: var(--muted); }
-    .token-label { font-size: 10px; color: var(--muted); letter-spacing: 0.1em; text-transform: uppercase; flex-shrink: 0; }
-
-    /* ── MODE TABS ── */
-    .mode-tabs {
-      display: flex;
-      gap: 2px;
-      background: var(--bg2);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 3px;
-    }
-    .mode-tab {
-      flex: 1;
-      padding: 9px 8px;
-      border: none;
-      background: transparent;
-      color: var(--muted);
-      font-family: var(--fm);
-      font-size: 10px;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      cursor: pointer;
-      border-radius: 6px;
-      transition: all 0.15s;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 4px;
-    }
-    .mode-tab-icon { font-size: 14px; }
-    .mode-tab:hover { color: var(--text); }
-    .mode-tab.active { background: var(--bg3); color: var(--accent); }
-
-    /* ── TYPE CHIPS ── */
-    .chips { display: flex; gap: 6px; flex-wrap: wrap; }
-    .chip {
-      padding: 8px 14px;
-      border: 1px solid var(--border2);
-      border-radius: 8px;
-      background: var(--bg2);
-      color: var(--muted2);
-      font-family: var(--fd);
-      font-size: 11px;
-      font-weight: 600;
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
-      cursor: pointer;
-      transition: all 0.15s;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-    .chip:hover { border-color: var(--muted); color: var(--text); }
-    .chip.active { border-color: var(--accent); color: var(--accent); background: rgba(200,245,66,0.06); }
-
-    /* ── UPLOAD ZONE ── */
-    .upzone {
-      border: 1px dashed var(--border2);
-      border-radius: 8px;
-      padding: 24px;
-      text-align: center;
-      cursor: pointer;
-      transition: all 0.2s;
-      position: relative;
-      background: var(--bg2);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 8px;
-    }
-    .upzone:hover, .upzone.over { border-color: var(--accent); background: rgba(200,245,66,0.03); }
-    .upzone input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
-    .upzone-icon { font-size: 22px; color: var(--muted); }
-    .upzone-title { font-size: 12px; color: var(--text); font-family: var(--fd); font-weight: 500; }
-    .upzone-sub { font-size: 10px; color: var(--muted); line-height: 1.7; }
-    .upzone-preview { font-size: 11px; color: var(--ok); display: none; }
-
-    /* ── DIM BOX ── */
-    .dim-box {
-      background: var(--bg2);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 16px;
-    }
-    .dim-box-title {
-      font-size: 10px;
-      color: var(--muted2);
-      letter-spacing: 0.14em;
-      text-transform: uppercase;
-      margin-bottom: 14px;
-    }
-    .dim-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
-    .dim-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; width: 70px; flex-shrink: 0; }
-    .dim-input {
-      background: var(--bg3);
-      border: 1px solid var(--border);
-      color: var(--text);
-      font-family: var(--fm);
-      font-size: 12px;
-      padding: 7px 10px;
-      width: 80px;
-      outline: none;
-      border-radius: 4px;
-      transition: border-color 0.15s;
-    }
-    .dim-input:focus { border-color: var(--accent); }
-    .dim-unit { font-size: 10px; color: var(--muted); }
-    .dim-presets { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 12px; }
-    .dim-preset {
-      padding: 5px 10px;
-      border: 1px solid var(--border);
-      border-radius: 4px;
-      background: var(--bg3);
-      color: var(--muted);
-      font-size: 9px;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      cursor: pointer;
-      font-family: var(--fm);
-      transition: all 0.15s;
-    }
-    .dim-preset:hover, .dim-preset.active { border-color: var(--accent); color: var(--accent); }
-
-    /* ── INFO BOX ── */
-    .info-box {
-      background: rgba(200,245,66,0.04);
-      border: 1px solid rgba(200,245,66,0.12);
-      border-radius: 8px;
-      padding: 14px;
-      font-size: 11px;
-      color: var(--muted2);
-      line-height: 1.9;
-    }
-
-    /* ── PUBLISH BUTTON ── */
-    .btn-publish {
-      background: var(--accent);
-      color: #0d0d0d;
-      border: none;
-      border-radius: 8px;
-      padding: 14px 20px;
-      font-family: var(--fd);
-      font-size: 14px;
-      font-weight: 600;
-      letter-spacing: 0.04em;
-      cursor: pointer;
-      transition: all 0.15s;
-      width: 100%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-    }
-    .btn-publish:hover { background: #d4ff55; transform: translateY(-1px); }
-    .btn-publish:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
-
-    /* ── RESULT PANEL ── */
-    #resultPanel {
-      width: var(--result);
-      min-width: var(--result);
-      max-width: var(--result);
-      height: 100vh;
-      overflow-y: auto;
-      background: var(--bg2);
-      display: flex;
-      flex-direction: column;
-    }
-    .rp-header {
-      padding: 24px 20px 16px;
-      border-bottom: 1px solid var(--border);
-      position: sticky;
-      top: 0;
-      background: var(--bg2);
-      z-index: 5;
-    }
-    .rp-title {
-      font-family: var(--fd);
-      font-size: 13px;
-      font-weight: 600;
-      color: var(--muted2);
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-    }
-    .rp-body { padding: 20px; display: flex; flex-direction: column; gap: 16px; flex: 1; }
-
-    /* Estado vacío */
-    .rp-empty {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 12px;
-      text-align: center;
-      padding: 40px 20px;
-    }
-    .rp-empty-icon { font-size: 36px; opacity: 0.15; }
-    .rp-empty-text { font-size: 11px; color: var(--muted); line-height: 1.9; max-width: 200px; }
-
-    /* Resultado con contenido */
-    .rp-content { display: none; flex-direction: column; gap: 16px; }
-    .rp-content.visible { display: flex; }
-
-    /* Progress */
-    .prog-card {
-      background: var(--bg3);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 14px;
-    }
-    .prog-top { display: flex; justify-content: space-between; margin-bottom: 8px; }
-    .prog-label { font-size: 10px; color: var(--muted2); letter-spacing: 0.1em; text-transform: uppercase; }
-    .prog-pct { font-size: 10px; color: var(--accent); }
-    .prog-bar { height: 2px; background: var(--border); border-radius: 2px; overflow: hidden; }
-    .prog-fill { height: 100%; background: var(--accent); transition: width 0.3s; width: 0%; border-radius: 2px; }
-    .prog-msg { margin-top: 8px; font-size: 11px; color: var(--muted); }
-    .prog-msg.ok { color: var(--ok); }
-    .prog-msg.err { color: var(--err); }
-    .steps-log { margin-top: 8px; font-size: 10px; line-height: 2; display: none; max-height: 100px; overflow-y: auto; }
-    .steps-log.visible { display: block; }
-    .step-ok { color: var(--ok); }
-    .step-act { color: var(--accent2); }
-    .step-err { color: var(--err); }
-    .step-def { color: var(--muted); }
-
-    /* QR */
-    .qr-card {
-      background: #fff;
-      border-radius: 8px;
-      padding: 16px;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      width: fit-content;
-      margin: 0 auto;
-    }
-
-    /* Links */
-    .link-card {
-      background: var(--bg3);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      overflow: hidden;
-    }
-    .link-label {
-      padding: 8px 12px 4px;
-      font-size: 9px;
-      color: var(--muted);
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-    }
-    .link-row { display: flex; align-items: stretch; }
-    .link-val {
-      flex: 1;
-      padding: 8px 12px;
-      font-size: 11px;
-      color: var(--accent);
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-      min-width: 0;
-    }
-    .link-copy {
-      background: transparent;
-      border: none;
-      border-left: 1px solid var(--border);
-      color: var(--muted);
-      font-family: var(--fm);
-      font-size: 10px;
-      padding: 8px 12px;
-      cursor: pointer;
-      transition: color 0.15s;
-      white-space: nowrap;
-      flex-shrink: 0;
-    }
-    .link-copy:hover { color: var(--accent); }
-
-    /* Action buttons */
-    .action-row { display: flex; gap: 6px; }
-    .act-btn {
-      flex: 1;
-      padding: 10px 6px;
-      background: var(--bg3);
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      color: var(--muted2);
-      font-family: var(--fm);
-      font-size: 9px;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      cursor: pointer;
-      transition: all 0.15s;
-      text-align: center;
-    }
-    .act-btn:hover { border-color: var(--accent); color: var(--accent); }
-
-    /* Proyectos list */
-    .plist { display: flex; flex-direction: column; gap: 4px; }
-    .plist-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 12px 0 8px;
-      border-top: 1px solid var(--border);
-      margin-top: 4px;
-    }
-    .plist-title { font-size: 10px; color: var(--muted); letter-spacing: 0.1em; text-transform: uppercase; }
-    .plist-count { font-size: 11px; color: var(--accent); }
-    .pitem {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 10px 12px;
-      background: var(--bg3);
-      border: 1px solid transparent;
-      border-radius: 6px;
-      cursor: pointer;
-      transition: all 0.15s;
-    }
-    .pitem:hover { border-color: var(--border2); }
-    .pdot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; background: var(--accent); }
-    .pdot.video { background: #5b8def; }
-    .pdot.gif { background: var(--accent2); }
-    .pdot.model, .pdot.surface-model { background: #c471ed; }
-    .pdot.audio { background: #12c2e9; }
-    .pname { flex: 1; font-size: 11px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .ptype { font-size: 9px; color: var(--muted); letter-spacing: 0.1em; text-transform: uppercase; flex-shrink: 0; }
-    .pactions { display: flex; gap: 4px; opacity: 0; transition: opacity 0.15s; }
-    .pitem:hover .pactions { opacity: 1; }
-    .pact { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 12px; padding: 2px 4px; transition: color 0.15s; }
-    .pact:hover { color: var(--accent); }
-    .pact.del:hover { color: var(--err); }
-    .plist-empty { font-size: 11px; color: var(--muted); padding: 16px 0; text-align: center; }
-
-    /* Toast */
-    .toast {
-      position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(60px);
-      background: var(--accent); color: #0d0d0d;
-      padding: 10px 18px; border-radius: 20px;
-      font-size: 11px; font-weight: 600;
-      opacity: 0; transition: all 0.3s cubic-bezier(0.34,1.56,0.64,1);
-      z-index: 2000; white-space: nowrap;
-    }
-    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
-
-    /* Mode panels */
-    .mode-panel { display: none; }
-    .mode-panel.active { display: flex; flex-direction: column; gap: 16px; }
-    .cpanel { display: none; }
-    .cpanel.active { display: flex; flex-direction: column; gap: 14px; }
-
-    /* Scrollbar */
-    ::-webkit-scrollbar { width: 4px; }
-    ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
-
-    /* Mobile */
-    @media (max-width: 768px) {
-      :root { --sidebar: 52px; --result: 100vw; }
-      body { flex-direction: column; overflow: auto; }
-      #sidebar { width: 100%; min-height: auto; flex-direction: row; padding: 0 12px; border-right: none; border-bottom: 1px solid var(--border); height: 60px; overflow-x: auto; gap: 8px; }
-      .s-logo { writing-mode: horizontal-tb; transform: none; font-size: 14px; margin-bottom: 0; margin-right: 8px; }
-      #main { flex-direction: column; height: auto; overflow: visible; }
-      #formPanel { height: auto; overflow: visible; border-right: none; border-bottom: 1px solid var(--border); }
-      #resultPanel { width: 100%; min-width: 100%; max-width: 100%; height: auto; }
-      .s-btn { width: auto; padding: 6px 10px; flex-direction: row; gap: 6px; }
-      .s-sep { display: none; }
-      .fp-header { padding: 16px 20px; }
-      .fp-body { padding: 16px 20px; }
-      .dim-row { gap: 14px; margin-bottom: 14px; }
-      .dim-input { width: 90px; padding: 10px 12px; font-size: 13px; }
-    }
+    :root{--bg:#0a0a0a;--surface:#111111;--border:#1e1e1e;--accent:#c8f542;--accent2:#f5a623;--text:#e8e8e0;--muted:#444440;--danger:#ff4545;--ok:#42f58d;--fd:'DM Serif Display',serif;--fm:'DM Mono',monospace}
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    body{background:var(--bg);color:var(--text);font-family:var(--fm);font-size:13px;min-height:100vh}
+    header{display:flex;align-items:center;justify-content:space-between;padding:22px 40px;border-bottom:1px solid var(--border);position:sticky;top:0;background:rgba(10,10,10,.94);backdrop-filter:blur(16px);z-index:100}
+    .logo{display:flex;align-items:baseline;gap:12px}
+    .logo-text{font-family:var(--fd);font-size:26px;color:var(--accent);letter-spacing:-.02em}
+    .logo-sub{font-size:10px;color:var(--muted);letter-spacing:.18em;text-transform:uppercase}
+    .token-area{display:flex;align-items:center;gap:8px}
+    .token-input{background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--fm);font-size:11px;padding:7px 12px;width:220px;outline:none;transition:border-color .2s}
+    .token-input:focus{border-color:var(--accent)}
+    .token-input::placeholder{color:var(--muted)}
+    .token-label{font-size:10px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase}
+    .token-dot{width:6px;height:6px;border-radius:50%;background:var(--muted)}
+    .token-dot.ok{background:var(--ok)}.token-dot.err{background:var(--danger)}
+    .wrap{max-width:1160px;margin:0 auto;padding:40px}
+    .cols{display:grid;grid-template-columns:1fr 1fr;gap:2px;background:var(--border)}
+    .panel{background:var(--surface);padding:32px}
+    .plabel{font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);margin-bottom:24px;display:flex;align-items:center;gap:10px}
+    .plabel::after{content:'';flex:1;height:1px;background:var(--border)}
+    .field{margin-bottom:18px}
+    .field label{display:block;font-size:10px;color:var(--muted);letter-spacing:.12em;text-transform:uppercase;margin-bottom:7px}
+    .field input[type=text]{width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--fm);font-size:13px;padding:11px 14px;outline:none;transition:border-color .2s}
+    .field input[type=text]:focus{border-color:var(--accent)}
+    .field input[type=text]::placeholder{color:var(--muted)}
+    .type-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:2px;background:var(--border);margin-bottom:18px}
+    .tbtn{background:var(--bg);border:none;color:var(--muted);font-family:var(--fm);font-size:10px;letter-spacing:.1em;text-transform:uppercase;padding:10px 4px;cursor:pointer;transition:all .15s;text-align:center}
+    .tbtn:hover{color:var(--text)}.tbtn.active{background:var(--surface);color:var(--accent)}
+    .tbtn-icon{display:block;font-size:15px;margin-bottom:3px}
+    .upzone{border:1px dashed var(--border);padding:20px;text-align:center;cursor:pointer;transition:all .2s;position:relative;background:var(--bg)}
+    .upzone:hover,.upzone.over{border-color:var(--accent);background:rgba(200,245,66,.02)}
+    .upzone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+    .upicon{font-size:20px;margin-bottom:6px;display:block}
+    .uptext{color:var(--muted);font-size:11px;line-height:1.7}
+    .uptext strong{color:var(--accent);font-weight:500}
+    .uppreview{margin-top:8px;font-size:11px;color:var(--accent2);display:none}
+    .cpanel{display:none}.cpanel.active{display:block}.mode-panel{display:none}.mode-panel.active{display:block}
+.dim-box{background:rgba(200,245,66,0.04);border:1px solid rgba(200,245,66,0.12);padding:12px;margin-top:10px;}
+.dim-title{font-size:9px;color:#444;letter-spacing:0.18em;text-transform:uppercase;margin-bottom:10px;}
+.dim-row{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+.dim-label{font-size:10px;color:#555;letter-spacing:0.08em;text-transform:uppercase;width:80px;flex-shrink:0;}
+.dim-input{background:#0a0a0a;border:1px solid #1e1e1e;color:#e8e8e0;font-family:var(--fm);font-size:12px;padding:7px 10px;width:80px;outline:none;transition:border-color .2s;}
+.dim-input:focus{border-color:#c8f542;}
+.dim-unit{font-size:10px;color:#444;}
+.behav-row{display:flex;gap:6px;margin-top:8px;}
+.behav-btn{flex:1;background:rgba(255,255,255,0.04);border:1px solid #1e1e1e;color:#555;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;padding:6px;cursor:pointer;text-align:center;font-family:var(--fm);transition:all .15s;}
+.behav-btn:hover{border-color:#555;color:#888;}
+.behav-btn.active{background:rgba(200,245,66,0.08);border-color:rgba(200,245,66,0.3);color:#c8f542;}
+.dim-presets{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px;}
+.dim-preset{background:rgba(255,255,255,0.04);border:1px solid #1e1e1e;color:#555;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;padding:5px 10px;cursor:pointer;font-family:var(--fm);}
+.dim-preset:hover,.dim-preset.active{border-color:#c8f542;color:#c8f542;}
+    .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:13px 22px;font-family:var(--fm);font-size:11px;letter-spacing:.12em;text-transform:uppercase;cursor:pointer;border:none;transition:all .15s}
+    .btn-primary{background:var(--accent);color:#0a0a0a;width:100%;margin-top:8px}
+    .btn-primary:hover{background:#d4ff55}.btn-primary:disabled{opacity:.35;cursor:not-allowed}
+    .btn-ghost{background:transparent;border:1px solid var(--border);color:var(--muted)}
+    .btn-ghost:hover{border-color:var(--accent);color:var(--accent)}
+    .out-panel{background:var(--surface);padding:32px;display:flex;flex-direction:column;gap:18px;min-height:500px}
+    .out-empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;color:var(--muted);gap:14px}
+    .out-empty-icon{font-size:44px;opacity:.2}
+    .out-empty p{font-size:11px;line-height:1.9;max-width:200px}
+    .out-content{display:none;flex-direction:column;gap:16px}.out-content.visible{display:flex}
+    .qr-wrap{background:#fff;padding:20px;display:flex;justify-content:center}
+    .linkbox{display:flex;gap:2px;background:var(--border)}
+    .linkdisplay{flex:1;background:var(--bg);padding:11px 14px;font-size:11px;color:var(--accent);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .btn-copy{background:var(--surface);border:none;color:var(--muted);font-family:var(--fm);font-size:11px;padding:11px 14px;cursor:pointer;transition:color .15s;white-space:nowrap}
+    .btn-copy:hover{color:var(--accent)}.btn-copy.copied{color:var(--ok)}
+    .prog-wrap{background:var(--bg);border:1px solid var(--border);padding:14px}
+    .prog-label{display:flex;justify-content:space-between;font-size:10px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px}
+    .prog-bar{height:2px;background:var(--border);position:relative;overflow:hidden}
+    .prog-fill{height:100%;background:var(--accent);transition:width .3s;width:0%}
+    .prog-msg{margin-top:8px;font-size:11px;color:var(--muted)}
+    .prog-msg.ok{color:var(--ok)}.prog-msg.err{color:var(--danger)}
+    .steps-log{background:var(--bg);border:1px solid var(--border);padding:14px;font-size:11px;line-height:2;display:none;max-height:150px;overflow-y:auto}
+    .steps-log.visible{display:block}
+    .step-line{color:var(--muted)}.step-line.ok{color:var(--ok)}.step-line.err{color:var(--danger)}.step-line.act{color:var(--accent2)}
+    .plist-wrap{margin-top:2px;background:var(--surface);border:1px solid var(--border);border-top:none}
+    .plist-head{padding:16px 32px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+    .plist-title{font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted)}
+    .plist-count{font-size:11px;color:var(--accent)}
+    .plist-body{padding:12px 32px;display:flex;flex-direction:column;gap:2px}
+    .pitem{display:flex;align-items:center;gap:14px;padding:10px 14px;background:var(--bg);cursor:pointer;transition:all .15s;border:1px solid transparent}
+    .pitem:hover{border-color:var(--border)}
+    .pdot{width:7px;height:7px;border-radius:50%;background:var(--accent);flex-shrink:0}
+    .pdot.video{background:#5b8def}.pdot.gif{background:var(--accent2)}.pdot.model{background:#c471ed}.pdot.audio{background:#12c2e9}
+    .pname{flex:1;font-size:12px}.ptype{font-size:10px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase}.pdate{font-size:10px;color:var(--muted)}
+    .pactions{display:flex;gap:6px;opacity:0;transition:opacity .15s}.pitem:hover .pactions{opacity:1}
+    .pact{background:none;border:none;color:var(--muted);cursor:pointer;font-size:13px;padding:2px 4px;transition:color .15s}
+    .pact:hover{color:var(--accent)}.pact.del:hover{color:var(--danger)}
+    .plist-empty{padding:24px;text-align:center;color:var(--muted);font-size:11px;line-height:1.9}
+    .toast{position:fixed;bottom:28px;right:28px;background:var(--accent);color:#0a0a0a;padding:11px 18px;font-size:11px;transform:translateY(70px);opacity:0;transition:all .3s cubic-bezier(.34,1.56,.64,1);z-index:2000}
+    .toast.show{transform:translateY(0);opacity:1}
+    @media(max-width:760px){header{padding:16px 20px;flex-direction:column;gap:12px;align-items:flex-start}.token-input{width:100%}.wrap{padding:20px}.cols{grid-template-columns:1fr}.type-grid{grid-template-columns:repeat(2,1fr)}.plist-body{padding:10px}}
   </style>
 </head>
 <body>
 
-<!-- SIDEBAR -->
-<nav id="sidebar">
-  <div class="s-logo">ARA</div>
-
-  <button class="s-btn active" data-mode="image" onclick="setModo('image')">
-    <span class="s-btn-icon">◈</span>
-    <span class="s-btn-txt">Image</span>
-  </button>
-  <button class="s-btn" data-mode="surface" onclick="setModo('surface')">
-    <span class="s-btn-icon">⬡</span>
-    <span class="s-btn-txt">Surface</span>
-  </button>
-
-  <div class="s-sep"></div>
-
-  <div class="s-bottom">
-    <button class="s-btn" onclick="document.getElementById('tokenPanel').style.display = document.getElementById('tokenPanel').style.display === 'none' ? 'block' : 'none'">
-      <span class="s-btn-icon">⚿</span>
-      <span class="s-btn-txt">Token</span>
-    </button>
+<header>
+  <div class="logo">
+    <span class="logo-text">ARA</span>
+    <span class="logo-sub">Augmented Reality Atelier</span>
   </div>
-</nav>
-
-<!-- TOKEN PANEL (flotante) -->
-<div id="tokenPanel" style="position:fixed;bottom:70px;left:72px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:14px;display:none;z-index:100;width:280px;">
-  <div class="field-label" style="margin-bottom:8px;">GitHub Token</div>
-  <div class="token-row">
-    <div class="token-dot" id="tokenDot"></div>
-    <input type="password" class="token-input" id="ghToken" placeholder="ghp_xxxxxxxxxxxx">
-    <span class="token-label">PAT</span>
+  <div style="font-size:10px;color:#333;letter-spacing:0.1em;">
+    ara.sergeam09.workers.dev ●
   </div>
-</div>
+</header>
 
-<!-- MAIN -->
-<div id="main">
-
-  <!-- FORM PANEL -->
-  <div id="formPanel">
-    <div class="fp-header">
-      <span class="fp-title" id="fpTitle">Image AR</span>
-      <span class="fp-sub" id="fpSub">tracking por imagen</span>
-    </div>
-    <div class="fp-body">
-
-      <!-- Nombre -->
+<div class="wrap">
+  <div class="cols">
+    <div class="panel">
+      <div class="plabel">Nuevo proyecto AR</div>
       <div class="field">
-        <div class="field-label">Nombre del proyecto</div>
+        <label>Nombre del proyecto</label>
         <input type="text" id="pNombre" placeholder="ej. mural-xalapa-2025">
       </div>
+      <div class="field" id="triggerField">
+        <label>Imagen trigger — la obra física</label>
+        <div class="upzone" id="zTrigger">
+          <input type="file" id="fTrigger" accept="image/*">
+          <span class="upicon">◈</span>
+          <div class="uptext"><strong>Selecciona o arrastra</strong><br>JPG · PNG · WEBP — mín. 300px</div>
+          <div class="uppreview" id="prTrigger"></div>
+        </div>
+      </div>
+      <div class="field">
+        <label>Modo AR</label>
+        <div class="type-grid" style="grid-template-columns:1fr 1fr 1fr;margin-bottom:8px;">
+          <button class="tbtn active" data-mode="image" onclick="setModo('image')"><span class="tbtn-icon">◈</span>Image</button>
+          <button class="tbtn" data-mode="surface" onclick="setModo('surface')"><span class="tbtn-icon">⬡</span>Surface</button>
+          <button class="tbtn" data-mode="face" onclick="setModo('face')"><span class="tbtn-icon">◉</span>Face</button>
+        </div>
+      </div>
 
-      <!-- ─── MODO IMAGE ─── -->
+      <!-- Tipos IMAGE -->
       <div id="mode-image" class="mode-panel active">
-
-        <!-- Tipo de contenido -->
         <div class="field">
-          <div class="field-label">Tipo de contenido</div>
-          <div class="chips">
-            <button class="chip active" data-type="video" onclick="setTipo('video')"><span>▶</span> Video</button>
-            <button class="chip" data-type="gif" onclick="setTipo('gif')"><span>◈</span> GIF</button>
-            <button class="chip" data-type="model" onclick="setTipo('model')"><span>⬡</span> 3D</button>
-            <button class="chip" data-type="audio" onclick="setTipo('audio')"><span>♪</span> Audio</button>
-          </div>
-        </div>
-
-        <!-- Trigger -->
-        <div class="field" id="triggerField">
-          <div class="field-label">Imagen Trigger — la obra física</div>
-          <div class="upzone" id="uzTrigger">
-            <input type="file" id="fTrigger" accept="image/jpeg,image/png,image/webp">
-            <div class="upzone-icon">◈</div>
-            <div class="upzone-title">Selecciona o arrastra</div>
-            <div class="upzone-sub">JPG · PNG · WEBP — mín. 300px</div>
-            <div class="upzone-preview" id="prTrigger"></div>
-          </div>
-        </div>
-
-        <!-- Paneles de contenido image -->
-        <div id="cp-video" class="cpanel active">
-          <div class="field">
-            <div class="field-label">Archivo de video</div>
-            <div class="upzone">
-              <input type="file" id="fVideo" accept="video/mp4,video/webm">
-              <div class="upzone-icon">▶</div>
-              <div class="upzone-title">Video MP4 o WEBM</div>
-              <div class="upzone-sub">Recomendado &lt; 30MB</div>
-              <div class="upzone-preview" id="prVideo"></div>
-            </div>
-          </div>
-          <div class="dim-box">
-            <div class="dim-box-title">Proporción del video</div>
-            <div class="dim-presets">
-              <button class="dim-preset" onclick="setProp(16,9)">16:9</button>
-              <button class="dim-preset active" onclick="setProp(1,1)">1:1</button>
-              <button class="dim-preset" onclick="setProp(4,3)">4:3</button>
-              <button class="dim-preset" onclick="setProp(9,16)">9:16</button>
-            </div>
-            <div class="dim-row">
-              <span class="dim-label">Ancho</span>
-              <input type="number" class="dim-input" id="dimVideoW" value="100" min="10" max="500">
-              <span class="dim-unit">cm</span>
-            </div>
-            <div class="dim-row">
-              <span class="dim-label">Alto</span>
-              <input type="number" class="dim-input" id="dimVideoH" value="100" min="10" max="500">
-              <span class="dim-unit">cm</span>
-            </div>
-          </div>
-        </div>
-
-        <div id="cp-gif" class="cpanel">
-          <div class="field">
-            <div class="field-label">Archivo GIF</div>
-            <div class="upzone">
-              <input type="file" id="fGif" accept="image/gif,image/webp">
-              <div class="upzone-icon">◈</div>
-              <div class="upzone-title">GIF o WEBP animado</div>
-              <div class="upzone-sub">Recomendado &lt; 10MB</div>
-              <div class="upzone-preview" id="prGif"></div>
-            </div>
-          </div>
-          <div class="dim-box">
-            <div class="dim-box-title">Dimensiones</div>
-            <div class="dim-row">
-              <span class="dim-label">Ancho</span>
-              <input type="number" class="dim-input" id="dimGifW" value="100" min="10" max="500">
-              <span class="dim-unit">cm</span>
-            </div>
-            <div class="dim-row">
-              <span class="dim-label">Alto</span>
-              <input type="number" class="dim-input" id="dimGifH" value="100" min="10" max="500">
-              <span class="dim-unit">cm</span>
-            </div>
-          </div>
-        </div>
-
-        <div id="cp-model" class="cpanel">
-          <div class="field">
-            <div class="field-label">Modelo 3D</div>
-            <div class="upzone">
-              <input type="file" id="fModel" accept=".glb,.gltf">
-              <div class="upzone-icon">⬡</div>
-              <div class="upzone-title">GLB o GLTF</div>
-              <div class="upzone-sub">Recomendado &lt; 20MB</div>
-              <div class="upzone-preview" id="prModel"></div>
-            </div>
-          </div>
-          <div class="dim-box">
-            <div class="dim-box-title">Escala</div>
-            <div class="dim-row">
-              <span class="dim-label">Altura</span>
-              <input type="number" class="dim-input" id="dimModelH" value="30" min="1" max="500">
-              <span class="dim-unit">cm</span>
-            </div>
-          </div>
-        </div>
-
-        <div id="cp-audio" class="cpanel">
-          <div class="field">
-            <div class="field-label">Archivo de audio</div>
-            <div class="upzone">
-              <input type="file" id="fAudio" accept="audio/mpeg,audio/ogg,audio/wav">
-              <div class="upzone-icon">♪</div>
-              <div class="upzone-title">MP3 · OGG · WAV</div>
-              <div class="upzone-sub">Recomendado &lt; 20MB</div>
-              <div class="upzone-preview" id="prAudio"></div>
-            </div>
-          </div>
-          <div class="field">
-            <div class="field-label">Imagen decorativa (opcional)</div>
-            <div class="upzone">
-              <input type="file" id="fAudioImg" accept="image/*">
-              <div class="upzone-icon">🖼</div>
-              <div class="upzone-title">JPG o PNG</div>
-              <div class="upzone-sub">Portada del audio</div>
-              <div class="upzone-preview" id="prAudioImg"></div>
-            </div>
+          <label>Tipo de contenido</label>
+          <div class="type-grid">
+            <button class="tbtn active" data-type="video" onclick="setTipo('video')"><span class="tbtn-icon">▶</span>Video</button>
+            <button class="tbtn" data-type="gif" onclick="setTipo('gif')"><span class="tbtn-icon">◈</span>GIF</button>
+            <button class="tbtn" data-type="model" onclick="setTipo('model')"><span class="tbtn-icon">⬡</span>3D</button>
+            <button class="tbtn" data-type="audio" onclick="setTipo('audio')"><span class="tbtn-icon">♪</span>Audio</button>
           </div>
         </div>
       </div>
 
-      <!-- ─── MODO SURFACE ─── -->
-      <div id="mode-surface" class="mode-panel">
-        <div class="info-box">
-          Surface AR detecta superficies con la cámara trasera.<br>
+      <!-- Tipos FACE -->
+      <div id="mode-face" class="mode-panel" style="display:none;">
+        <div class="field">
+          <label>Tipo de efecto</label>
+          <div class="type-grid" style="grid-template-columns:1fr 1fr;">
+            <button class="tbtn active" data-ftype="face-model" onclick="setTipo('face-model')"><span class="tbtn-icon">⬡</span>3D</button>
+            <button class="tbtn" data-ftype="face-image" onclick="setTipo('face-image')"><span class="tbtn-icon">◈</span>Imagen</button>
+          </div>
+        </div>
+        <div class="field">
+          <label>Punto de anclaje</label>
+          <div class="type-grid" style="grid-template-columns:1fr 1fr 1fr;">
+            <button class="tbtn active" data-anchor="1" onclick="setAnchor(1)">Nariz</button>
+            <button class="tbtn" data-anchor="10" onclick="setAnchor(10)">Frente</button>
+            <button class="tbtn" data-anchor="168" onclick="setAnchor(168)">Centro</button>
+            <button class="tbtn" data-anchor="234" onclick="setAnchor(234)">Mejilla I</button>
+            <button class="tbtn" data-anchor="454" onclick="setAnchor(454)">Mejilla D</button>
+            <button class="tbtn" data-anchor="0" onclick="setAnchor(0)">Barbilla</button>
+          </div>
+        </div>
+        <div style="background:rgba(200,245,66,0.05);border:1px solid rgba(200,245,66,0.15);padding:12px;font-size:10px;color:#555;line-height:1.9;margin-bottom:16px;letter-spacing:0.05em;">
+          Face AR usa la cámara frontal y detecta el rostro automáticamente.<br>
+          Ideal para máscaras, filtros y efectos artísticos.
+        </div>
+      </div>
+
+      <!-- Tipos SURFACE -->
+      <div id="mode-surface" class="mode-panel" style="display:none;">
+        <div class="field">
+          <label>Tipo de contenido</label>
+          <div class="type-grid" style="grid-template-columns:repeat(3,1fr);">
+            <button class="tbtn active" data-stype="surface-model" onclick="setTipo('surface-model')"><span class="tbtn-icon">⬡</span>3D</button>
+            <button class="tbtn" data-stype="surface-video" onclick="setTipo('surface-video')"><span class="tbtn-icon">▶</span>Video</button>
+            <button class="tbtn" data-stype="surface-gif" onclick="setTipo('surface-gif')"><span class="tbtn-icon">◈</span>GIF</button>
+          </div>
+        </div>
+        <div style="background:rgba(200,245,66,0.05);border:1px solid rgba(200,245,66,0.15);padding:12px;font-size:10px;color:#666;line-height:1.8;margin-bottom:16px;letter-spacing:0.05em;">
+          Surface AR no requiere imagen trigger.<br>
           El espectador apunta al suelo o pared y toca para colocar.
         </div>
-        <div id="cp-surface-model" class="cpanel active">
-          <div class="field">
-            <div class="field-label">Modelo 3D</div>
-            <div class="upzone">
-              <input type="file" id="fSurfModel" accept=".glb,.gltf">
-              <div class="upzone-icon">⬡</div>
-              <div class="upzone-title">Modelo 3D — GLB o GLTF</div>
-              <div class="upzone-sub">Se coloca sobre cualquier superficie</div>
-              <div class="upzone-preview" id="prSurfModel"></div>
-            </div>
+      </div>
+      <div id="cp-video" class="cpanel active">
+        <div class="upzone"><input type="file" id="fVideo" accept="video/*">
+          <span class="upicon">▶</span>
+          <div class="uptext"><strong>Video MP4 o WEBM</strong><br>Recomendado &lt; 30MB</div>
+          <div class="uppreview" id="prVideo"></div>
+        </div>
+        <div class="dim-box">
+          <div class="dim-title">Proporción del video</div>
+          <div class="dim-presets" id="videoPropPresets">
+            <button class="dim-preset active" onclick="setProp('video',16,9)">16:9</button>
+            <button class="dim-preset" onclick="setProp('video',1,1)">1:1</button>
+            <button class="dim-preset" onclick="setProp('video',4,3)">4:3</button>
+            <button class="dim-preset" onclick="setProp('video',9,16)">9:16</button>
           </div>
-          <div class="dim-box">
-            <div class="dim-box-title">Escala del modelo</div>
-            <div class="dim-presets">
-              <button class="dim-preset" onclick="setSurfScale(0.1)">Pequeño</button>
-              <button class="dim-preset active" onclick="setSurfScale(0.5)">Normal</button>
-              <button class="dim-preset" onclick="setSurfScale(1.0)">Grande</button>
-            </div>
-            <div class="dim-row">
-              <span class="dim-label">Escala</span>
-              <input type="number" class="dim-input" id="dimSurfScale" value="0.5" min="0.01" max="5" step="0.01">
-            </div>
+          <div class="dim-row">
+            <span class="dim-label">Ancho obra</span>
+            <input type="number" class="dim-input" id="dimVideoW" placeholder="ej. 80" min="1" step="1">
+            <span class="dim-unit">cm (opcional)</span>
+          </div>
+          <div class="dim-row">
+            <span class="dim-label">Alto obra</span>
+            <input type="number" class="dim-input" id="dimVideoH" placeholder="ej. 60" min="1" step="1">
+            <span class="dim-unit">cm (opcional)</span>
+          </div>
+          <div class="dim-title" style="margin-top:10px;">Comportamiento</div>
+          <div class="behav-row">
+            <button class="behav-btn active" data-behav="loop" onclick="toggleBehav('loop',this)">↺ Loop</button>
+            <button class="behav-btn active" data-behav="autoplay" onclick="toggleBehav('autoplay',this)">▶ Autoplay</button>
+          </div>
+        </div>
+      </div>
+      <div id="cp-gif" class="cpanel">
+        <div class="upzone"><input type="file" id="fGif" accept="image/gif,image/webp">
+          <span class="upicon">◈</span>
+          <div class="uptext"><strong>GIF animado o WEBP</strong><br>Recomendado &lt; 10MB</div>
+          <div class="uppreview" id="prGif"></div>
+        </div>
+        <div class="dim-box">
+          <div class="dim-title">Proporción del GIF</div>
+          <div class="dim-presets" id="gifPropPresets">
+            <button class="dim-preset active" onclick="setProp('gif',1,1)">1:1</button>
+            <button class="dim-preset" onclick="setProp('gif',16,9)">16:9</button>
+            <button class="dim-preset" onclick="setProp('gif',4,3)">4:3</button>
+            <button class="dim-preset" onclick="setProp('gif',9,16)">9:16</button>
+          </div>
+          <div class="dim-row">
+            <span class="dim-label">Ancho obra</span>
+            <input type="number" class="dim-input" id="dimGifW" placeholder="ej. 50" min="1" step="1">
+            <span class="dim-unit">cm (opcional)</span>
+          </div>
+          <div class="dim-row">
+            <span class="dim-label">Alto obra</span>
+            <input type="number" class="dim-input" id="dimGifH" placeholder="ej. 50" min="1" step="1">
+            <span class="dim-unit">cm (opcional)</span>
+          </div>
+          <div class="dim-title" style="margin-top:10px;">Comportamiento</div>
+          <div class="behav-row">
+            <button class="behav-btn active" data-behav="loop" onclick="toggleBehav('loop',this)">↺ Loop</button>
+            <button class="behav-btn active" data-behav="autoplay" onclick="toggleBehav('autoplay',this)">▶ Autoplay</button>
+          </div>
+        </div>
+      </div>
+      <div id="cp-model" class="cpanel">
+        <div class="upzone"><input type="file" id="fModel" accept=".glb,.gltf">
+          <span class="upicon">⬡</span>
+          <div class="uptext"><strong>Modelo 3D — GLB o GLTF</strong><br>Recomendado &lt; 20MB</div>
+          <div class="uppreview" id="prModel"></div>
+        </div>
+        <div class="dim-box">
+          <div class="dim-title">Tamaño inicial del modelo</div>
+          <div class="dim-presets" id="modelScalePresets">
+            <button class="dim-preset" onclick="setModelScale('pequeno')">Pequeño</button>
+            <button class="dim-preset active" onclick="setModelScale('mediano')">Mediano</button>
+            <button class="dim-preset" onclick="setModelScale('grande')">Grande</button>
+            <button class="dim-preset" onclick="setModelScale('real')">Tamaño real</button>
+          </div>
+          <div class="dim-row" id="modelRealDims" style="display:none;">
+            <span class="dim-label">Alto máx</span>
+            <input type="number" class="dim-input" id="dimModelH" placeholder="ej. 30" min="1" step="1">
+            <span class="dim-unit">cm</span>
+          </div>
+        </div>
+      </div>
+      <!-- Paneles FACE -->
+      <div id="cp-face-model" class="cpanel">
+        <div class="upzone"><input type="file" id="fFaceModel" accept=".glb,.gltf">
+          <span class="upicon">⬡</span>
+          <div class="uptext"><strong>Modelo 3D — GLB o GLTF</strong><br>Máscara, gafas, sombrero, etc.</div>
+          <div class="uppreview" id="prFaceModel"></div>
+        </div>
+        <div class="dim-box">
+          <div class="dim-title">Escala del efecto</div>
+          <div class="dim-presets" id="faceModelPresets">
+            <button class="dim-preset" onclick="setFaceScale(0.05)">Mini</button>
+            <button class="dim-preset active" onclick="setFaceScale(0.1)">Normal</button>
+            <button class="dim-preset" onclick="setFaceScale(0.2)">Grande</button>
+          </div>
+          <div class="dim-row" style="margin-top:8px;">
+            <span class="dim-label">Escala exacta</span>
+            <input type="number" class="dim-input" id="dimFaceScale" value="0.1" min="0.01" max="1" step="0.01">
           </div>
         </div>
       </div>
 
-      <!-- Publicar -->
-      <button class="btn-publish" id="btnPublish" onclick="generarProyecto()">
-        ◈ Compilar y publicar
-      </button>
+      <div id="cp-face-image" class="cpanel">
+        <div class="upzone"><input type="file" id="fFaceImage" accept="image/png,image/webp,image/gif">
+          <span class="upicon">◈</span>
+          <div class="uptext"><strong>Imagen PNG o GIF</strong><br>Overlay sobre el rostro (fondo transparente)</div>
+          <div class="uppreview" id="prFaceImage"></div>
+        </div>
+        <div class="dim-box">
+          <div class="dim-title">Tamaño</div>
+          <div class="dim-presets" id="faceImagePresets">
+            <button class="dim-preset" onclick="setFaceImgSize(0.1)">Pequeño</button>
+            <button class="dim-preset active" onclick="setFaceImgSize(0.2)">Normal</button>
+            <button class="dim-preset" onclick="setFaceImgSize(0.4)">Grande</button>
+          </div>
+        </div>
+      </div>
 
+      <div id="cp-surface-model" class="cpanel">
+        <div class="upzone"><input type="file" id="fSurfModel" accept=".glb,.gltf">
+          <span class="upicon">⬡</span>
+          <div class="uptext"><strong>Modelo 3D — GLB o GLTF</strong><br>Se coloca sobre cualquier superficie</div>
+          <div class="uppreview" id="prSurfModel"></div>
+        </div>
+        <div class="dim-box">
+          <div class="dim-title">Escala del modelo</div>
+          <div class="dim-presets" id="surfModelPresets">
+            <button class="dim-preset" onclick="setSurfScale(0.1)">Mini</button>
+            <button class="dim-preset" onclick="setSurfScale(0.25)">Pequeño</button>
+            <button class="dim-preset active" onclick="setSurfScale(0.5)">Mediano</button>
+            <button class="dim-preset" onclick="setSurfScale(1)">Grande</button>
+            <button class="dim-preset" onclick="setSurfScale(2)">XL</button>
+          </div>
+          <div class="dim-row" style="margin-top:8px;">
+            <span class="dim-label">Escala exacta</span>
+            <input type="number" class="dim-input" id="dimSurfScale" value="0.5" min="0.01" max="5" step="0.05">
+            <span class="dim-unit">× tamaño original</span>
+          </div>
+          <div class="dim-row" style="margin-top:6px;">
+            <span class="dim-label">Alto real</span>
+            <input type="number" class="dim-input" id="dimSurfH" placeholder="ej. 30" min="1" step="1">
+            <span class="dim-unit">cm (opcional)</span>
+          </div>
+          <div style="font-size:9px;color:#333;margin-top:8px;line-height:1.7;letter-spacing:0.05em;">
+            Si introduces el alto real en cm, ARA calcula la escala automáticamente.<br>
+            Depende de cómo fue exportado el modelo en Blender.
+          </div>
+        </div>
+      </div>
+      <div id="cp-surface-video" class="cpanel">
+        <div class="upzone"><input type="file" id="fSurfVideo" accept="video/*">
+          <span class="upicon">▶</span>
+          <div class="uptext"><strong>Video MP4 o WEBM</strong><br>Flota sobre la superficie como pantalla</div>
+          <div class="uppreview" id="prSurfVideo"></div>
+        </div>
+        <div class="dim-box">
+          <div class="dim-title">Proporción</div>
+          <div class="dim-presets">
+            <button class="dim-preset active" onclick="setProp('surfVideo',16,9)">16:9</button>
+            <button class="dim-preset" onclick="setProp('surfVideo',1,1)">1:1</button>
+            <button class="dim-preset" onclick="setProp('surfVideo',4,3)">4:3</button>
+          </div>
+          <div class="dim-title" style="margin-top:10px;">Comportamiento</div>
+          <div class="behav-row">
+            <button class="behav-btn active" data-behav="loop" onclick="toggleBehav('loop',this)">↺ Loop</button>
+            <button class="behav-btn active" data-behav="autoplay" onclick="toggleBehav('autoplay',this)">▶ Autoplay</button>
+          </div>
+        </div>
+      </div>
+      <div id="cp-surface-gif" class="cpanel">
+        <div class="upzone"><input type="file" id="fSurfGif" accept="image/gif,image/webp">
+          <span class="upicon">◈</span>
+          <div class="uptext"><strong>GIF animado o WEBP</strong><br>Flota sobre la superficie</div>
+          <div class="uppreview" id="prSurfGif"></div>
+        </div>
+      </div>
+
+                            <div id="cp-audio" class="cpanel">
+        <div class="upzone"><input type="file" id="fAudio" accept="audio/*">
+          <span class="upicon">♪</span>
+          <div class="uptext"><strong>Audio MP3 o WAV</strong></div>
+          <div class="uppreview" id="prAudio"></div>
+        </div>
+        <div class="field" style="margin-top:10px;">
+          <label>Imagen decorativa (opcional)</label>
+          <div class="upzone"><input type="file" id="fAudioImg" accept="image/*">
+            <span class="upicon">🖼</span>
+            <div class="uptext"><strong>JPG o PNG</strong></div>
+          </div>
+        </div>
+      </div>
+      <button class="btn btn-primary" id="btnGenerar" onclick="generarProyecto()">◈ Compilar y publicar en GitHub</button>
+    </div>
+
+    <div class="out-panel">
+      <div class="plabel">Resultado</div>
+      <div class="out-empty" id="outEmpty">
+        <div class="out-empty-icon">◈</div>
+        <p>Completa el formulario. ARA compilará el tracking y publicará todo en GitHub automáticamente.</p>
+      </div>
+      <div class="out-content" id="outContent">
+        <div class="prog-wrap">
+          <div class="prog-label"><span id="progLabel">Procesando</span><span id="progPct">0%</span></div>
+          <div class="prog-bar"><div class="prog-fill" id="progFill"></div></div>
+          <div class="prog-msg" id="progMsg">Iniciando...</div>
+        </div>
+        <div class="steps-log" id="stepsLog"></div>
+        <div class="qr-wrap"><div id="qrcode"></div></div>
+        <div>
+          <div class="plabel">Link del espectador</div>
+          <div class="linkbox">
+            <div class="linkdisplay" id="linkDisplay">—</div>
+            <button class="btn-copy" id="btnCopy" onclick="copiarLink('linkDisplay')">Copiar</button>
+          </div>
+        </div>
+        <div>
+          <div class="plabel" style="margin-top:12px;">Link de edición — solo para ti</div>
+          <div class="linkbox">
+            <div class="linkdisplay" id="linkEditor" style="color:#f5a623;">—</div>
+            <button class="btn-copy" onclick="copiarLink('linkEditor')">Copiar</button>
+          </div>
+        </div>
+        <div style="display:flex;gap:2px;">
+          <button class="btn btn-ghost" style="flex:1;" onclick="abrirViewer()">↗ Abrir</button>
+          <button class="btn btn-ghost" style="flex:1;" onclick="descargarQR('espectador')">↓ QR Público</button>
+          <button class="btn btn-ghost" style="flex:1;" onclick="descargarQR('editor')">↓ QR Editor</button>
+        </div>
+      </div>
     </div>
   </div>
 
-  <!-- RESULT PANEL -->
-  <div id="resultPanel">
-    <div class="rp-header">
-      <div class="rp-title">Resultado</div>
+  <div class="plist-wrap">
+    <div class="plist-head">
+      <span class="plist-title">Proyectos publicados</span>
+      <span class="plist-count" id="pCount">—</span>
     </div>
-    <div class="rp-body">
-
-      <div class="rp-empty" id="rpEmpty">
-        <div class="rp-empty-icon">◈</div>
-        <div class="rp-empty-text">Completa el formulario y publica tu experiencia AR.</div>
-      </div>
-
-      <div class="rp-content" id="rpContent">
-        <div class="prog-card">
-          <div class="prog-top">
-            <span class="prog-label" id="progLabel">Procesando</span>
-            <span class="prog-pct" id="progPct">0%</span>
-          </div>
-          <div class="prog-bar"><div class="prog-fill" id="progFill"></div></div>
-          <div class="prog-msg" id="progMsg">Iniciando...</div>
-          <div class="steps-log" id="stepsLog"></div>
-        </div>
-
-        <div class="qr-card" id="qrCard" style="display:none;">
-          <div id="qrcode"></div>
-        </div>
-
-        <div class="link-card" id="linkCard" style="display:none;">
-          <div class="link-label">Link espectador</div>
-          <div class="link-row">
-            <div class="link-val" id="linkDisplay">—</div>
-            <button class="link-copy" onclick="copiarLink('linkDisplay')">Copiar</button>
-          </div>
-        </div>
-
-        <div class="link-card" id="linkEditorCard" style="display:none;" style="border-color:rgba(245,166,35,0.3)">
-          <div class="link-label" style="color:var(--accent2)">Link de edición</div>
-          <div class="link-row">
-            <div class="link-val" id="linkEditor" style="color:var(--accent2)">—</div>
-            <button class="link-copy" onclick="copiarLink('linkEditor')">Copiar</button>
-          </div>
-        </div>
-
-        <div class="action-row" id="actionRow" style="display:none;">
-          <button class="act-btn" onclick="abrirViewer()">↗ Abrir</button>
-          <button class="act-btn" onclick="descargarQR('publico')">↓ QR</button>
-          <button class="act-btn" onclick="descargarQR('editor')">↓ QR Editor</button>
-        </div>
-      </div>
-
-      <!-- Lista de proyectos -->
-      <div class="plist-header">
-        <span class="plist-title">Proyectos</span>
-        <span class="plist-count" id="pCount">0 proyectos</span>
-      </div>
-      <div class="plist" id="pList"></div>
-
-    </div>
+    <div class="plist-body" id="pList"><div class="plist-empty">Cargando...</div></div>
   </div>
 </div>
 
 <div class="toast" id="toast"></div>
 
 <script>
-// ── ESTADO ──
-const BASE_URL = 'https://sergeam09.github.io/ara';
-let modoActual = 'image';
-let tipoActual = 'video';
-let surfScale  = 0.5;
-let dimConfig  = { width:1, height:1, scale:0.5 };
-let proyectos  = JSON.parse(localStorage.getItem('ara-proyectos') || '[]');
-let viewerUrlActual = '';
+const GITHUB_USER='sergeam09',GITHUB_REPO='ara',GITHUB_BRANCH='main';
+const BASE_URL=`https://${GITHUB_USER}.github.io/${GITHUB_REPO}`;
+const API_BASE=`https://api.github.com/repos/${GITHUB_USER}/${GITHUB_REPO}`;
+const WORKER_URL='https://ara.sergeam09.workers.dev';
+let tipoActual='video',modoActual='image',viewerUrlActual=null;
+let proyectos=JSON.parse(localStorage.getItem('ara-proyectos')||'[]');
 
-const fMap = {
-  video:'fVideo', gif:'fGif', model:'fModel', audio:'fAudio',
-  'surface-model':'fSurfModel'
-};
-
-// ── TOKEN ──
-const ghTokenEl = document.getElementById('ghToken');
-const tokenDot  = document.getElementById('tokenDot');
-const stored = localStorage.getItem('ara-gh-token');
-if (stored) { ghTokenEl.value = stored; tokenDot.className = 'token-dot ok'; }
-ghTokenEl.addEventListener('input', () => {
-  const v = ghTokenEl.value.trim();
-  localStorage.setItem('ara-gh-token', v);
-  tokenDot.className = 'token-dot ' + (v.length > 10 ? 'ok' : 'err');
-  document.getElementById('tokenPanel').style.display = 'block';
-});
-// Cerrar token panel al hacer click fuera
-document.addEventListener('click', e => {
-  const tp = document.getElementById('tokenPanel');
-  if (!tp.contains(e.target) && !e.target.closest('[onclick*="tokenPanel"]')) {
-    tp.style.display = 'none';
-  }
-});
-
-// ── MODO ──
-function setModo(m) {
-  modoActual = m;
-  document.querySelectorAll('[data-mode]').forEach(b => b.classList.toggle('active', b.dataset.mode === m));
-  document.querySelectorAll('.mode-panel').forEach(p => p.classList.remove('active'));
-  document.getElementById('mode-' + m).classList.add('active');
-
-  const titles = { image: ['Image AR', 'tracking por imagen'], surface: ['Surface AR', 'detección de superficies'] };
-  document.getElementById('fpTitle').textContent = titles[m][0];
-  document.getElementById('fpSub').textContent   = titles[m][1];
-
-  const tf = document.getElementById('triggerField');
-  if (tf) tf.style.display = m === 'image' ? 'flex' : 'none';
-
-  if (m === 'image')   setTipo('video');
-  if (m === 'surface') setTipo('surface-model');
-}
-
-// ── TIPO ──
-function setTipo(t) {
-  tipoActual = t;
-  if (modoActual === 'image') {
-    document.querySelectorAll('[data-type]').forEach(b => b.classList.toggle('active', b.dataset.type === t));
-  }
-  document.querySelectorAll('.cpanel').forEach(p => p.classList.remove('active'));
-  const panel = document.getElementById('cp-' + t);
-  if (panel) panel.classList.add('active');
-}
-
-// ── PROPORCIÓN ──
-function setProp(w, h) {
-  const base = 100;
-  if (w >= h) {
-    document.getElementById('dimVideoW').value = base;
-    document.getElementById('dimVideoH').value = Math.round(base * h / w);
-  } else {
-    document.getElementById('dimVideoH').value = base;
-    document.getElementById('dimVideoW').value = Math.round(base * w / h);
-  }
-  document.querySelectorAll('[onclick*="setProp"]').forEach(b => {
-    b.classList.toggle('active', b.onclick?.toString().includes(`(${w},${h})`));
-  });
-}
-
-// ── ESCALA SURFACE ──
-function setSurfScale(v) {
-  surfScale = v;
-  document.getElementById('dimSurfScale').value = v;
-  document.querySelectorAll('[onclick*="setSurfScale"]').forEach(b => {
-    b.classList.toggle('active', b.onclick?.toString().includes(`(${v})`));
-  });
-}
+// Token gestionado por Cloudflare Worker — no se necesita aquí
 
 // ── DIMENSIONES ──
+let dimConfig = { prop: '16:9', width: 1, height: 0.5625, scale: 0.5, loop: true, autoplay: true };
+let faceAnchor = 1;
+let faceScale = 0.1;
+let faceImgSize = 0.2;
+// Inicializar preset activo según tipo al cargar
+
+function setProp(tipo, w, h) {
+  // Calcular width y height manteniendo el lado mayor en 1 unidad
+  const maxD = Math.max(w, h);
+  dimConfig.width  = parseFloat((w / maxD).toFixed(3));
+  dimConfig.height = parseFloat((h / maxD).toFixed(3));
+  dimConfig.prop   = `${w}:${h}`;
+  // Marcar preset activo
+  const presets = document.getElementById(`${tipo}PropPresets`);
+  if (presets) presets.querySelectorAll('.dim-preset').forEach(b => {
+    b.classList.toggle('active', b.textContent === `${w}:${h}`);
+  });
+  console.log('[ARA] Proporción:', dimConfig.prop, dimConfig.width, 'x', dimConfig.height);
+}
+
+function setAnchor(idx) {
+  faceAnchor = idx;
+  document.querySelectorAll('[data-anchor]').forEach(b => {
+    b.classList.toggle('active', parseInt(b.dataset.anchor) === idx);
+  });
+}
+
+function setFaceScale(v) {
+  faceScale = v;
+  const inp = document.getElementById('dimFaceScale');
+  if (inp) inp.value = v;
+  document.querySelectorAll('#faceModelPresets .dim-preset').forEach(b => {
+    b.classList.toggle('active', b.onclick?.toString().includes('(' + v + ')'));
+  });
+}
+
+function setFaceImgSize(v) {
+  faceImgSize = v;
+  document.querySelectorAll('#faceImagePresets .dim-preset').forEach(b => {
+    b.classList.toggle('active', b.onclick?.toString().includes('(' + v + ')'));
+  });
+}
+
+function setModelScale(sz) {
+  const map = { pequeno: 0.2, mediano: 0.5, grande: 1, real: 1 };
+  dimConfig.scale = map[sz] || 0.5;
+  document.getElementById('modelRealDims').style.display = sz === 'real' ? 'flex' : 'none';
+  document.querySelectorAll('#modelScalePresets .dim-preset').forEach(b => {
+    b.classList.toggle('active', b.onclick?.toString().includes(`'${sz}'`));
+  });
+}
+
+function setSurfScale(val) {
+  dimConfig.scale = val;
+  const input = document.getElementById('dimSurfScale');
+  if (input) input.value = val;
+  document.querySelectorAll('#surfModelPresets .dim-preset').forEach(b => {
+    b.classList.toggle('active', b.onclick?.toString().includes(`(${val})`));
+  });
+}
+
 function getDimensions() {
   const t = tipoActual;
-  let width = 1, height = 1, scale = 0.5;
 
-  if (t === 'video') {
-    const w = parseFloat(document.getElementById('dimVideoW')?.value);
-    const h = parseFloat(document.getElementById('dimVideoH')?.value);
-    if (w > 0 && h > 0) { width = +(w/100).toFixed(3); height = +(h/100).toFixed(3); }
-  } else if (t === 'gif') {
-    const w = parseFloat(document.getElementById('dimGifW')?.value);
-    const h = parseFloat(document.getElementById('dimGifH')?.value);
-    if (w > 0 && h > 0) { width = +(w/100).toFixed(3); height = +(h/100).toFixed(3); }
+  // Empezar con la proporción elegida (preset) — siempre presente
+  // Tamaño base: 1 unidad = ancho del trigger. Para videos usar 1 de ancho siempre.
+  let width  = dimConfig.width  || 1;
+  let height = dimConfig.height || 1;
+  let scale  = dimConfig.scale  || 1;
+
+  // Si el usuario introdujo cm, calcular tamaño real y mantener la proporción
+  if (t === 'video' || t === 'surface-video') {
+    const cw = parseFloat(document.getElementById('dimVideoW')?.value);
+    const ch = parseFloat(document.getElementById('dimVideoH')?.value);
+    if (cw > 0 && ch > 0 && !isNaN(cw) && !isNaN(ch)) {
+      width  = +(cw/100).toFixed(3);
+      height = +(ch/100).toFixed(3);
+    }
+  } else if (t === 'gif' || t === 'surface-gif') {
+    const cw = parseFloat(document.getElementById('dimGifW')?.value);
+    const ch = parseFloat(document.getElementById('dimGifH')?.value);
+    if (cw > 0 && ch > 0 && !isNaN(cw) && !isNaN(ch)) {
+      width  = +(cw/100).toFixed(3);
+      height = +(ch/100).toFixed(3);
+    }
   } else if (t === 'model') {
-    const h = parseFloat(document.getElementById('dimModelH')?.value);
-    if (h > 0) scale = +(h/100).toFixed(3);
+    const ch = parseFloat(document.getElementById('dimModelH')?.value);
+    if (ch > 0 && !isNaN(ch)) {
+      scale = +(ch/100).toFixed(3);
+    }
   } else if (t === 'surface-model') {
-    scale = parseFloat(document.getElementById('dimSurfScale')?.value) || 0.5;
+    const ch = parseFloat(document.getElementById('dimSurfH')?.value);
+    if (ch > 0 && !isNaN(ch)) {
+      scale = +(ch/100).toFixed(3);
+    } else {
+      const sc = parseFloat(document.getElementById('dimSurfScale')?.value);
+      if (sc > 0 && !isNaN(sc)) scale = sc;
+    }
   }
+
+  console.log('[ARA] Dimensiones finales:', {width, height, scale});
   return { width, height, scale };
 }
 
-// ── UPLOADS ──
-document.querySelectorAll('.upzone').forEach(z => {
-  z.addEventListener('dragover', e => { e.preventDefault(); z.classList.add('over'); });
-  z.addEventListener('dragleave', () => z.classList.remove('over'));
-  z.addEventListener('drop', e => {
-    e.preventDefault(); z.classList.remove('over');
-    const inp = z.querySelector('input[type="file"]');
-    if (inp && e.dataTransfer.files[0]) {
-      const dt = new DataTransfer(); dt.items.add(e.dataTransfer.files[0]);
-      inp.files = dt.files; inp.dispatchEvent(new Event('change'));
+function setModo(m){
+  modoActual=m;
+  document.querySelectorAll('[data-mode]').forEach(b=>b.classList.remove('active'));
+  document.querySelector(`[data-mode="${m}"]`).classList.add('active');
+  document.querySelectorAll('.mode-panel').forEach(p=>p.style.display='none');
+  document.getElementById(`mode-${m}`).style.display='block';
+  // Ocultar trigger en surface
+
+  // Reset tipo según modo
+  if(m==='image') setTipo('video');
+  else if(m==='surface') setTipo('surface-model');
+  else if(m==='face') setTipo('face-model');
+  // Face no necesita trigger
+  const tf=document.getElementById('triggerField');
+  if(tf) tf.style.display=(m==='image'?'block':'none');
+
+}
+
+function setTipo(t){
+  tipoActual=t;
+
+  if(modoActual==='image'){
+    document.querySelectorAll('[data-type]').forEach(b=>b.classList.remove('active'));
+    const btn=document.querySelector(`[data-type="${t}"]`);
+    if(btn) btn.classList.add('active');
+  } else if(modoActual==='surface'){
+    document.querySelectorAll('[data-stype]').forEach(b=>b.classList.remove('active'));
+    const sbtn=document.querySelector(`[data-stype="${t}"]`);
+    if(sbtn) sbtn.classList.add('active');
+  } else if(modoActual==='face'){
+    document.querySelectorAll('[data-ftype]').forEach(b=>b.classList.remove('active'));
+    const fbtn=document.querySelector(`[data-ftype="${t}"]`);
+    if(fbtn) fbtn.classList.add('active');
+  }
+
+  // Mostrar el panel correcto
+  document.querySelectorAll('.cpanel').forEach(p=>p.classList.remove('active'));
+  const panel=document.getElementById(`cp-${t}`);
+  if(panel) panel.classList.add('active');
+}
+
+document.querySelectorAll('.upzone').forEach(z=>{
+  z.addEventListener('dragover',e=>{e.preventDefault();z.classList.add('over');});
+  z.addEventListener('dragleave',()=>z.classList.remove('over'));
+  z.addEventListener('drop',e=>{e.preventDefault();z.classList.remove('over');const inp=z.querySelector('input[type="file"]');if(inp&&e.dataTransfer.files[0]){const dt=new DataTransfer();dt.items.add(e.dataTransfer.files[0]);inp.files=dt.files;inp.dispatchEvent(new Event('change'));}});
+});
+
+[['fTrigger','prTrigger'],['fVideo','prVideo'],['fGif','prGif'],['fModel','prModel'],['fAudio','prAudio'],['fSurfModel','prSurfModel'],['fSurfVideo','prSurfVideo'],['fSurfGif','prSurfGif'],].forEach(([id,pid])=>{
+  const el=document.getElementById(id);if(!el)return;
+  el.addEventListener('change',function(){const p=document.getElementById(pid);if(this.files[0]){p.style.display='block';p.textContent=`✓ ${this.files[0].name} (${fmt(this.files[0].size)})`;}});
+});
+function fmt(b){if(b<1024)return b+'B';if(b<1048576)return(b/1024).toFixed(1)+'KB';return(b/1048576).toFixed(1)+'MB';}
+
+// Sync escala manual surface con dimConfig
+document.addEventListener('DOMContentLoaded', () => {
+  const scInput = document.getElementById('dimSurfScale');
+  if (scInput) scInput.addEventListener('input', function() {
+    const v = parseFloat(this.value);
+    if (v > 0) {
+      dimConfig.scale = v;
+      // Deseleccionar presets
+      document.querySelectorAll('#surfModelPresets .dim-preset').forEach(b => b.classList.remove('active'));
     }
   });
 });
 
-Object.entries(fMap).forEach(([, id]) => {
-  const el = document.getElementById(id); if (!el) return;
-  const pid = 'pr' + id.slice(1);
-  el.addEventListener('change', function() {
-    const p = document.getElementById(pid);
-    if (p && this.files[0]) {
-      p.style.display = 'block';
-      p.textContent = `✓ ${this.files[0].name} (${fmt(this.files[0].size)})`;
-    }
+function logStep(msg,tipo=''){const log=document.getElementById('stepsLog');log.classList.add('visible');const l=document.createElement('div');l.className=`step-line ${tipo}`;l.textContent=msg;log.appendChild(l);log.scrollTop=log.scrollHeight;}
+function clearLog(){const log=document.getElementById('stepsLog');log.innerHTML='';log.classList.remove('visible');}
+function setProgress(pct,label,msg,status=''){document.getElementById('progFill').style.width=pct+'%';document.getElementById('progPct').textContent=pct+'%';document.getElementById('progLabel').textContent=label;const m=document.getElementById('progMsg');m.textContent=msg;m.className='prog-msg'+(status?' '+status:'');}
+
+async function githubUpload(path,content,msg){
+  // Usar el Worker de Cloudflare — el token vive allá, nunca aquí
+  const res = await fetch(WORKER_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ path, content, message: msg }),
   });
-});
-
-// Archivo extra de audio
-const fAImg = document.getElementById('fAudioImg');
-if (fAImg) fAImg.addEventListener('change', function() {
-  const p = document.getElementById('prAudioImg');
-  if (p && this.files[0]) { p.style.display = 'block'; p.textContent = `✓ ${this.files[0].name}`; }
-});
-
-function fmt(b) { return b > 1048576 ? (b/1048576).toFixed(1)+'MB' : (b/1024).toFixed(0)+'KB'; }
-
-// ── PROGRESS ──
-function setProgress(pct, label, msg, state) {
-  document.getElementById('progFill').style.width  = pct + '%';
-  document.getElementById('progPct').textContent   = pct + '%';
-  document.getElementById('progLabel').textContent = label;
-  const m = document.getElementById('progMsg');
-  m.textContent  = msg;
-  m.className    = 'prog-msg' + (state ? ' ' + state : '');
-}
-
-function logStep(msg, type) {
-  const log = document.getElementById('stepsLog');
-  log.classList.add('visible');
-  const d = document.createElement('div');
-  d.className = type === 'ok' ? 'step-ok' : type === 'act' ? 'step-act' : type === 'err' ? 'step-err' : 'step-def';
-  d.textContent = msg;
-  log.appendChild(d);
-  log.scrollTop = log.scrollHeight;
-}
-
-// ── GITHUB ──
-async function githubUpload(path, content, message) {
-  const token = localStorage.getItem('ara-gh-token') || '';
-  const url = 'https://api.github.com/repos/sergeam09/ara/contents/' + path;
-  let sha = null;
-  try {
-    const r = await fetch(url, { headers: { Authorization: 'token ' + token, 'User-Agent': 'ARA' } });
-    if (r.ok) sha = (await r.json()).sha;
-  } catch(e) {}
-  const body = { message, content, branch: 'main' };
-  if (sha) body.sha = sha;
-  const res = await fetch(url, {
-    method: 'PUT',
-    headers: { Authorization: 'token ' + token, 'Content-Type': 'application/json', 'User-Agent': 'ARA' },
-    body: JSON.stringify(body)
-  });
-  if (!res.ok) { const e = await res.json(); throw new Error(e.message || 'GitHub error ' + res.status); }
+  if(!res.ok){
+    const err = await res.json();
+    throw new Error(err.error || `Error ${res.status}`);
+  }
   return res.json();
 }
 
-function fileToBase64(file) {
-  return new Promise((res, rej) => {
-    const r = new FileReader();
-    r.onload = () => res(r.result.split(',')[1]);
-    r.onerror = rej;
-    r.readAsDataURL(file);
-  });
-}
 
-function arrayBufferToBase64(buf) {
-  let b = '', a = new Uint8Array(buf);
-  for (let i = 0; i < a.byteLength; i++) b += String.fromCharCode(a[i]);
-  return btoa(b);
-}
+async function fileToBase64(file){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result.split(',')[1]);r.onerror=rej;r.readAsDataURL(file);});}
 
-// ── MINDAR ──
+function arrayBufferToBase64(buffer){const bytes=new Uint8Array(buffer);let bin='';for(let i=0;i<bytes.byteLength;i++)bin+=String.fromCharCode(bytes[i]);return btoa(bin);}
+
 async function waitForMINDAR() {
-  return new Promise(res => {
-    const check = () => window.MINDAR ? res() : setTimeout(check, 200);
-    check();
+  return new Promise((resolve) => {
+    if (window.MINDAR && window.MINDAR.IMAGE && window.MINDAR.IMAGE.Compiler) {
+      resolve();
+      return;
+    }
+    const check = setInterval(() => {
+      if (window.MINDAR && window.MINDAR.IMAGE && window.MINDAR.IMAGE.Compiler) {
+        clearInterval(check);
+        resolve();
+      }
+    }, 100);
+    setTimeout(() => { clearInterval(check); resolve(); }, 10000);
   });
 }
 
-async function compilarMind(file) {
-  await waitForMINDAR();
-  const compiler = new MINDAR.IMAGE.Compiler();
-  const img = new Image();
-  img.src = URL.createObjectURL(file);
-  await new Promise(res => img.onload = res);
-  await compiler.compileImageTargets([img], () => {});
-  return await compiler.exportData();
+async function compilarMind(imagenFile){
+  return new Promise((resolve,reject)=>{
+    const img=new Image(),url=URL.createObjectURL(imagenFile);
+    img.onload=async()=>{
+      try{
+        URL.revokeObjectURL(url);
+        const compiler=new MINDAR.IMAGE.Compiler();
+        const canvas=document.createElement('canvas');
+        canvas.width=img.width;canvas.height=img.height;
+        canvas.getContext('2d').drawImage(img,0,0);
+        await compiler.compileImageTargets([canvas],(p)=>{setProgress(20+Math.round(p*.4),'Compilando tracking',`Analizando imagen... ${Math.round(p)}%`);});
+        resolve(compiler.exportData());
+      }catch(e){reject(e);}
+    };
+    img.onerror=()=>reject(new Error('No se pudo cargar la imagen'));
+    img.src=url;
+  });
 }
 
-// ── GENERAR ──
-async function generarProyecto() {
-  const token = localStorage.getItem('ara-gh-token') || '';
-  if (!token) { toast('Agrega tu GitHub Token primero'); document.getElementById('tokenPanel').style.display = 'block'; return; }
+async function generarProyecto(){
+  const nombre=document.getElementById('pNombre').value.trim();
 
-  const nombre  = document.getElementById('pNombre').value.trim();
-  if (!nombre) { toast('Escribe un nombre para el proyecto'); return; }
+  const fTrig=document.getElementById('fTrigger').files[0];
+  const fMap={video:'fVideo',gif:'fGif',model:'fModel',audio:'fAudio','surface-model':'fSurfModel','surface-video':'fSurfVideo','surface-gif':'fSurfGif','face-model':'fFaceModel','face-image':'fFaceImage'};
+  const fCont=document.getElementById(fMap[tipoActual])?.files[0];
+  const fAImg=document.getElementById('fAudioImg')?.files[0];
 
-  const slug    = nombre.toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9-]/g,'');
-  const fileKey = fMap[tipoActual];
-  const fCont   = fileKey ? document.getElementById(fileKey)?.files[0] : null;
-  const fTrig   = modoActual === 'image' ? document.getElementById('fTrigger')?.files[0] : null;
+  // Token gestionado por Worker — sin validación local necesaria
+  if(!nombre){toast('Ponle nombre al proyecto');return;}
+  if(!/^[a-zA-Z0-9_-]+$/.test(nombre)){toast('Solo letras, números y guiones');return;}
+  if(modoActual==='image'&&!fTrig){toast('Necesitas una imagen trigger');return;}
+  if(!fCont){toast(`Sube el archivo de ${tipoActual}`);return;}
 
-  if (modoActual === 'image' && !fTrig) { toast('Necesitas una imagen trigger'); return; }
-  if (!fCont) { toast('Selecciona el archivo de contenido'); return; }
+  const slug=nombre.toLowerCase();
+  const contentExt=fCont.name.split('.').pop().toLowerCase();
+  const triggerExt=fTrig?fTrig.name.split('.').pop().toLowerCase():'jpg';
+  const btn=document.getElementById('btnGenerar');
+  btn.disabled=true;btn.textContent='Procesando...';
+  document.getElementById('outEmpty').style.display='none';
+  document.getElementById('outContent').classList.add('visible');
+  clearLog();
 
-  const contentExt = fCont.name.split('.').pop().toLowerCase();
-  const triggerExt = fTrig ? fTrig.name.split('.').pop().toLowerCase() : 'jpg';
-  const dims = getDimensions();
+  try{
+    // Obtener dimensiones definidas por el usuario
+    const dims = getDimensions();
 
-  const btn = document.getElementById('btnPublish');
-  btn.disabled = true; btn.textContent = '◈ Publicando...';
-
-  // Mostrar panel de resultado
-  document.getElementById('rpEmpty').style.display   = 'none';
-  document.getElementById('rpContent').classList.add('visible');
-  document.getElementById('qrCard').style.display    = 'none';
-  document.getElementById('linkCard').style.display  = 'none';
-  document.getElementById('linkEditorCard').style.display = 'none';
-  document.getElementById('actionRow').style.display = 'none';
-  document.getElementById('stepsLog').innerHTML = '';
-  document.getElementById('stepsLog').classList.remove('visible');
-
-  try {
-    if (modoActual === 'surface') {
-      setProgress(50, 'Subiendo', `Subiendo contenido.${contentExt}...`);
-      logStep(`◈ Subiendo contenido.${contentExt}...`, 'act');
-      await githubUpload(`proyectos/${slug}/contenido.${contentExt}`, await fileToBase64(fCont), `ARA: contenido ${slug}`);
-      logStep('✓ contenido subido', 'ok');
+    if(modoActual==='surface'||modoActual==='face'){
+      // Surface AR: solo subir el contenido, sin trigger ni .mind
+      setProgress(50,'Subiendo archivos',`Subiendo contenido.${contentExt}...`);
+      logStep(`◈ Subiendo contenido.${contentExt}...`,'act');
+      await githubUpload(`proyectos/${slug}/contenido.${contentExt}`,await fileToBase64(fCont),`ARA: contenido ${slug}`);
+      logStep('✓ contenido subido','ok');
+      setProgress(90,'Subiendo archivos','Casi listo...');
     } else {
-      logStep('◈ Cargando motor de tracking...', 'act');
-      setProgress(5, 'Iniciando', 'Cargando MindAR...');
+      // Image AR: trigger + .mind + contenido
+      logStep('◈ Cargando motor de tracking...','act');
+      setProgress(5,'Iniciando','Cargando MindAR...');
       await waitForMINDAR();
-      logStep('◈ Compilando imagen trigger...', 'act');
-      setProgress(10, 'Compilando', 'Analizando imagen...');
-      const mindBuffer = await compilarMind(fTrig);
-      logStep('✓ Archivo .mind generado', 'ok');
+      logStep('◈ Compilando imagen trigger...','act');
+      setProgress(10,'Compilando tracking','Analizando imagen...');
+      const mindBuffer=await compilarMind(fTrig);
+      logStep('✓ Archivo .mind generado','ok');
 
-      setProgress(60, 'Subiendo', 'Subiendo trigger...');
-      logStep('◈ Subiendo trigger...', 'act');
-      await githubUpload(`proyectos/${slug}/trigger.${triggerExt}`, await fileToBase64(fTrig), `ARA: trigger ${slug}`);
-      logStep('✓ trigger subido', 'ok');
+      setProgress(60,'Subiendo archivos','Subiendo imagen trigger...');
+      logStep('◈ Subiendo trigger...','act');
+      await githubUpload(`proyectos/${slug}/trigger.${triggerExt}`,await fileToBase64(fTrig),`ARA: trigger ${slug}`);
+      logStep('✓ trigger subido','ok');
 
-      setProgress(75, 'Subiendo', `Subiendo contenido.${contentExt}...`);
-      logStep(`◈ Subiendo contenido.${contentExt}...`, 'act');
-      await githubUpload(`proyectos/${slug}/contenido.${contentExt}`, await fileToBase64(fCont), `ARA: contenido ${slug}`);
-      logStep('✓ contenido subido', 'ok');
+      setProgress(75,'Subiendo archivos',`Subiendo contenido.${contentExt}...`);
+      logStep(`◈ Subiendo contenido.${contentExt}...`,'act');
+      await githubUpload(`proyectos/${slug}/contenido.${contentExt}`,await fileToBase64(fCont),`ARA: contenido ${slug}`);
+      logStep('✓ contenido subido','ok');
 
-      setProgress(88, 'Subiendo', 'Subiendo targets.mind...');
-      logStep('◈ Subiendo targets.mind...', 'act');
-      await githubUpload(`proyectos/${slug}/targets.mind`, arrayBufferToBase64(mindBuffer), `ARA: targets ${slug}`);
-      logStep('✓ targets.mind subido', 'ok');
+      setProgress(88,'Subiendo archivos','Subiendo targets.mind...');
+      logStep('◈ Subiendo targets.mind...','act');
+      await githubUpload(`proyectos/${slug}/targets.mind`,arrayBufferToBase64(mindBuffer),`ARA: targets ${slug}`);
+      logStep('✓ targets.mind subido','ok');
     }
 
-    // config.json
-    const initConfig = { posX:0, posY:0, posZ:0.01, rotX:0, rotY:0, rotZ:0, preset:'vertical', scale:dims.scale, width:dims.width, height:dims.height, loop:true, autoplay:true, fade:false };
+    if(fAImg){
+      setProgress(93,'Subiendo archivos','Subiendo imagen de audio...');
+      await githubUpload(`proyectos/${slug}/audio-img.jpg`,await fileToBase64(fAImg),`ARA: audio-img ${slug}`);
+      logStep('✓ imagen de audio subida','ok');
+    }
+
+    // Subir config.json con dimensiones iniciales
+    const initConfig = {
+      posX:0, posY:0, posZ:0.01,
+      rotX:0, rotY:0, rotZ:0,
+      preset:'vertical',
+      scale: dims.scale,
+      width: dims.width,
+      height: dims.height,
+      loop:true, autoplay:true, fade:false
+    };
     try {
-      await githubUpload(`proyectos/${slug}/config.json`, btoa(JSON.stringify(initConfig, null, 2)), `ARA: config ${slug}`);
-      logStep('✓ config guardada', 'ok');
-    } catch(e) {}
+      await githubUpload(
+        `proyectos/${slug}/config.json`,
+        btoa(JSON.stringify(initConfig, null, 2)),
+        `ARA: config inicial ${slug}`
+      );
+      logStep('✓ Configuración inicial guardada','ok');
+    } catch(e) { logStep('⚠ Config no guardada (no crítico)',''); }
 
-    setProgress(100, 'Publicado', '✓ Experiencia AR disponible', 'ok');
-    logStep('✓ ¡Publicado!', 'ok');
+    setProgress(100,'Publicado','✓ Experiencia AR disponible en GitHub Pages','ok');
+    logStep('✓ ¡Publicado en GitHub Pages!','ok');
 
-    const lp = '1', ap = '1';
-    const viewerUrl = `${BASE_URL}/viewer.html?p=${slug}&t=${tipoActual}&ce=${contentExt}&te=${triggerExt}&w=${dims.width}&h=${dims.height}&sc=${dims.scale}&lp=${lp}&ap=${ap}`;
-    viewerUrlActual = viewerUrl;
+    // Pasar dimensiones y comportamiento directamente en la URL
+    const lp = dimConfig.loop    ? '1' : '0';
+    const ap = dimConfig.autoplay ? '1' : '0';
+    // Wall usa su propio viewer con 8th Wall engine
+    const faceViewerFile = modoActual === 'face' ? 'face-viewer.html' : 'viewer.html';
+    const faceParams = modoActual === 'face' ? `&anchor=${faceAnchor}&sc=${faceScale}&imgsize=${faceImgSize}` : `&w=${dims.width}&h=${dims.height}&sc=${dims.scale}&lp=${lp}&ap=${ap}`;
+    const viewerUrl=`${BASE_URL}/${faceViewerFile}?p=${slug}&t=${tipoActual}&ce=${contentExt}&te=${triggerExt}${faceParams}`;
+    viewerUrlActual=viewerUrl;
 
-    const proyecto = { slug, nombre, tipo:tipoActual, contentExt, triggerExt, url:viewerUrl, creado: new Date().toLocaleDateString('es-MX') };
-    proyectos = proyectos.filter(p => p.slug !== slug);
+    const proyecto={slug,nombre,tipo:tipoActual,contentExt,triggerExt,url:viewerUrl,creado:new Date().toLocaleDateString('es-MX')};
+    proyectos=proyectos.filter(p=>p.slug!==slug);
     proyectos.unshift(proyecto);
-    localStorage.setItem('ara-proyectos', JSON.stringify(proyectos));
+    localStorage.setItem('ara-proyectos',JSON.stringify(proyectos));
 
     mostrarOutput(viewerUrl);
     renderProyectos();
-    toast('¡Publicado ✓');
-
-  } catch(e) {
-    setProgress(0, 'Error', e.message, 'err');
-    logStep('✕ Error: ' + e.message, 'err');
-    toast('Error: ' + e.message);
-  } finally {
-    btn.disabled = false; btn.textContent = '◈ Compilar y publicar';
+    toast('¡Publicado en GitHub Pages ✓');
+    // Limpiar nombre del proyecto para evitar confusión en el próximo proyecto
+    // (no limpiar archivos — el usuario puede querer republicar)
+    document.getElementById('pNombre').style.borderColor = 'var(--ok)';
+    setTimeout(() => {
+      document.getElementById('pNombre').style.borderColor = '';
+    }, 3000);
+  }catch(e){
+    setProgress(0,'Error',e.message,'err');
+    logStep(`✕ Error: ${e.message}`,'err');
+    toast('Error: '+e.message);
+  }finally{
+    btn.disabled=false;btn.textContent='◈ Compilar y publicar en GitHub';
   }
 }
 
-// ── OUTPUT ──
-async function mostrarOutput(url) {
-  const urlEspectador = url.replace('&edit=1', '');
-  const urlEditor     = urlEspectador + '&edit=1';
+function mostrarOutput(url){
+  // Link espectador (sin edit)
+  const urlEspectador = url.replace('&edit=1','');
+  // Link editor (con edit=1)
+  const urlEditor = urlEspectador + '&edit=1';
 
-  let displayUrl = urlEspectador;
-  try {
-    const r = await fetch('https://tinyurl.com/api-create.php?url=' + encodeURIComponent(urlEspectador));
-    if (r.ok) { const s = (await r.text()).trim(); if (s.startsWith('http')) displayUrl = s; }
-  } catch(e) {}
-
-  document.getElementById('linkDisplay').textContent = displayUrl;
+  document.getElementById('linkDisplay').textContent = urlEspectador;
   document.getElementById('linkEditor').textContent  = urlEditor;
 
-  document.getElementById('qrcode').innerHTML = '';
-  new QRCode(document.getElementById('qrcode'), {
-    text: urlEspectador, width: 140, height: 140,
-    colorDark: '#0d0d0d', colorLight: '#ffffff',
-    correctLevel: QRCode.CorrectLevel.H
+  document.getElementById('qrcode').innerHTML='';
+  new QRCode(document.getElementById('qrcode'),{
+    text:urlEspectador,width:176,height:176,
+    colorDark:'#0a0a0a',colorLight:'#ffffff',
+    correctLevel:QRCode.CorrectLevel.H
   });
-
-  document.getElementById('qrCard').style.display    = 'flex';
-  document.getElementById('linkCard').style.display  = 'block';
-  document.getElementById('linkEditorCard').style.display = 'block';
-  document.getElementById('actionRow').style.display = 'flex';
   viewerUrlActual = urlEspectador;
 }
-
-function copiarLink(id) {
-  navigator.clipboard.writeText(document.getElementById(id)?.textContent || '');
+function copiarLink(elId){
+  const id = elId || 'linkDisplay';
+  const txt = document.getElementById(id)?.textContent || '';
+  navigator.clipboard.writeText(txt);
   toast('Link copiado ✓');
 }
-function abrirViewer() { if (viewerUrlActual) window.open(viewerUrlActual, '_blank'); }
-function descargarQR(tipo) {
-  const url = tipo === 'editor' ? document.getElementById('linkEditor').textContent : document.getElementById('linkDisplay').textContent;
+function abrirViewer(){if(viewerUrlActual)window.open(viewerUrlActual,'_blank');}
+function descargarQR(tipo){
+  const url = tipo === 'editor'
+    ? document.getElementById('linkEditor').textContent
+    : document.getElementById('linkDisplay').textContent;
   if (!url || url === '—') return;
+
+  // Generar QR temporal
   const tmp = document.createElement('div');
-  tmp.style.cssText = 'position:fixed;left:-9999px;top:-9999px;background:#fff;padding:12px;';
+  tmp.style.cssText = 'position:fixed;left:-9999px;top:-9999px;background:#fff;padding:16px;';
   document.body.appendChild(tmp);
-  new QRCode(tmp, { text: url, width: 256, height: 256, colorDark: '#0d0d0d', colorLight: '#ffffff', correctLevel: QRCode.CorrectLevel.H });
+  new QRCode(tmp, {text:url, width:256, height:256, colorDark:'#0a0a0a', colorLight:'#ffffff', correctLevel:QRCode.CorrectLevel.H});
+
   setTimeout(() => {
     const c = tmp.querySelector('canvas');
-    if (c) { const a = document.createElement('a'); a.download = `ara-qr-${tipo}.png`; a.href = c.toDataURL(); a.click(); }
-    tmp.remove(); toast('QR descargado ✓');
+    if (c) {
+      const a = document.createElement('a');
+      a.download = `ara-qr-${tipo||'publico'}.png`;
+      a.href = c.toDataURL();
+      a.click();
+    }
+    tmp.remove();
+    toast(`QR ${tipo === 'editor' ? 'de edición' : 'público'} descargado ✓`);
   }, 300);
 }
 
-// ── PROYECTOS ──
-function renderProyectos() {
-  const el = document.getElementById('pList');
-  document.getElementById('pCount').textContent = `${proyectos.length} proyecto${proyectos.length !== 1 ? 's' : ''}`;
-  if (!proyectos.length) { el.innerHTML = '<div class="plist-empty">Sin proyectos aún.</div>'; return; }
-  el.innerHTML = proyectos.map(p => `
+function renderProyectos(){
+  const el=document.getElementById('pList');
+  document.getElementById('pCount').textContent=`${proyectos.length} proyecto${proyectos.length!==1?'s':''}`;
+  if(!proyectos.length){el.innerHTML='<div class="plist-empty">Aún no hay proyectos publicados.</div>';return;}
+  el.innerHTML=proyectos.map(p=>`
     <div class="pitem" onclick="cargarProyecto('${p.slug}')">
       <div class="pdot ${p.tipo}"></div>
       <div class="pname">${p.nombre}</div>
       <div class="ptype">${p.tipo}</div>
+      <div class="pdate">${p.creado}</div>
       <div class="pactions">
-        <button class="pact" onclick="event.stopPropagation();navigator.clipboard.writeText('${p.url}');toast('Copiado ✓')" title="Copiar">⎘</button>
+        <button class="pact" onclick="event.stopPropagation();navigator.clipboard.writeText('${p.url}');toast('Link copiado ✓')" title="Copiar">⎘</button>
         <button class="pact del" onclick="event.stopPropagation();eliminarProyecto('${p.slug}')" title="Eliminar">✕</button>
       </div>
     </div>`).join('');
 }
-function cargarProyecto(slug) {
-  const p = proyectos.find(x => x.slug === slug);
-  if (p) {
-    viewerUrlActual = p.url;
-    mostrarOutput(p.url);
-    document.getElementById('rpEmpty').style.display = 'none';
-    document.getElementById('rpContent').classList.add('visible');
-  }
-}
-function eliminarProyecto(slug) {
-  proyectos = proyectos.filter(p => p.slug !== slug);
-  localStorage.setItem('ara-proyectos', JSON.stringify(proyectos));
-  renderProyectos();
-  toast('Eliminado ✓');
-}
-function toast(msg) {
-  const t = document.getElementById('toast');
-  t.textContent = msg; t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), 2500);
-}
+function cargarProyecto(slug){const p=proyectos.find(x=>x.slug===slug);if(p){viewerUrlActual=p.url;mostrarOutput(p.url);document.getElementById('outEmpty').style.display='none';document.getElementById('outContent').classList.add('visible');}}
+function eliminarProyecto(slug){proyectos=proyectos.filter(p=>p.slug!==slug);localStorage.setItem('ara-proyectos',JSON.stringify(proyectos));renderProyectos();toast('Eliminado de la lista local');}
+function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500);}
 
-// Init
 renderProyectos();
 </script>
 </body>

@@ -328,15 +328,50 @@
     const sc = CFG.scale || URL_SC || 0.5;
     document.getElementById('mvWrap').innerHTML = `
       <model-viewer
+        id="araModelViewer"
         src="${PATHS.content}"
         ar ar-modes="scene-viewer webxr quick-look"
         camera-controls auto-rotate shadow-intensity="1"
         scale="${sc} ${sc} ${sc}"
         style="width:100%;height:100%;background:#0d0d0d;">
-        <button slot="ar-button" style="position:absolute;bottom:80px;left:50%;transform:translateX(-50%);background:#c8f542;color:#0d0d0d;border:none;border-radius:10px;padding:16px 36px;font-size:13px;font-weight:800;letter-spacing:0.06em;text-transform:uppercase;cursor:pointer;font-family:'Nunito Sans',sans-serif;">
-          ⬡ Ver en tu espacio
-        </button>
+
+        <!-- Botón AR estilo ARA -->
+        <div slot="ar-button" id="arBtn" style="
+          position:absolute;bottom:100px;left:50%;transform:translateX(-50%);
+          display:flex;flex-direction:column;align-items:center;gap:8px;
+          cursor:pointer;" onclick="document.getElementById('araModelViewer').activateAR()">
+          <div style="background:#c8f542;color:#0d0d0d;border:none;border-radius:10px;
+            padding:16px 36px;font-size:14px;font-weight:800;letter-spacing:0.06em;
+            text-transform:uppercase;font-family:'Nunito Sans',sans-serif;white-space:nowrap;">
+            ⬡ Colocar en espacio real
+          </div>
+          <div style="font-size:10px;color:rgba(255,255,255,0.35);letter-spacing:0.1em;text-transform:uppercase;font-weight:700;">
+            Apunta al suelo o pared
+          </div>
+        </div>
+
+        <!-- Botones inferiores estilo ARA -->
+        <div style="position:absolute;bottom:20px;left:0;right:0;
+          display:flex;justify-content:center;gap:10px;padding:0 20px;">
+          <button onclick="captureARA()" style="
+            background:rgba(13,13,13,0.85);border:1px solid rgba(255,255,255,0.1);
+            border-radius:8px;color:#e2e2e2;padding:10px 16px;
+            font-family:'Nunito Sans',sans-serif;font-size:11px;font-weight:700;
+            letter-spacing:0.08em;text-transform:uppercase;cursor:pointer;
+            backdrop-filter:blur(12px);display:flex;align-items:center;gap:6px;">
+            ◉ Foto
+          </button>
+          <button onclick="cerrarViewer()" style="
+            background:rgba(13,13,13,0.85);border:1px solid rgba(255,255,255,0.1);
+            border-radius:8px;color:#888;padding:10px 16px;
+            font-family:'Nunito Sans',sans-serif;font-size:11px;font-weight:700;
+            letter-spacing:0.08em;text-transform:uppercase;cursor:pointer;
+            backdrop-filter:blur(12px);">
+            ✕ Salir
+          </button>
+        </div>
       </model-viewer>`;
+
     document.getElementById('mvWrap').classList.add('show');
     showHUD();
     hideSplash();
@@ -628,6 +663,20 @@
   }
 
   // ── HELPERS ──
+  function captureARA() {
+    const mv = document.getElementById('araModelViewer');
+    if (!mv) return;
+    try {
+      mv.toBlob({mimeType:'image/png'}).then(blob => {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = 'ara-experiencia.png';
+        a.click(); URL.revokeObjectURL(url);
+        showToast('Foto guardada ✓');
+      });
+    } catch(e) { showToast('Usa la captura de pantalla del dispositivo'); }
+  }
+
   function showHUD() { document.getElementById('hud').classList.add('show'); }
   function setSplash(msg) { document.getElementById('smsg').textContent = msg; }
   function hideSplash()   { document.getElementById('splash').classList.add('hidden'); }

@@ -98,7 +98,6 @@
     #formPanel {
       flex: 1;
       min-width: 0;
-      max-width: 680px;
       height: 100vh;
       overflow-y: auto;
       border-right: 1px solid var(--border);
@@ -335,9 +334,8 @@
 
     /* ── RESULT PANEL ── */
     #resultPanel {
-      width: var(--result);
-      min-width: var(--result);
-      max-width: var(--result);
+      flex: 1;
+      min-width: 280px;
       height: 100vh;
       overflow-y: auto;
       background: var(--bg2);
@@ -619,13 +617,13 @@
               <div style="font-size:11px;color:var(--muted);margin-top:1px;">La obra física que activará el AR</div>
             </div>
           </div>
-          <div class="upzone" id="uzTrigger">
-            <input type="file" id="fTrigger" accept="image/jpeg,image/png,image/webp">
+          <label class="upzone" id="uzTrigger" for="fTrigger" style="cursor:pointer;">
+            <input type="file" id="fTrigger" accept="image/jpeg,image/png,image/webp" style="display:none;" onchange="onFileChange('fTrigger','prTrigger')">
             <div class="upzone-icon">◈</div>
             <div class="upzone-title">Selecciona o arrastra</div>
             <div class="upzone-sub">JPG · PNG · WEBP — mín. 300px</div>
             <div class="upzone-preview" id="prTrigger"></div>
-          </div>
+          </label>
         </div>
 
         <!-- Paneles de contenido image -->
@@ -977,10 +975,23 @@ document.querySelectorAll('.upzone').forEach(z => {
     const inp = z.querySelector('input[type="file"]');
     if (inp && e.dataTransfer.files[0]) {
       const dt = new DataTransfer(); dt.items.add(e.dataTransfer.files[0]);
-      inp.files = dt.files; inp.dispatchEvent(new Event('change'));
+      inp.files = dt.files;
+      inp.dispatchEvent(new Event('change'));
+      // Para inputs con display:none, llamar onFileChange directamente
+      const prId = inp.id.replace(/^f/, 'pr');
+      onFileChange(inp.id, prId);
     }
   });
 });
+
+function onFileChange(inputId, previewId) {
+  const el = document.getElementById(inputId);
+  const p  = document.getElementById(previewId);
+  if (el && el.files[0] && p) {
+    p.style.display = 'block';
+    p.textContent = '✓ ' + el.files[0].name + ' (' + fmt(el.files[0].size) + ')';
+  }
+}
 
 Object.entries(fMap).forEach(([, id]) => {
   const el = document.getElementById(id); if (!el) return;

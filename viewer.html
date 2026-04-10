@@ -8,133 +8,224 @@
   <title>ARA — Experiencia AR</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>◈</text></svg>">
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800;900&display=swap" rel="stylesheet">
+  <!-- Image tracking -->
   <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
+  <!-- Face tracking — cargado solo si se necesita (dinámico en JS) -->
+  <!-- Model viewer — surface AR -->
   <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.3.0/model-viewer.min.js"></script>
   <style>
-    :root { --a:#c8f542; --bg:#0a0a0a; --s:rgba(10,10,10,0.85); --b:rgba(255,255,255,0.08); --fd:'Montserrat',sans-serif; }
+    :root {
+      --navy:  #0d1117;
+      --navy2: #161b26;
+      --navy3: #1e2535;
+      --a:     #c8f542;
+      --a2:    #f5a623;
+      --face:  #f542a8;
+      --s:     rgba(13,17,23,0.88);
+      --b:     rgba(255,255,255,0.08);
+      --r:     16px; --r-sm: 10px; --r-pill: 999px;
+      --fd:    'Montserrat', sans-serif;
+      --shadow: 0 8px 32px rgba(0,0,0,0.5);
+    }
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    body { background: var(--bg); color: #e4e4dc; font-family: var(--fd); height: 100vh; overflow: hidden; touch-action: none; }
+    body { background: var(--navy); color: #e8eaf0; font-family: var(--fd); height: 100vh; overflow: hidden; touch-action: none; }
 
-    /* START SCREEN */
-    #startScreen { position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:24px;z-index:2000;padding:40px;text-align:center; }
-    #startScreen.hidden { display:none; }
-    .start-logo { font-size:52px;font-weight:800;color:var(--a);letter-spacing:-0.02em;line-height:1; }
-    .start-sub  { font-size:9px;color:#333;letter-spacing:0.24em;text-transform:uppercase; }
-    .start-sep  { width:36px;height:1px;background:#1e1e1e; }
-    .start-name { font-size:15px;color:#666;letter-spacing:0.06em;font-weight:600; }
-    .start-type { font-size:10px;color:#2a2a2a;letter-spacing:0.16em;text-transform:uppercase;margin-top:4px; }
-    .start-btn  { background:var(--a);color:var(--bg);border:none;padding:16px 44px;font-size:12px;font-weight:800;letter-spacing:0.14em;text-transform:uppercase;cursor:pointer;margin-top:8px;transition:background 0.15s;font-family:var(--fd); }
-    .start-btn:hover { background:#d4ff55; }
-    .start-hint { font-size:10px;color:#222;line-height:1.9;max-width:240px;letter-spacing:0.04em; }
+    /* ── START SCREEN ── */
+    #startScreen {
+      position: fixed; inset: 0;
+      background: linear-gradient(160deg, var(--navy) 0%, var(--navy2) 60%, var(--navy3) 100%);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 20px; z-index: 2000; padding: 40px; text-align: center;
+    }
+    #startScreen.hidden { display: none; }
+    .start-mark {
+      width: 64px; height: 64px; border-radius: 18px;
+      background: linear-gradient(135deg, var(--a) 0%, #a8d820 100%);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 28px; color: var(--navy); font-weight: 900;
+      box-shadow: 0 8px 24px rgba(200,245,66,0.35);
+    }
+    .start-logo { font-size: 42px; font-weight: 900; color: #e8eaf0; letter-spacing: -0.03em; line-height: 1; }
+    .start-sub  { font-size: 9px; color: #3a4460; letter-spacing: 0.26em; text-transform: uppercase; }
+    .start-divider { width: 40px; height: 1px; background: rgba(255,255,255,0.08); }
+    .start-card {
+      background: linear-gradient(145deg, var(--navy2), var(--navy3));
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: var(--r);
+      padding: 20px 28px; min-width: 260px;
+      box-shadow: var(--shadow);
+    }
+    .start-name { font-size: 16px; color: #e8eaf0; font-weight: 700; letter-spacing: 0.02em; }
+    .start-type { font-size: 10px; color: #4a5370; letter-spacing: 0.16em; text-transform: uppercase; margin-top: 5px; font-weight: 600; }
+    .start-btn  {
+      background: linear-gradient(135deg, var(--a) 0%, #a8d820 100%);
+      color: var(--navy); border: none;
+      padding: 15px 44px; font-size: 12px; font-weight: 800;
+      letter-spacing: 0.14em; text-transform: uppercase; cursor: pointer;
+      border-radius: var(--r-pill);
+      box-shadow: 0 4px 20px rgba(200,245,66,0.35);
+      font-family: var(--fd); transition: all 0.2s;
+    }
+    .start-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 24px rgba(200,245,66,0.45); }
+    .start-btn.face-mode {
+      background: linear-gradient(135deg, var(--face) 0%, #c41880 100%);
+      box-shadow: 0 4px 20px rgba(245,66,168,0.35);
+    }
+    .start-hint { font-size: 10px; color: #2e3650; line-height: 1.9; max-width: 240px; letter-spacing: 0.04em; }
 
-    /* SPLASH */
-    #splash { position:fixed;inset:0;background:var(--bg);display:none;flex-direction:column;align-items:center;justify-content:center;gap:24px;z-index:1000;transition:opacity 0.5s; }
+    /* ── SPLASH ── */
+    #splash { position:fixed;inset:0;background:linear-gradient(160deg,var(--navy) 0%,var(--navy2) 100%);display:none;flex-direction:column;align-items:center;justify-content:center;gap:24px;z-index:1000;transition:opacity 0.5s; }
     #splash.visible { display:flex; }
     #splash.hidden  { opacity:0;pointer-events:none; }
-    .slogo { font-size:48px;font-weight:800;color:var(--a);letter-spacing:-0.02em; }
-    .ssub  { font-size:10px;letter-spacing:0.22em;text-transform:uppercase;color:#333; }
-    .sbar  { width:120px;height:1px;background:#1a1a1a;position:relative;overflow:hidden; }
-    .sbar::after { content:'';position:absolute;left:-40%;width:40%;height:100%;background:var(--a);animation:sl 1.2s ease-in-out infinite; }
+    .smark { width:48px;height:48px;border-radius:14px;background:linear-gradient(135deg,var(--a),#a8d820);display:flex;align-items:center;justify-content:center;font-size:20px;color:var(--navy);font-weight:900;box-shadow:0 4px 16px rgba(200,245,66,0.3); }
+    .slogo { font-size:36px;font-weight:900;color:#e8eaf0;letter-spacing:-0.03em; }
+    .ssub  { font-size:9px;letter-spacing:0.24em;text-transform:uppercase;color:#2e3650; }
+    .sbar  { width:140px;height:3px;background:rgba(255,255,255,0.05);border-radius:var(--r-pill);position:relative;overflow:hidden; }
+    .sbar::after { content:'';position:absolute;left:-40%;width:40%;height:100%;background:linear-gradient(90deg,var(--a),#a8d820);animation:sl 1.2s ease-in-out infinite;border-radius:var(--r-pill); }
     @keyframes sl { to{left:140%;} }
-    .smsg  { font-size:11px;color:#333;text-align:center;line-height:1.8; }
+    .smsg  { font-size:11px;color:#3a4460;text-align:center;line-height:1.8;font-weight:600; }
 
-    /* ERROR */
-    #errScreen { position:fixed;inset:0;background:var(--bg);display:none;flex-direction:column;align-items:center;justify-content:center;gap:18px;padding:36px;text-align:center;z-index:1001; }
+    /* ── ERROR ── */
+    #errScreen { position:fixed;inset:0;background:var(--navy);display:none;flex-direction:column;align-items:center;justify-content:center;gap:18px;padding:36px;text-align:center;z-index:1001; }
     #errScreen.show { display:flex; }
-    .eicon  { font-size:40px; }
-    .etitle { font-size:16px;color:#ff4545;font-weight:700; }
-    .emsg   { font-size:12px;color:#444;line-height:1.9;max-width:300px; }
-    .ebtn   { background:var(--a);color:var(--bg);border:none;padding:12px 24px;font-size:11px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;cursor:pointer;font-family:var(--fd); }
+    .etitle { font-size:16px;color:#ff4d4d;font-weight:800; }
+    .emsg   { font-size:12px;color:#4a5370;line-height:1.9;max-width:300px; }
+    .ebtn   { background:linear-gradient(135deg,var(--a),#a8d820);color:var(--navy);border:none;padding:12px 28px;font-size:11px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;cursor:pointer;border-radius:var(--r-pill);font-family:var(--fd); }
 
-    /* HUD */
-    #hud { position:fixed;top:0;left:0;right:0;padding:18px 20px;display:none;justify-content:space-between;align-items:flex-start;z-index:500;pointer-events:none; }
+    /* ── HUD ── */
+    #hud { position:fixed;top:0;left:0;right:0;padding:20px;display:none;justify-content:space-between;align-items:flex-start;z-index:500;pointer-events:none; }
     #hud.show { display:flex; }
-    .hlogo { font-size:14px;color:rgba(200,245,66,0.8);letter-spacing:0.1em;text-shadow:0 1px 8px rgba(0,0,0,0.8);font-weight:800; }
-    .hbtn  { pointer-events:all;background:var(--s);border:1px solid var(--b);color:#888;font-size:10px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;padding:8px 14px;cursor:pointer;backdrop-filter:blur(8px);font-family:var(--fd);transition:all 0.15s; }
-    .hbtn:hover  { color:var(--a); }
-    .hbtn.active { color:var(--a);border-color:rgba(200,245,66,0.3); }
-    #hudRight { display:flex;gap:6px;pointer-events:all; }
+    .hlogo {
+      background: linear-gradient(145deg,var(--navy2),var(--navy3));
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: var(--r-sm);
+      padding: 8px 14px;
+      font-size:13px;color:rgba(200,245,66,0.9);font-weight:900;
+      letter-spacing:0.05em;box-shadow:var(--shadow);
+    }
+    .hbtn  {
+      pointer-events:all;
+      background:linear-gradient(145deg,var(--navy2),var(--navy3));
+      border:1px solid rgba(255,255,255,0.08);
+      color:#6b7a99;font-size:10px;font-weight:800;letter-spacing:0.12em;
+      text-transform:uppercase;padding:9px 16px;cursor:pointer;
+      border-radius:var(--r-pill);font-family:var(--fd);
+      box-shadow:var(--shadow);transition:all 0.2s;
+    }
+    .hbtn:hover  { color:var(--a);border-color:rgba(200,245,66,0.25); }
+    .hbtn.active { color:var(--a);border-color:rgba(200,245,66,0.4);background:rgba(200,245,66,0.08); }
+    #hudRight { display:flex;gap:8px;pointer-events:all; }
 
-    /* SCAN */
-    #scan { position:fixed;top:50%;left:0;right:0;transform:translateY(-50%);display:none;flex-direction:column;align-items:center;gap:14px;z-index:500;pointer-events:none; }
+    /* ── SCAN ── */
+    #scan { position:fixed;top:50%;left:0;right:0;transform:translateY(-50%);display:none;flex-direction:column;align-items:center;gap:16px;z-index:500;pointer-events:none; }
     #scan.show { display:flex; }
     .sframe { width:220px;height:220px;position:relative; }
-    .sc { position:absolute;width:22px;height:22px;border-color:var(--a);border-style:solid;opacity:0.7; }
-    .sc.tl{top:0;left:0;border-width:2px 0 0 2px} .sc.tr{top:0;right:0;border-width:2px 2px 0 0}
-    .sc.bl{bottom:0;left:0;border-width:0 0 2px 2px} .sc.br{bottom:0;right:0;border-width:0 2px 2px 0}
+    .sc { position:absolute;width:24px;height:24px;border-color:var(--a);border-style:solid;opacity:0.8; }
+    .sc.tl{top:0;left:0;border-width:2px 0 0 2px;border-radius:4px 0 0 0} .sc.tr{top:0;right:0;border-width:2px 2px 0 0;border-radius:0 4px 0 0}
+    .sc.bl{bottom:0;left:0;border-width:0 0 2px 2px;border-radius:0 0 0 4px} .sc.br{bottom:0;right:0;border-width:0 2px 2px 0;border-radius:0 0 4px 0}
     .sline { position:absolute;left:10%;right:10%;height:1px;background:linear-gradient(90deg,transparent,var(--a),transparent);animation:scl 2s ease-in-out infinite;top:0; }
     @keyframes scl { 0%,100%{top:10%;opacity:0}20%{opacity:1}80%{opacity:1}100%{top:90%;opacity:0} }
-    .stxt { font-size:11px;color:rgba(255,255,255,0.75);letter-spacing:0.14em;text-transform:uppercase;text-shadow:0 2px 12px rgba(0,0,0,0.95);margin-top:8px;font-weight:700; }
+    .stxt { font-size:11px;color:rgba(255,255,255,0.75);letter-spacing:0.14em;text-transform:uppercase;text-shadow:0 2px 12px rgba(0,0,0,0.95);margin-top:8px;font-weight:800; }
 
-    /* PING */
-    #ping { position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:56px;height:56px;border:2px solid var(--a);border-radius:50%;opacity:0;pointer-events:none;z-index:500; }
+    /* ── FACE SCAN ── */
+    #faceScan { position:fixed;top:50%;left:0;right:0;transform:translateY(-50%);display:none;flex-direction:column;align-items:center;gap:16px;z-index:500;pointer-events:none; }
+    #faceScan.show { display:flex; }
+    .face-oval {
+      width:180px;height:240px;border-radius:50%;
+      border:2px solid var(--face);opacity:0.8;
+      position:relative;animation:fpulse 2s ease-in-out infinite;
+    }
+    @keyframes fpulse { 0%,100%{box-shadow:0 0 0 0 rgba(245,66,168,0.3)} 50%{box-shadow:0 0 0 12px rgba(245,66,168,0)} }
+    .face-line { position:absolute;left:10%;right:10%;height:1px;background:linear-gradient(90deg,transparent,var(--face),transparent);animation:scl 2.5s ease-in-out infinite;top:0; }
+
+    /* ── PING ── */
+    #ping { position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:60px;height:60px;border:2px solid var(--a);border-radius:50%;opacity:0;pointer-events:none;z-index:500; }
     #ping.go { animation:pg 0.6s ease-out forwards; }
-    @keyframes pg { 0%{opacity:1;transform:translate(-50%,-50%) scale(0.5)}100%{opacity:0;transform:translate(-50%,-50%) scale(2)} }
+    @keyframes pg { 0%{opacity:1;transform:translate(-50%,-50%) scale(0.5)}100%{opacity:0;transform:translate(-50%,-50%) scale(2.2)} }
 
-    /* SCENES */
+    /* ── SCENES ── */
     #arScene { display:none;width:100vw;height:100vh; }
     #arScene.show { display:block; }
     #mvWrap  { display:none;width:100vw;height:100vh; }
     #mvWrap.show  { display:block; }
-    model-viewer  { width:100%;height:100%;background:#0a0a0a; }
+    model-viewer  { width:100%;height:100%;background:var(--navy); }
 
-    /* EDITOR */
-    #editor { position:fixed;bottom:0;left:0;right:0;background:var(--s);backdrop-filter:blur(16px);border-top:1px solid var(--b);padding:16px 20px 28px;z-index:600;display:flex;flex-direction:column;gap:10px;max-height:72vh;overflow-y:auto;transform:translateY(100%);transition:transform 0.35s cubic-bezier(0.25,0.46,0.45,0.94);pointer-events:none; }
+    /* ── EDITOR ── */
+    #editor {
+      position:fixed;bottom:0;left:0;right:0;
+      background:linear-gradient(180deg,var(--navy2) 0%,var(--navy3) 100%);
+      border-top:1px solid rgba(255,255,255,0.08);
+      border-radius:var(--r) var(--r) 0 0;
+      padding:16px 20px 32px;z-index:600;
+      display:flex;flex-direction:column;gap:12px;
+      max-height:72vh;overflow-y:auto;
+      transform:translateY(100%);
+      transition:transform 0.35s cubic-bezier(0.25,0.46,0.45,0.94);
+      pointer-events:none;
+      box-shadow:0 -8px 40px rgba(0,0,0,0.5);
+    }
     #editor.open { transform:translateY(0);pointer-events:all; }
-
-    .ed-title { font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:rgba(200,245,66,0.6);margin-bottom:4px;display:flex;justify-content:space-between;align-items:center;font-weight:700; }
-    .ed-save  { background:var(--a);color:var(--bg);border:none;font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;padding:6px 14px;cursor:pointer;font-family:var(--fd); }
-    .ed-section { font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:#333;padding:6px 0 2px;border-top:1px solid rgba(255,255,255,0.05);font-weight:700; }
+    .ed-handle { width:36px;height:3px;background:rgba(255,255,255,0.15);border-radius:var(--r-pill);margin:0 auto 4px; }
+    .ed-title { font-size:10px;font-weight:800;letter-spacing:0.2em;text-transform:uppercase;color:rgba(200,245,66,0.7);display:flex;justify-content:space-between;align-items:center; }
+    .ed-save  { background:linear-gradient(135deg,var(--a),#a8d820);color:var(--navy);border:none;font-size:10px;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;padding:7px 16px;cursor:pointer;font-family:var(--fd);border-radius:var(--r-pill); }
+    .ed-section { font-size:9px;font-weight:700;letter-spacing:0.2em;text-transform:uppercase;color:#2e3650;padding:6px 0 2px;border-top:1px solid rgba(255,255,255,0.05); }
     .ed-row   { display:flex;align-items:center;gap:10px; }
-    .ed-label { font-size:10px;color:#555;letter-spacing:0.08em;text-transform:uppercase;width:72px;flex-shrink:0;font-weight:600; }
-    .ed-slider { flex:1;height:2px;appearance:none;background:#222;outline:none;cursor:pointer; }
-    .ed-slider::-webkit-slider-thumb { appearance:none;width:16px;height:16px;border-radius:50%;background:var(--a);cursor:pointer; }
-    .ed-slider::-moz-range-thumb { width:16px;height:16px;border-radius:50%;background:var(--a);cursor:pointer;border:none; }
+    .ed-label { font-size:10px;color:#4a5370;letter-spacing:0.06em;text-transform:uppercase;width:72px;flex-shrink:0;font-weight:700; }
+    .ed-slider { flex:1;height:3px;appearance:none;background:rgba(255,255,255,0.08);outline:none;cursor:pointer;border-radius:var(--r-pill); }
+    .ed-slider::-webkit-slider-thumb { appearance:none;width:18px;height:18px;border-radius:50%;background:linear-gradient(135deg,var(--a),#a8d820);cursor:pointer;box-shadow:0 2px 8px rgba(200,245,66,0.3); }
+    .ed-slider::-moz-range-thumb { width:18px;height:18px;border-radius:50%;background:var(--a);cursor:pointer;border:none; }
     .ed-val   { font-size:10px;color:var(--a);width:36px;text-align:right;font-family:monospace; }
-    .ed-num   { background:rgba(200,245,66,0.06);border:1px solid rgba(200,245,66,0.15);color:var(--a);font-family:monospace;font-size:11px;width:52px;padding:4px 6px;text-align:right;outline:none; }
+    .ed-num   { background:rgba(200,245,66,0.06);border:1px solid rgba(200,245,66,0.15);color:var(--a);font-family:monospace;font-size:11px;width:52px;padding:5px 7px;text-align:right;outline:none;border-radius:var(--r-sm); }
     .ed-num:focus { border-color:var(--a); }
-    .ed-unit  { font-size:10px;color:#444;letter-spacing:0.05em; }
-    .ed-realsize { background:rgba(200,245,66,0.04);border:1px solid rgba(200,245,66,0.1);padding:12px;margin-top:4px; }
-    .ed-realsize-title { font-size:9px;color:#444;letter-spacing:0.18em;text-transform:uppercase;margin-bottom:10px;font-weight:700; }
+    .ed-unit  { font-size:10px;color:#2e3650; }
+    .ed-realsize { background:rgba(200,245,66,0.04);border:1px solid rgba(200,245,66,0.1);padding:12px;margin-top:4px;border-radius:var(--r-sm); }
+    .ed-realsize-title { font-size:9px;color:#3a4460;letter-spacing:0.18em;text-transform:uppercase;margin-bottom:10px;font-weight:700; }
     .ed-preset-row { display:flex;gap:6px;flex-wrap:wrap; }
-    .ed-preset { background:rgba(255,255,255,0.05);border:1px solid var(--b);color:#666;font-size:9px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;padding:5px 10px;cursor:pointer;font-family:var(--fd);transition:all 0.15s; }
-    .ed-preset:hover, .ed-preset.active { border-color:var(--a);color:var(--a); }
-    .ed-toggle-row { display:flex;gap:6px; }
-    .ed-toggle { flex:1;background:rgba(255,255,255,0.05);border:1px solid var(--b);color:#555;font-size:9px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;padding:7px;cursor:pointer;text-align:center;font-family:var(--fd);transition:all 0.15s; }
+    .ed-preset { background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);color:#4a5370;font-size:9px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;padding:5px 12px;cursor:pointer;font-family:var(--fd);transition:all 0.15s;border-radius:var(--r-pill); }
+    .ed-preset:hover, .ed-preset.active { border-color:var(--a);color:var(--a);background:rgba(200,245,66,0.08); }
+    .ed-toggle-row { display:flex;gap:8px; }
+    .ed-toggle { flex:1;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);color:#4a5370;font-size:9px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;padding:8px;cursor:pointer;text-align:center;font-family:var(--fd);transition:all 0.15s;border-radius:var(--r-pill); }
     .ed-toggle.active { background:rgba(200,245,66,0.1);border-color:var(--a);color:var(--a); }
   </style>
 </head>
 <body>
 
+<!-- START SCREEN -->
 <div id="startScreen">
-  <div class="start-logo">ARA</div>
-  <div class="start-sub">Augmented Reality Atelier</div>
-  <div class="start-sep"></div>
+  <div class="start-mark">◈</div>
   <div>
+    <div class="start-logo">ARA</div>
+    <div class="start-sub">Augmented Reality Atelier</div>
+  </div>
+  <div class="start-divider"></div>
+  <div class="start-card">
     <div class="start-name" id="startName">Cargando...</div>
     <div class="start-type" id="startType"></div>
   </div>
-  <button class="start-btn" onclick="arrancarExperiencia()">▶ Iniciar experiencia</button>
+  <button class="start-btn" id="startBtn" onclick="arrancarExperiencia()">▶ Iniciar experiencia</button>
   <div class="start-hint" id="startHint">Se solicitará acceso a la cámara al iniciar</div>
 </div>
 
+<!-- SPLASH -->
 <div id="splash">
+  <div class="smark">◈</div>
   <div class="slogo">ARA</div>
   <div class="ssub">Cargando experiencia</div>
   <div class="sbar"></div>
   <div class="smsg" id="smsg">Iniciando...</div>
 </div>
 
+<!-- ERROR -->
 <div id="errScreen">
-  <div class="eicon">◈</div>
   <div class="etitle">Algo salió mal</div>
   <div class="emsg" id="emsg">Error desconocido.</div>
   <button class="ebtn" onclick="location.reload()">Reintentar</button>
-  <button class="ebtn" style="background:transparent;color:#444;border:1px solid #222;margin-top:4px;" onclick="cerrarViewer()">Volver</button>
+  <button class="ebtn" style="background:transparent;color:#4a5370;border:1px solid rgba(255,255,255,0.08);margin-top:4px;" onclick="cerrarViewer()">Volver</button>
 </div>
 
+<!-- HUD -->
 <div id="hud">
   <div class="hlogo">ARA</div>
   <div id="hudRight">
@@ -143,6 +234,7 @@
   </div>
 </div>
 
+<!-- SCAN — image tracking -->
 <div id="scan">
   <div class="sframe">
     <div class="sc tl"></div><div class="sc tr"></div>
@@ -152,12 +244,19 @@
   <div class="stxt">Apunta a la obra</div>
 </div>
 
+<!-- SCAN — face tracking -->
+<div id="faceScan">
+  <div class="face-oval"><div class="face-line"></div></div>
+  <div class="stxt" style="color:rgba(245,66,168,0.85);">Centra tu cara en el óvalo</div>
+</div>
+
 <div id="ping"></div>
 <div id="arScene"></div>
 <div id="mvWrap"></div>
 
-<!-- EDITOR PANEL -->
+<!-- EDITOR -->
 <div id="editor">
+  <div class="ed-handle"></div>
   <div class="ed-title">
     <span>Editor de experiencia</span>
     <button class="ed-save" onclick="guardarConfig()">✓ Guardar</button>
@@ -193,21 +292,9 @@
 
   <div id="secRotacion" style="display:none;">
     <div class="ed-section">Rotación</div>
-    <div class="ed-row">
-      <div class="ed-label">Eje X</div>
-      <input type="range" class="ed-slider" id="slRotX" min="-180" max="180" step="1" value="0" oninput="updateContent()">
-      <div class="ed-val" id="valRotX">0°</div>
-    </div>
-    <div class="ed-row">
-      <div class="ed-label">Eje Y</div>
-      <input type="range" class="ed-slider" id="slRotY" min="-180" max="180" step="1" value="0" oninput="updateContent()">
-      <div class="ed-val" id="valRotY">0°</div>
-    </div>
-    <div class="ed-row">
-      <div class="ed-label">Eje Z</div>
-      <input type="range" class="ed-slider" id="slRotZ" min="-180" max="180" step="1" value="0" oninput="updateContent()">
-      <div class="ed-val" id="valRotZ">0°</div>
-    </div>
+    <div class="ed-row"><div class="ed-label">Eje X</div><input type="range" class="ed-slider" id="slRotX" min="-180" max="180" step="1" value="0" oninput="updateContent()"><div class="ed-val" id="valRotX">0°</div></div>
+    <div class="ed-row"><div class="ed-label">Eje Y</div><input type="range" class="ed-slider" id="slRotY" min="-180" max="180" step="1" value="0" oninput="updateContent()"><div class="ed-val" id="valRotY">0°</div></div>
+    <div class="ed-row"><div class="ed-label">Eje Z</div><input type="range" class="ed-slider" id="slRotZ" min="-180" max="180" step="1" value="0" oninput="updateContent()"><div class="ed-val" id="valRotZ">0°</div></div>
   </div>
 
   <div class="ed-section">Tamaño</div>
@@ -228,28 +315,20 @@
     <div class="ed-row" style="margin-top:8px;">
       <div class="ed-label">Ancho</div>
       <input type="range" class="ed-slider" id="slWidth" min="0.1" max="3" step="0.01" value="1" oninput="syncNum('slWidth','numWidth');updateDims()">
-      <input type="number" class="ed-num" id="numWidth" value="1" step="0.01" min="0.1" max="3" oninput="syncSlider('numWidth','slWidth',0.1,3);updateDims()">
+      <input type="number" class="ed-num" id="numWidth" value="1" step="0.01" oninput="syncSlider('numWidth','slWidth',0.1,3);updateDims()">
       <span class="ed-unit">m</span>
     </div>
     <div class="ed-row">
       <div class="ed-label">Alto</div>
       <input type="range" class="ed-slider" id="slHeight" min="0.1" max="3" step="0.01" value="1" oninput="syncNum('slHeight','numHeight');updateDims()">
-      <input type="number" class="ed-num" id="numHeight" value="1" step="0.01" min="0.1" max="3" oninput="syncSlider('numHeight','slHeight',0.1,3);updateDims()">
+      <input type="number" class="ed-num" id="numHeight" value="1" step="0.01" oninput="syncSlider('numHeight','slHeight',0.1,3);updateDims()">
       <span class="ed-unit">m</span>
     </div>
     <div class="ed-realsize">
-      <div class="ed-realsize-title">Tamaño real de la obra → calcula automáticamente</div>
-      <div class="ed-row">
-        <div class="ed-label">Ancho obra</div>
-        <input type="number" class="ed-num" id="numRealW" placeholder="60" step="1" min="1" oninput="calcTamanoReal()" style="width:64px;">
-        <span class="ed-unit">cm</span>
-      </div>
-      <div class="ed-row" style="margin-top:6px;">
-        <div class="ed-label">Alto obra</div>
-        <input type="number" class="ed-num" id="numRealH" placeholder="40" step="1" min="1" oninput="calcTamanoReal()" style="width:64px;">
-        <span class="ed-unit">cm</span>
-      </div>
-      <div id="realSizeResult" style="font-size:10px;color:#444;margin-top:8px;line-height:1.8;display:none;"></div>
+      <div class="ed-realsize-title">Tamaño real de la obra</div>
+      <div class="ed-row"><div class="ed-label">Ancho</div><input type="number" class="ed-num" id="numRealW" placeholder="60" step="1" min="1" oninput="calcTamanoReal()" style="width:64px;"><span class="ed-unit">cm</span></div>
+      <div class="ed-row" style="margin-top:6px;"><div class="ed-label">Alto</div><input type="number" class="ed-num" id="numRealH" placeholder="40" step="1" min="1" oninput="calcTamanoReal()" style="width:64px;"><span class="ed-unit">cm</span></div>
+      <div id="realSizeResult" style="font-size:10px;color:#3a4460;margin-top:8px;line-height:1.8;display:none;"></div>
     </div>
   </div>
 
@@ -277,45 +356,47 @@
   })();
 
   const PATHS = {
-    mind:     `${BASE}/proyectos/${PROJECT}/targets.mind`,
-    content:  `${BASE}/proyectos/${PROJECT}/contenido.${CE}`,
-    trigger:  `${BASE}/proyectos/${PROJECT}/trigger.${TE}`,
-    audioImg: `${BASE}/proyectos/${PROJECT}/audio-img.jpg`,
-    config:   `${BASE}/proyectos/${PROJECT}/config.json`,
+    mind:    `${BASE}/proyectos/${PROJECT}/targets.mind`,
+    content: `${BASE}/proyectos/${PROJECT}/contenido.${CE}`,
+    trigger: `${BASE}/proyectos/${PROJECT}/trigger.${TE}`,
+    audioImg:`${BASE}/proyectos/${PROJECT}/audio-img.jpg`,
+    config:  `${BASE}/proyectos/${PROJECT}/config.json`,
   };
 
-  const URL_W  = parseFloat(P.get('w'))  || null;
-  const URL_H  = parseFloat(P.get('h'))  || null;
-  const URL_SC = parseFloat(P.get('sc')) || null;
-  const EDIT_MODE = P.get('edit') === '1';
+  const URL_W    = parseFloat(P.get('w'))  || null;
+  const URL_H    = parseFloat(P.get('h'))  || null;
+  const URL_SC   = parseFloat(P.get('sc')) || null;
+  const URL_FA   = parseInt(P.get('fa'))   || 0;
+  const URL_FS   = parseFloat(P.get('fs')) || 0.1;
+  const EDIT_MODE= P.get('edit') === '1';
 
-  const defaultConfig = {
-    posX:0, posY:0, posZ:0.01,
-    rotX:0, rotY:0, rotZ:0,
-    scale:1, width:1, height:0.5625,
-    preset:'vertical',
-    loop:true, autoplay:true, fade:false,
-  };
-  let CFG = { ...defaultConfig };
-
-  // Tipo de contenido — lógica limpia y sin ambigüedad
+  // Tipo de contenido
+  const isFace    = TYPE.startsWith('face-');
+  const isSurface = TYPE === 'surface-model';
   const isVideo   = TYPE === 'video';
   const isGif     = TYPE === 'gif';
-  const isModel   = TYPE === 'model';          // 3D con image tracking → a-gltf-model en MindAR
+  const isModel   = TYPE === 'model';
   const isAudio   = TYPE === 'audio';
-  const isSurface = TYPE === 'surface-model';  // 3D sin trigger → model-viewer con AR nativo
 
+  const defaultConfig = {
+    posX:0, posY:0, posZ:0.01, rotX:0, rotY:0, rotZ:0,
+    scale:1, width:1, height:0.5625, preset:'vertical',
+    loop:true, autoplay:true, fade:false,
+    faceAnchor: URL_FA, faceScale: URL_FS,
+  };
+  let CFG = { ...defaultConfig };
   let arContent = null;
 
-  // Start screen
+  // Start screen setup
   document.getElementById('startName').textContent = PROJECT ? PROJECT.replace(/-/g,' ') : '';
   document.getElementById('startType').textContent = TYPE || '';
-  if (isSurface) {
-    document.getElementById('startHint').textContent = 'Apunta al suelo o pared y toca para colocar el modelo';
-  } else if (isAudio) {
-    document.getElementById('startHint').textContent = 'Apunta la cámara al trigger para activar el audio';
+  if (isFace) {
+    document.getElementById('startHint').textContent = 'Usará la cámara frontal — centra tu cara en pantalla';
+    document.getElementById('startBtn').classList.add('face-mode');
+  } else if (isSurface) {
+    document.getElementById('startHint').textContent = 'Apunta al suelo o pared y toca para anclar el modelo';
   } else if (isModel) {
-    document.getElementById('startHint').textContent = 'Apunta la cámara al trigger — el modelo aparece anclado sobre él';
+    document.getElementById('startHint').textContent = 'Apunta al trigger — el modelo aparece anclado sobre él';
   } else {
     document.getElementById('startHint').textContent = 'Apunta la cámara al trigger para activar el contenido';
   }
@@ -338,23 +419,21 @@
       if (r.ok) { const saved = await r.json(); CFG = { ...defaultConfig, ...saved }; }
     } catch(e) {}
 
-    const hasConfig = CFG.width  !== defaultConfig.width
-                   || CFG.height !== defaultConfig.height
-                   || CFG.scale  !== defaultConfig.scale
-                   || CFG.posX   !== 0 || CFG.posY !== 0;
-
+    const hasConfig = CFG.width !== defaultConfig.width || CFG.height !== defaultConfig.height
+                   || CFG.scale !== defaultConfig.scale || CFG.posX !== 0 || CFG.posY !== 0;
     if (!hasConfig) {
       if (URL_W  > 0) CFG.width  = URL_W;
       if (URL_H  > 0) CFG.height = URL_H;
       if (URL_SC > 0) CFG.scale  = URL_SC;
     }
 
-    // Sanitize
     if (!CFG.posZ  || CFG.posZ  === 0) CFG.posZ  = 0.01;
     if (!CFG.scale || CFG.scale <= 0 ) CFG.scale  = URL_SC || 1;
     if (!CFG.width  || CFG.width  <= 0) CFG.width  = URL_W  || 1;
     if (!CFG.height || CFG.height <= 0) CFG.height = URL_H  || 0.5625;
-    CFG.preset = CFG.preset || 'vertical';
+    CFG.preset     = CFG.preset     || 'vertical';
+    CFG.faceAnchor = CFG.faceAnchor ?? URL_FA;
+    CFG.faceScale  = CFG.faceScale  ?? URL_FS;
 
     applyConfigToSliders();
     init();
@@ -370,74 +449,117 @@
     set('slWidth',CFG.width); set('numWidth',CFG.width);
     set('slHeight',CFG.height); set('numHeight',CFG.height);
     updateVals();
-
-    document.querySelectorAll('#presetOri .ed-preset').forEach(b => {
-      b.classList.toggle('active', b.textContent.toLowerCase().includes(CFG.preset));
-    });
+    document.querySelectorAll('#presetOri .ed-preset').forEach(b => b.classList.toggle('active', b.textContent.toLowerCase().includes(CFG.preset)));
     document.getElementById('togLoop')?.classList.toggle('active', CFG.loop);
     document.getElementById('togAuto')?.classList.toggle('active', CFG.autoplay);
     document.getElementById('togFade')?.classList.toggle('active', CFG.fade);
-
-    // Secciones del editor según tipo
     document.getElementById('secProp').style.display     = (isVideo || isGif) ? 'block' : 'none';
     document.getElementById('secBehavior').style.display = (isVideo || isAudio) ? 'block' : 'none';
     document.getElementById('secRotacion').style.display = CFG.preset === 'libre' ? 'block' : 'none';
   }
 
-  // ── INIT — DESPACHADOR ──
   async function init() {
     setSplash('Preparando experiencia...');
-
-    // Surface AR: model-viewer con AR nativo (WebXR/ARKit/ARCore)
-    // El modelo se ancla a la superficie real — sin trigger
     if (isSurface) { initModelViewer(); return; }
-
-    // Image Tracking — todos los tipos usan MindAR + A-Frame
+    if (isFace)    { await initFaceTracking(); return; }
     await initMindAR();
   }
 
-  // ── MODEL VIEWER — Surface AR ──
-  // Usa WebXR + ARKit + Scene Viewer para anclar el modelo a superficies reales
+  // ── SURFACE: model-viewer con AR nativo ──
   function initModelViewer() {
     setSplash('Cargando modelo 3D...');
     const sc = CFG.scale || URL_SC || 0.5;
-
     document.getElementById('mvWrap').innerHTML = `
-      <model-viewer
-        id="araModelViewer"
-        src="${PATHS.content}"
-        ar
-        ar-modes="webxr scene-viewer quick-look"
-        camera-controls
-        auto-rotate
-        shadow-intensity="1"
-        scale="${sc} ${sc} ${sc}"
-        ar-scale="fixed"
-        style="width:100%;height:100%;background:#0a0a0a;">
+      <model-viewer id="araModelViewer" src="${PATHS.content}"
+        ar ar-modes="webxr scene-viewer quick-look"
+        camera-controls auto-rotate shadow-intensity="1"
+        scale="${sc} ${sc} ${sc}" ar-scale="fixed"
+        style="width:100%;height:100%;background:var(--navy);">
         <button slot="ar-button" style="
           position:absolute;bottom:80px;left:50%;transform:translateX(-50%);
-          background:#c8f542;color:#0a0a0a;border:none;
+          background:linear-gradient(135deg,#c8f542,#a8d820);color:#0d1117;border:none;
           padding:16px 36px;font-size:13px;font-weight:800;
-          letter-spacing:0.12em;text-transform:uppercase;
-          cursor:pointer;white-space:nowrap;
-          box-shadow:0 4px 24px rgba(0,0,0,0.6);
-          font-family:'Montserrat',sans-serif;
+          letter-spacing:0.12em;text-transform:uppercase;cursor:pointer;
+          white-space:nowrap;box-shadow:0 4px 24px rgba(200,245,66,0.4);
+          font-family:'Montserrat',sans-serif;border-radius:999px;
         ">⬡ Ver en tu espacio</button>
       </model-viewer>`;
-
     document.getElementById('mvWrap').classList.add('show');
     document.getElementById('hud').classList.add('show');
     if (EDIT_MODE) document.getElementById('btnEdit').style.display = 'inline-block';
-
     const hint = document.createElement('div');
-    hint.id = 'mvHint';
-    hint.style.cssText = 'position:fixed;top:68px;left:0;right:0;text-align:center;font-size:11px;font-weight:600;color:rgba(255,255,255,0.35);letter-spacing:0.1em;text-transform:uppercase;pointer-events:none;z-index:500;font-family:Montserrat,sans-serif;';
-    hint.textContent = 'Rota con los dedos · Toca el botón para ver en AR';
+    hint.id='mvHint';
+    hint.style.cssText='position:fixed;top:72px;left:0;right:0;text-align:center;font-size:11px;font-weight:700;color:rgba(255,255,255,0.3);letter-spacing:0.1em;text-transform:uppercase;pointer-events:none;z-index:500;font-family:Montserrat,sans-serif;';
+    hint.textContent='Rota con los dedos · Toca el botón para ver en AR';
     document.body.appendChild(hint);
     hideSplash();
   }
 
-  // ── IMAGE TRACKING con MindAR ──
+  // ── FACE TRACKING: carga mindar-face dinámicamente ──
+  async function initFaceTracking() {
+    setSplash('Cargando motor de face tracking...');
+
+    // Cargar el script de face tracking solo cuando se necesita
+    await new Promise((resolve, reject) => {
+      // A-Frame ya está cargado — solo necesitamos mindar-face
+      const s = document.createElement('script');
+      s.src = 'https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-face-aframe.prod.js';
+      s.onload = resolve;
+      s.onerror = () => reject(new Error('No se pudo cargar el motor de face tracking'));
+      document.head.appendChild(s);
+    });
+
+    setSplash('Preparando escena facial...');
+    buildFaceScene();
+  }
+
+  function buildFaceScene() {
+    const anchor = CFG.faceAnchor ?? URL_FA;
+    const sc     = CFG.faceScale  ?? URL_FS ?? 0.1;
+    const scl    = `${sc} ${sc} ${sc}`;
+
+    let entityHTML = '';
+    if (TYPE === 'face-model') {
+      entityHTML = `<a-gltf-model id="arc" src="${PATHS.content}" position="0 0 0" scale="${scl}"></a-gltf-model>`;
+    } else if (TYPE === 'face-gif' || TYPE === 'face-image') {
+      entityHTML = `<a-image id="arc" src="${PATHS.content}" width="${sc}" height="${sc}" position="0 0 0"></a-image>`;
+    } else if (TYPE === 'face-video') {
+      entityHTML = `<a-video id="arc" src="${PATHS.content}" width="${sc}" height="${sc*0.5625}" position="0 0 0" loop="true" autoplay="true" playsinline="true" webkit-playsinline="true"></a-video>`;
+    }
+
+    const sceneDiv = document.getElementById('arScene');
+    sceneDiv.innerHTML = `
+      <a-scene mindar-face="autoStart:true;" embedded
+        color-space="sRGB"
+        renderer="colorManagement:true"
+        vr-mode-ui="enabled:false"
+        device-orientation-permission-ui="enabled:false"
+        style="width:100vw;height:100vh;">
+        <a-assets>
+          ${TYPE === 'face-model' ? `<a-asset-item id="face-model-asset" src="${PATHS.content}"></a-asset-item>` : ''}
+        </a-assets>
+        <a-camera active="false" position="0 0 0"></a-camera>
+        <a-entity mindar-face-target="anchorIndex:${anchor};">
+          ${entityHTML}
+        </a-entity>
+      </a-scene>`;
+
+    sceneDiv.classList.add('show');
+    document.getElementById('hud').classList.add('show');
+    document.getElementById('faceScan').classList.add('show');
+    if (EDIT_MODE) document.getElementById('btnEdit').style.display = 'inline-block';
+
+    setTimeout(() => {
+      const scene = sceneDiv.querySelector('a-scene');
+      if (!scene) return;
+      scene.addEventListener('loaded', () => { arContent = document.getElementById('arc'); hideSplash(); });
+      scene.addEventListener('arReady', () => { document.getElementById('faceScan').classList.remove('show'); hideSplash(); });
+      scene.addEventListener('arError', () => showErr('No se pudo acceder a la cámara frontal.<br>Verifica los permisos.'));
+      setTimeout(() => hideSplash(), 10000);
+    }, 600);
+  }
+
+  // ── IMAGE TRACKING: MindAR ──
   async function initMindAR() {
     setSplash('Cargando motor de tracking...');
     const mindOk = await fileExists(PATHS.mind);
@@ -449,62 +571,35 @@
     buildAFrameScene();
   }
 
-  // ── CONSTRUIR ESCENA A-FRAME (solo para image tracking) ──
   function buildAFrameScene() {
     const pos = `${CFG.posX} ${CFG.posY} ${CFG.posZ}`;
     const rot = getRotation();
     const scl = `${CFG.scale} ${CFG.scale} ${CFG.scale}`;
-    const w   = CFG.width;
-    const h   = CFG.height;
+    const w   = CFG.width, h = CFG.height;
 
     let entityHTML = '';
-
     if (isVideo) {
-      entityHTML = `<a-video id="arc" src="${PATHS.content}"
-        width="${w}" height="${h}"
-        position="${pos}" rotation="${rot}" scale="${scl}"
-        loop="${CFG.loop}" autoplay="${CFG.autoplay}"
-        playsinline="true" webkit-playsinline="true"
-        ${CFG.fade ? 'animation="property:material.opacity;from:0;to:1;dur:800"' : ''}
-      ></a-video>`;
+      entityHTML = `<a-video id="arc" src="${PATHS.content}" width="${w}" height="${h}" position="${pos}" rotation="${rot}" scale="${scl}" loop="${CFG.loop}" autoplay="${CFG.autoplay}" playsinline="true" webkit-playsinline="true" ${CFG.fade?'animation="property:material.opacity;from:0;to:1;dur:800"':''}></a-video>`;
     } else if (isGif) {
-      entityHTML = `<a-image id="arc" src="${PATHS.content}"
-        width="${w}" height="${h}"
-        position="${pos}" rotation="${rot}" scale="${scl}"
-        ${CFG.fade ? 'animation="property:material.opacity;from:0;to:1;dur:800"' : ''}
-      ></a-image>`;
+      entityHTML = `<a-image id="arc" src="${PATHS.content}" width="${w}" height="${h}" position="${pos}" rotation="${rot}" scale="${scl}" ${CFG.fade?'animation="property:material.opacity;from:0;to:1;dur:800"':''}></a-image>`;
     } else if (isModel) {
-      // 3D con image tracking: a-gltf-model anclado al target
-      // El modelo aparece encima del trigger y lo sigue
-      entityHTML = `<a-gltf-model id="arc" src="${PATHS.content}"
-        position="${pos}" rotation="${rot}" scale="${scl}"
-      ></a-gltf-model>`;
+      entityHTML = `<a-gltf-model id="arc" src="${PATHS.content}" position="${pos}" rotation="${rot}" scale="${scl}"></a-gltf-model>`;
     } else if (isAudio) {
-      entityHTML = `
-        <a-sound src="${PATHS.content}" autoplay="${CFG.autoplay}" loop="${CFG.loop}"></a-sound>
-        <a-image id="arc" src="${PATHS.audioImg}" width="${w}" height="${h}"
-          position="${pos}" rotation="${rot}" scale="${scl}">
-        </a-image>
-        <a-text value="♪" position="${CFG.posX} ${CFG.posY+0.05} ${CFG.posZ+0.01}"
-          align="center" color="#c8f542" width="1"></a-text>`;
+      entityHTML = `<a-sound src="${PATHS.content}" autoplay="${CFG.autoplay}" loop="${CFG.loop}"></a-sound>
+        <a-image id="arc" src="${PATHS.audioImg}" width="${w}" height="${h}" position="${pos}" rotation="${rot}" scale="${scl}"></a-image>
+        <a-text value="♪" position="${CFG.posX} ${CFG.posY+0.05} ${CFG.posZ+0.01}" align="center" color="#c8f542" width="1"></a-text>`;
     }
 
     const sceneDiv = document.getElementById('arScene');
     sceneDiv.innerHTML = `
-      <a-scene
-        mindar-image="imageTargetSrc:${PATHS.mind};autoStart:true;uiScanning:false;uiLoading:false;filterMinCF:0.001;filterBeta:0.001;"
-        color-space="sRGB" embedded
-        renderer="colorManagement:true;physicallyCorrectLights:true"
-        vr-mode-ui="enabled:false"
-        device-orientation-permission-ui="enabled:false"
+      <a-scene mindar-image="imageTargetSrc:${PATHS.mind};autoStart:true;uiScanning:false;uiLoading:false;filterMinCF:0.001;filterBeta:0.001;"
+        color-space="sRGB" embedded renderer="colorManagement:true;physicallyCorrectLights:true"
+        vr-mode-ui="enabled:false" device-orientation-permission-ui="enabled:false"
         style="width:100vw;height:100vh;">
-        <a-assets>
-          ${isModel ? `<a-asset-item id="model-asset" src="${PATHS.content}"></a-asset-item>` : ''}
-        </a-assets>
         <a-light type="ambient" intensity="1.2"></a-light>
         <a-light type="directional" intensity="0.8" position="1 3 2"></a-light>
         <a-camera position="0 0 0" look-controls="enabled:false"></a-camera>
-        <a-entity id="target" mindar-image-target="targetIndex:0">
+        <a-entity id="target" mindar-image-target="targetIndex:0;">
           ${entityHTML}
         </a-entity>
       </a-scene>`;
@@ -517,57 +612,45 @@
     setTimeout(() => {
       const scene = sceneDiv.querySelector('a-scene');
       if (!scene) return;
-
-      scene.addEventListener('loaded', () => {
-        arContent = document.getElementById('arc');
-        hideSplash();
-      });
+      scene.addEventListener('loaded', () => { arContent = document.getElementById('arc'); hideSplash(); });
       scene.addEventListener('arReady',  () => hideSplash());
-      scene.addEventListener('arError',  () => showErr('No se pudo acceder a la cámara.<br>Verifica los permisos en tu navegador.'));
-
+      scene.addEventListener('arError',  () => showErr('No se pudo acceder a la cámara.<br>Verifica los permisos.'));
       const target = scene.querySelector('[mindar-image-target]');
       if (target) {
         target.addEventListener('targetFound', () => {
           document.getElementById('scan').classList.remove('show');
-          const pg = document.getElementById('ping');
-          pg.classList.add('go');
-          setTimeout(() => pg.classList.remove('go'), 700);
+          const pg=document.getElementById('ping'); pg.classList.add('go'); setTimeout(()=>pg.classList.remove('go'),700);
           arContent = document.getElementById('arc');
         });
-        target.addEventListener('targetLost', () => {
-          document.getElementById('scan').classList.add('show');
-        });
+        target.addEventListener('targetLost', () => document.getElementById('scan').classList.add('show'));
       }
-
       setTimeout(() => hideSplash(), 10000);
     }, 600);
   }
 
   // ── CERRAR ──
   function cerrarViewer() {
-    if (EDIT_MODE) {
-      window.location.replace(BASE + '/index.html');
-      return;
-    }
+    if (EDIT_MODE) { window.location.replace(BASE + '/index.html'); return; }
     try { const s=document.querySelector('a-scene'); if(s&&s.renderer) s.renderer.setAnimationLoop(null); } catch(e){}
-    const arScene = document.getElementById('arScene');
-    arScene.classList.remove('show'); arScene.innerHTML = '';
-    const mvWrap = document.getElementById('mvWrap');
-    mvWrap.classList.remove('show'); mvWrap.innerHTML = '';
+    document.getElementById('arScene').classList.remove('show');
+    document.getElementById('arScene').innerHTML = '';
+    document.getElementById('mvWrap').classList.remove('show');
+    document.getElementById('mvWrap').innerHTML = '';
     document.getElementById('hud').classList.remove('show');
     document.getElementById('scan').classList.remove('show');
+    document.getElementById('faceScan').classList.remove('show');
     document.getElementById('ping').classList.remove('go');
     document.getElementById('editor').classList.remove('open');
     document.getElementById('btnEdit').style.display = 'none';
     document.getElementById('splash').classList.remove('visible');
-    const hint = document.getElementById('mvHint'); if (hint) hint.remove();
+    const hint=document.getElementById('mvHint'); if(hint) hint.remove();
     arContent = null;
     document.getElementById('startScreen').classList.remove('hidden');
   }
 
   // ── EDITOR ──
   function toggleEditor() {
-    const ed=document.getElementById('editor'); const btn=document.getElementById('btnEdit');
+    const ed=document.getElementById('editor'),btn=document.getElementById('btnEdit');
     const isOpen=ed.classList.contains('open');
     ed.classList.toggle('open',!isOpen); btn.classList.toggle('active',!isOpen);
   }
@@ -582,113 +665,86 @@
     }
   }
 
-  function syncNum(sId, nId) { const sl=document.getElementById(sId); const nm=document.getElementById(nId); if(sl&&nm) nm.value=parseFloat(sl.value).toFixed(2); }
-  function syncSlider(nId, sId, min, max) { const nm=document.getElementById(nId); const sl=document.getElementById(sId); if(!nm||!sl) return; let v=parseFloat(nm.value); if(isNaN(v))return; sl.value=Math.min(Math.max(v,min),max); }
+  function syncNum(sId,nId){const sl=document.getElementById(sId),nm=document.getElementById(nId);if(sl&&nm)nm.value=parseFloat(sl.value).toFixed(2);}
+  function syncSlider(nId,sId,min,max){const nm=document.getElementById(nId),sl=document.getElementById(sId);if(!nm||!sl)return;let v=parseFloat(nm.value);if(isNaN(v))return;sl.value=Math.min(Math.max(v,min),max);}
 
   function updateVals() {
-    ['PosX','PosY','PosZ','Scale','Width','Height'].forEach(k => syncNum(`sl${k}`,`num${k}`));
-    ['RotX','RotY','RotZ'].forEach(k => {
-      const el=document.getElementById(`valRot${k}`); const sl=document.getElementById(`slRot${k}`);
-      if(el&&sl) el.textContent=parseFloat(sl.value).toFixed(0)+'°';
-    });
+    ['PosX','PosY','PosZ','Scale','Width','Height'].forEach(k=>syncNum(`sl${k}`,`num${k}`));
+    ['RotX','RotY','RotZ'].forEach(k=>{const el=document.getElementById(`valRot${k}`),sl=document.getElementById(`slRot${k}`);if(el&&sl)el.textContent=parseFloat(sl.value).toFixed(0)+'°';});
   }
 
   function readSliders() {
-    const g=(nId,sId)=>{ const nm=document.getElementById(nId); const sl=document.getElementById(sId); return parseFloat(nm?.value||sl?.value||0); };
-    CFG.posX  = g('numPosX','slPosX');
-    CFG.posY  = g('numPosY','slPosY');
-    CFG.posZ  = g('numPosZ','slPosZ');
-    CFG.rotX  = g(null,'slRotX');
-    CFG.rotY  = g(null,'slRotY');
-    CFG.rotZ  = g(null,'slRotZ');
-    CFG.scale = g('numScale','slScale');
-    CFG.width  = g('numWidth','slWidth');
-    CFG.height = g('numHeight','slHeight');
+    const g=(nId,sId)=>{const nm=document.getElementById(nId),sl=document.getElementById(sId);return parseFloat(nm?.value||sl?.value||0);};
+    CFG.posX=g('numPosX','slPosX'); CFG.posY=g('numPosY','slPosY'); CFG.posZ=g('numPosZ','slPosZ');
+    CFG.rotX=g(null,'slRotX'); CFG.rotY=g(null,'slRotY'); CFG.rotZ=g(null,'slRotZ');
+    CFG.scale=g('numScale','slScale'); CFG.width=g('numWidth','slWidth'); CFG.height=g('numHeight','slHeight');
   }
 
   function updateContent() {
-    readSliders(); updateVals();
-    if (!arContent) return;
+    readSliders(); updateVals(); if(!arContent) return;
     arContent.setAttribute('position',`${CFG.posX} ${CFG.posY} ${CFG.posZ}`);
-    arContent.setAttribute('rotation', getRotation());
-    arContent.setAttribute('scale',    `${CFG.scale} ${CFG.scale} ${CFG.scale}`);
-    if (isVideo || isGif) {
-      arContent.setAttribute('width',  CFG.width);
-      arContent.setAttribute('height', CFG.height);
-    }
+    arContent.setAttribute('rotation',getRotation());
+    arContent.setAttribute('scale',`${CFG.scale} ${CFG.scale} ${CFG.scale}`);
+    if(isVideo||isGif){arContent.setAttribute('width',CFG.width);arContent.setAttribute('height',CFG.height);}
   }
 
   function updateDims() {
     readSliders(); updateVals();
     document.querySelectorAll('#presetProp .ed-preset').forEach(b=>b.classList.remove('active'));
-    if (!arContent) return;
-    arContent.setAttribute('width',  CFG.width);
-    arContent.setAttribute('height', CFG.height);
+    if(!arContent)return; arContent.setAttribute('width',CFG.width); arContent.setAttribute('height',CFG.height);
   }
 
   function aplicarPreset(p) {
-    CFG.preset = p;
-    document.querySelectorAll('#presetOri .ed-preset').forEach(b => {
-      b.classList.toggle('active', b.onclick?.toString().includes(`'${p}'`));
-    });
-    document.getElementById('secRotacion').style.display = p==='libre' ? 'block' : 'none';
+    CFG.preset=p;
+    document.querySelectorAll('#presetOri .ed-preset').forEach(b=>b.classList.toggle('active',b.onclick?.toString().includes(`'${p}'`)));
+    document.getElementById('secRotacion').style.display=p==='libre'?'block':'none';
     updateContent();
   }
 
-  function setProporcion(w, h) {
+  function setProporcion(w,h) {
     const base=parseFloat(document.getElementById('slScale').value)||1;
-    const nw=parseFloat((base*w/Math.max(w,h)).toFixed(2));
-    const nh=parseFloat((base*h/Math.max(w,h)).toFixed(2));
+    const nw=parseFloat((base*w/Math.max(w,h)).toFixed(2)),nh=parseFloat((base*h/Math.max(w,h)).toFixed(2));
     document.getElementById('slWidth').value=nw; document.getElementById('numWidth').value=nw;
     document.getElementById('slHeight').value=nh; document.getElementById('numHeight').value=nh;
     document.querySelectorAll('#presetProp .ed-preset').forEach(b=>b.classList.remove('active'));
-    event.target.classList.add('active');
-    updateDims();
+    event.target.classList.add('active'); updateDims();
   }
 
   function calcTamanoReal() {
-    const rw=parseFloat(document.getElementById('numRealW')?.value);
-    const rh=parseFloat(document.getElementById('numRealH')?.value);
+    const rw=parseFloat(document.getElementById('numRealW')?.value),rh=parseFloat(document.getElementById('numRealH')?.value);
     if(!rw||!rh||isNaN(rw)||isNaN(rh))return;
-    const aw=(rw/100).toFixed(3); const ah=(rh/100).toFixed(3);
+    const aw=(rw/100).toFixed(3),ah=(rh/100).toFixed(3);
     document.getElementById('slWidth').value=Math.min(aw,3); document.getElementById('slHeight').value=Math.min(ah,3);
     document.getElementById('numWidth').value=aw; document.getElementById('numHeight').value=ah;
     const res=document.getElementById('realSizeResult');
-    if (res){ res.style.display='block'; res.innerHTML=`Ancho: <span style="color:var(--a)">${aw}m</span> · Alto: <span style="color:var(--a)">${ah}m</span>`; }
+    if(res){res.style.display='block';res.innerHTML=`Ancho: <span style="color:var(--a)">${aw}m</span> · Alto: <span style="color:var(--a)">${ah}m</span>`;}
     updateDims();
   }
 
-  function toggleLoop() { CFG.loop=!CFG.loop; document.getElementById('togLoop').classList.toggle('active',CFG.loop); const v=document.querySelector('a-video'); if(v) v.setAttribute('loop',CFG.loop); }
-  function toggleAuto() { CFG.autoplay=!CFG.autoplay; document.getElementById('togAuto').classList.toggle('active',CFG.autoplay); }
-  function toggleFade() { CFG.fade=!CFG.fade; document.getElementById('togFade').classList.toggle('active',CFG.fade); }
+  function toggleLoop(){CFG.loop=!CFG.loop;document.getElementById('togLoop').classList.toggle('active',CFG.loop);const v=document.querySelector('a-video');if(v)v.setAttribute('loop',CFG.loop);}
+  function toggleAuto(){CFG.autoplay=!CFG.autoplay;document.getElementById('togAuto').classList.toggle('active',CFG.autoplay);}
+  function toggleFade(){CFG.fade=!CFG.fade;document.getElementById('togFade').classList.toggle('active',CFG.fade);}
 
-  // ── GUARDAR CONFIG VIA WORKER ──
   async function guardarConfig() {
     readSliders();
-    if (CFG.preset==='vertical'){CFG.rotX=0;CFG.rotY=0;CFG.rotZ=0;}
-    try {
+    if(CFG.preset==='vertical'){CFG.rotX=0;CFG.rotY=0;CFG.rotZ=0;}
+    try{
       const res=await fetch(WORKER_URL,{method:'POST',headers:{'Content-Type':'application/json','User-Agent':'ARA-Viewer'},body:JSON.stringify({path:`proyectos/${PROJECT}/config.json`,content:btoa(JSON.stringify(CFG,null,2)),message:`ARA: config ${PROJECT}`})});
-      if (!res.ok) throw new Error('Error '+res.status);
+      if(!res.ok) throw new Error('Error '+res.status);
       showToast('✓ Configuración guardada');
       document.getElementById('editor').classList.remove('open');
       document.getElementById('btnEdit')?.classList.remove('active');
-    } catch(e){ showToast('Error al guardar: '+e.message); }
+    }catch(e){showToast('Error al guardar: '+e.message);}
   }
 
-  // ── HELPERS ──
-  function setSplash(msg) { document.getElementById('smsg').textContent=msg; }
-  function hideSplash() {
-    const s=document.getElementById('splash');
-    s.classList.add('hidden');
-    setTimeout(()=>s.classList.remove('visible','hidden'),600);
-  }
-  function showErr(msg) { hideSplash(); document.getElementById('emsg').innerHTML=msg; document.getElementById('errScreen').classList.add('show'); }
-  async function fileExists(url) { try{const r=await fetch(url,{method:'HEAD'});return r.ok;}catch{return false;} }
-  function showToast(msg) {
+  function setSplash(msg){document.getElementById('smsg').textContent=msg;}
+  function hideSplash(){const s=document.getElementById('splash');s.classList.add('hidden');setTimeout(()=>s.classList.remove('visible','hidden'),600);}
+  function showErr(msg){hideSplash();document.getElementById('emsg').innerHTML=msg;document.getElementById('errScreen').classList.add('show');}
+  async function fileExists(url){try{const r=await fetch(url,{method:'HEAD'});return r.ok;}catch{return false;}}
+  function showToast(msg){
     let t=document.getElementById('toast');
-    if (!t){t=document.createElement('div');t.id='toast';t.style.cssText='position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#c8f542;color:#0a0a0a;padding:10px 20px;font-size:12px;font-weight:800;z-index:2000;letter-spacing:0.06em;font-family:Montserrat,sans-serif;border-radius:2px;';document.body.appendChild(t);}
-    t.textContent=msg; t.style.opacity=1;
-    setTimeout(()=>t.style.opacity=0,2200);
+    if(!t){t=document.createElement('div');t.id='toast';t.style.cssText='position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#c8f542,#a8d820);color:#0d1117;padding:10px 22px;font-size:12px;font-weight:800;z-index:2000;letter-spacing:0.06em;font-family:Montserrat,sans-serif;border-radius:999px;box-shadow:0 4px 16px rgba(200,245,66,0.3);';document.body.appendChild(t);}
+    t.textContent=msg;t.style.opacity=1;setTimeout(()=>t.style.opacity=0,2200);
   }
 </script>
 </body>

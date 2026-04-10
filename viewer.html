@@ -647,6 +647,16 @@
           document.getElementById('scan').classList.remove('show');
           const pg=document.getElementById('ping'); pg.classList.add('go'); setTimeout(()=>pg.classList.remove('go'),700);
           arContent = document.getElementById('arc');
+          // Aplicar configuración actual al detectar el trigger
+          if (arContent) {
+            arContent.setAttribute('position',`${CFG.posX} ${CFG.posY} ${CFG.posZ}`);
+            arContent.setAttribute('rotation', getRotation());
+            arContent.setAttribute('scale',    `${CFG.scale} ${CFG.scale} ${CFG.scale}`);
+            if (isVideo || isGif) {
+              arContent.setAttribute('width',  CFG.width);
+              arContent.setAttribute('height', CFG.height);
+            }
+          }
         });
         target.addEventListener('targetLost', () => document.getElementById('scan').classList.add('show'));
       }

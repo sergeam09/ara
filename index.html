@@ -99,6 +99,7 @@
     /* ── MAIN LAYOUT ── */
     .wrap { max-width: 1320px; margin: 0 auto; padding: 32px 36px; flex: 1; width: 100%; position: relative; z-index: 1; }
     .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start; }
+    .col-result { position: sticky; top: 80px; }
     .card {
       background: linear-gradient(145deg, var(--navy2) 0%, var(--navy3) 100%);
       border: 1px solid var(--border);
@@ -607,7 +608,7 @@
     </div><!-- /form card -->
 
     <!-- ══ OUTPUT CARD ══ -->
-    <div class="out-card">
+    <div class="out-card col-result">
       <div class="card-title">Resultado</div>
       <div class="out-empty" id="outEmpty">
         <div class="out-empty-icon">◈</div>
@@ -859,7 +860,9 @@ async function generarProyecto(){
     setProgress(100,'Publicado','✓ Experiencia AR disponible','ok');
     logStep('✓ ¡Publicado en GitHub Pages!','ok');
 
-    const viewerUrl=`${BASE_URL}/viewer.html?p=${slug}&t=${tipoActual}&ce=${contentExt}&te=${triggerExt}&w=${dims.width}&h=${dims.height}&sc=${dims.scale}&fa=${faceAnchor}&fs=${faceScale}`;
+    const isFaceMode = modoActual === 'face';
+    const viewerFile = isFaceMode ? 'face-viewer.html' : 'viewer.html';
+    const viewerUrl=`${BASE_URL}/${viewerFile}?p=${slug}&t=${tipoActual}&ce=${contentExt}&te=${triggerExt}&w=${dims.width}&h=${dims.height}&sc=${dims.scale}&fa=${faceAnchor}&fs=${faceScale}`;
     viewerUrlActual=viewerUrl;
 
     const proyecto={slug,nombre,tipo:tipoActual,contentExt,triggerExt,url:viewerUrl,creado:new Date().toLocaleDateString('es-MX')};

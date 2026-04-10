@@ -414,19 +414,24 @@
 
   async function loadConfigAndInit() {
     setSplash('Cargando configuración...');
+    let configLoaded = false;
     try {
-      const r = await fetch(PATHS.config);
-      if (r.ok) { const saved = await r.json(); CFG = { ...defaultConfig, ...saved }; }
+      const r = await fetch(PATHS.config + '?t=' + Date.now()); // cache bust
+      if (r.ok) {
+        const saved = await r.json();
+        CFG = { ...defaultConfig, ...saved };
+        configLoaded = true;
+      }
     } catch(e) {}
 
-    const hasConfig = CFG.width !== defaultConfig.width || CFG.height !== defaultConfig.height
-                   || CFG.scale !== defaultConfig.scale || CFG.posX !== 0 || CFG.posY !== 0;
-    if (!hasConfig) {
+    // Si no hay config.json, usar URL params del creator como valores iniciales
+    if (!configLoaded) {
       if (URL_W  > 0) CFG.width  = URL_W;
       if (URL_H  > 0) CFG.height = URL_H;
       if (URL_SC > 0) CFG.scale  = URL_SC;
     }
 
+    // Sanitize — nunca valores cero o negativos
     if (!CFG.posZ  || CFG.posZ  === 0) CFG.posZ  = 0.01;
     if (!CFG.scale || CFG.scale <= 0 ) CFG.scale  = URL_SC || 1;
     if (!CFG.width  || CFG.width  <= 0) CFG.width  = URL_W  || 1;

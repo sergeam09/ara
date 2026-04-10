@@ -787,6 +787,18 @@
       </div>
 
       <!-- Publicar -->
+      <!-- Token GitHub -->
+      <div class="field" id="tokenField">
+        <div class="field-label">GitHub Token</div>
+        <div style="display:flex;align-items:center;gap:8px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;">
+          <div id="tokenDot" style="width:8px;height:8px;border-radius:50%;background:var(--muted);flex-shrink:0;"></div>
+          <input type="password" id="ghToken" placeholder="ghp_xxxxxxxxxxxx"
+            style="flex:1;background:transparent;border:none;color:var(--text);font-family:var(--fm);font-size:12px;outline:none;"
+            oninput="guardarToken(this.value)">
+          <span style="font-size:10px;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;flex-shrink:0;">PAT</span>
+        </div>
+      </div>
+
       <button class="btn-publish" id="btnPublish" onclick="generarProyecto()">
         ◈ Compilar y publicar
       </button>
@@ -1093,13 +1105,6 @@ async function generarProyecto() {
   const token = localStorage.getItem('ara-gh-token') || '';
   if (!token) { toast('Agrega tu GitHub Token primero'); document.getElementById('tokenPanel').style.display = 'block'; return; }
 
-  const ghTok = localStorage.getItem('ara-gh-token') || '';
-  if (!ghTok) {
-    const t = prompt('Ingresa tu GitHub Personal Access Token (ghp_...):', '');
-    if (!t) return;
-    localStorage.setItem('ara-gh-token', t.trim());
-  }
-
   const nombre  = document.getElementById('pNombre').value.trim();
   if (!nombre) { toast('Escribe un nombre para el proyecto'); return; }
 
@@ -1179,7 +1184,23 @@ async function generarProyecto() {
     localStorage.setItem('ara-proyectos', JSON.stringify(proyectos));
 
     mostrarOutput(viewerUrl);
-    renderProyectos();
+    // Cargar token guardado
+const savedToken = localStorage.getItem('ara-gh-token') || '';
+if (savedToken) {
+  const inp = document.getElementById('ghToken');
+  if (inp) inp.value = savedToken;
+  const dot = document.getElementById('tokenDot');
+  if (dot) dot.style.background = 'var(--ok)';
+}
+
+function guardarToken(v) {
+  const val = v.trim();
+  localStorage.setItem('ara-gh-token', val);
+  const dot = document.getElementById('tokenDot');
+  if (dot) dot.style.background = val.length > 10 ? 'var(--ok)' : 'var(--err)';
+}
+
+renderProyectos();
     toast('¡Publicado ✓');
 
   } catch(e) {
@@ -1274,7 +1295,23 @@ async function eliminarProyecto(slug) {
   const token = localStorage.getItem('ara-gh-token') || '';
   proyectos = proyectos.filter(p => p.slug !== slug);
   localStorage.setItem('ara-proyectos', JSON.stringify(proyectos));
-  renderProyectos();
+  // Cargar token guardado
+const savedToken = localStorage.getItem('ara-gh-token') || '';
+if (savedToken) {
+  const inp = document.getElementById('ghToken');
+  if (inp) inp.value = savedToken;
+  const dot = document.getElementById('tokenDot');
+  if (dot) dot.style.background = 'var(--ok)';
+}
+
+function guardarToken(v) {
+  const val = v.trim();
+  localStorage.setItem('ara-gh-token', val);
+  const dot = document.getElementById('tokenDot');
+  if (dot) dot.style.background = val.length > 10 ? 'var(--ok)' : 'var(--err)';
+}
+
+renderProyectos();
   toast('Eliminando de GitHub...');
 
   if (!token) { toast('Sin token — eliminado solo de la lista'); return; }
@@ -1314,6 +1351,22 @@ function toast(msg) {
 }
 
 // Init
+// Cargar token guardado
+const savedToken = localStorage.getItem('ara-gh-token') || '';
+if (savedToken) {
+  const inp = document.getElementById('ghToken');
+  if (inp) inp.value = savedToken;
+  const dot = document.getElementById('tokenDot');
+  if (dot) dot.style.background = 'var(--ok)';
+}
+
+function guardarToken(v) {
+  const val = v.trim();
+  localStorage.setItem('ara-gh-token', val);
+  const dot = document.getElementById('tokenDot');
+  if (dot) dot.style.background = val.length > 10 ? 'var(--ok)' : 'var(--err)';
+}
+
 renderProyectos();
 </script>
 </body>

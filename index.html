@@ -1042,7 +1042,7 @@ async function githubUpload(path, content, message) {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'User-Agent': 'Mozilla/5.0 (ARA Creator)'
+      'X-ARA-Client': 'creator'
     },
     body: JSON.stringify({ path, content, message })
   });

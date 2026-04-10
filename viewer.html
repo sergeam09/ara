@@ -70,8 +70,8 @@
     }
     .start-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 24px rgba(200,245,66,0.45); }
     .start-btn.face-mode {
-      background: linear-gradient(135deg, var(--face) 0%, #c41880 100%);
-      box-shadow: 0 4px 20px rgba(245,66,168,0.35);
+      background: linear-gradient(135deg, var(--a) 0%, #a8d820 100%);
+      box-shadow: 0 4px 20px rgba(200,245,66,0.35);
     }
     .start-hint { font-size: 10px; color: #2e3650; line-height: 1.9; max-width: 240px; letter-spacing: 0.04em; }
 
@@ -134,11 +134,11 @@
     #faceScan.show { display:flex; }
     .face-oval {
       width:180px;height:240px;border-radius:50%;
-      border:2px solid var(--face);opacity:0.8;
+      border:2px solid var(--a);opacity:0.8;
       position:relative;animation:fpulse 2s ease-in-out infinite;
     }
-    @keyframes fpulse { 0%,100%{box-shadow:0 0 0 0 rgba(245,66,168,0.3)} 50%{box-shadow:0 0 0 12px rgba(245,66,168,0)} }
-    .face-line { position:absolute;left:10%;right:10%;height:1px;background:linear-gradient(90deg,transparent,var(--face),transparent);animation:scl 2.5s ease-in-out infinite;top:0; }
+    @keyframes fpulse { 0%,100%{box-shadow:0 0 0 0 rgba(200,245,66,0.3)} 50%{box-shadow:0 0 0 12px rgba(200,245,66,0)} }
+    .face-line { position:absolute;left:10%;right:10%;height:1px;background:linear-gradient(90deg,transparent,var(--a),transparent);animation:scl 2.5s ease-in-out infinite;top:0; }
 
     /* ── PING ── */
     #ping { position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:60px;height:60px;border:2px solid var(--a);border-radius:50%;opacity:0;pointer-events:none;z-index:500; }
@@ -247,7 +247,7 @@
 <!-- SCAN — face tracking -->
 <div id="faceScan">
   <div class="face-oval"><div class="face-line"></div></div>
-  <div class="stxt" style="color:rgba(245,66,168,0.85);">Centra tu cara en el óvalo</div>
+  <div class="stxt" style="color:rgba(200,245,66,0.85);">Centra tu cara en el óvalo</div>
 </div>
 
 <div id="ping"></div>
@@ -469,12 +469,14 @@
   function initModelViewer() {
     setSplash('Cargando modelo 3D...');
     const sc = CFG.scale || URL_SC || 0.5;
-    document.getElementById('mvWrap').innerHTML = `
+    const mvWrap = document.getElementById('mvWrap');
+    mvWrap.innerHTML = `
       <model-viewer id="araModelViewer" src="${PATHS.content}"
         ar ar-modes="webxr scene-viewer quick-look"
         camera-controls auto-rotate shadow-intensity="1"
+        exposure="1"
         scale="${sc} ${sc} ${sc}" ar-scale="fixed"
-        style="width:100%;height:100%;background:var(--navy);">
+        style="width:100%;height:100%;background:#0d1117;">
         <button slot="ar-button" style="
           position:absolute;bottom:80px;left:50%;transform:translateX(-50%);
           background:linear-gradient(135deg,#c8f542,#a8d820);color:#0d1117;border:none;
@@ -483,16 +485,28 @@
           white-space:nowrap;box-shadow:0 4px 24px rgba(200,245,66,0.4);
           font-family:'Montserrat',sans-serif;border-radius:999px;
         ">⬡ Ver en tu espacio</button>
+        <div slot="progress-bar" style="display:none;"></div>
       </model-viewer>`;
-    document.getElementById('mvWrap').classList.add('show');
+    mvWrap.classList.add('show');
     document.getElementById('hud').classList.add('show');
     if (EDIT_MODE) document.getElementById('btnEdit').style.display = 'inline-block';
+
     const hint = document.createElement('div');
     hint.id='mvHint';
     hint.style.cssText='position:fixed;top:72px;left:0;right:0;text-align:center;font-size:11px;font-weight:700;color:rgba(255,255,255,0.3);letter-spacing:0.1em;text-transform:uppercase;pointer-events:none;z-index:500;font-family:Montserrat,sans-serif;';
     hint.textContent='Rota con los dedos · Toca el botón para ver en AR';
     document.body.appendChild(hint);
-    hideSplash();
+
+    // Ocultar splash cuando el modelo termine de cargar
+    const mv = document.getElementById('araModelViewer');
+    if (mv) {
+      mv.addEventListener('load', () => hideSplash());
+      mv.addEventListener('error', () => {
+        showErr('No se pudo cargar el modelo 3D.<br>Verifica que el archivo GLB esté publicado en GitHub.');
+      });
+    }
+    // Fallback: si después de 8s no cargó, ocultar splash de todos modos
+    setTimeout(() => hideSplash(), 8000);
   }
 
   // ── FACE TRACKING: carga mindar-face dinámicamente ──
@@ -514,17 +528,24 @@
   }
 
   function buildFaceScene() {
-    const anchor = CFG.faceAnchor ?? URL_FA;
+    const anchor = CFG.faceAnchor ?? URL_FA ?? 0;
     const sc     = CFG.faceScale  ?? URL_FS ?? 0.1;
     const scl    = `${sc} ${sc} ${sc}`;
 
+    // MindAR face: el asset DEBE estar en a-assets con id,
+    // y referenciarse con # en el componente
+    let assetHTML  = '';
     let entityHTML = '';
+
     if (TYPE === 'face-model') {
-      entityHTML = `<a-gltf-model id="arc" src="${PATHS.content}" position="0 0 0" scale="${scl}"></a-gltf-model>`;
+      assetHTML  = `<a-asset-item id="face-asset" src="${PATHS.content}"></a-asset-item>`;
+      entityHTML = `<a-gltf-model id="arc" src="#face-asset" position="0 0 0" scale="${scl}"></a-gltf-model>`;
     } else if (TYPE === 'face-gif' || TYPE === 'face-image') {
-      entityHTML = `<a-image id="arc" src="${PATHS.content}" width="${sc}" height="${sc}" position="0 0 0"></a-image>`;
+      assetHTML  = `<img id="face-asset" src="${PATHS.content}" crossorigin="anonymous">`;
+      entityHTML = `<a-image id="arc" src="#face-asset" width="${sc}" height="${sc}" position="0 0 0"></a-image>`;
     } else if (TYPE === 'face-video') {
-      entityHTML = `<a-video id="arc" src="${PATHS.content}" width="${sc}" height="${sc*0.5625}" position="0 0 0" loop="true" autoplay="true" playsinline="true" webkit-playsinline="true"></a-video>`;
+      assetHTML  = `<video id="face-asset" src="${PATHS.content}" loop autoplay muted playsinline webkit-playsinline crossorigin="anonymous"></video>`;
+      entityHTML = `<a-video id="arc" src="#face-asset" width="${sc}" height="${sc * 0.5625}" position="0 0 0"></a-video>`;
     }
 
     const sceneDiv = document.getElementById('arScene');
@@ -535,11 +556,10 @@
         vr-mode-ui="enabled:false"
         device-orientation-permission-ui="enabled:false"
         style="width:100vw;height:100vh;">
-        <a-assets>
-          ${TYPE === 'face-model' ? `<a-asset-item id="face-model-asset" src="${PATHS.content}"></a-asset-item>` : ''}
+        <a-assets timeout="10000">
+          ${assetHTML}
         </a-assets>
-        <a-camera active="false" position="0 0 0"></a-camera>
-        <a-entity mindar-face-target="anchorIndex:${anchor};">
+        <a-entity mindar-face-target="anchorIndex:${anchor}">
           ${entityHTML}
         </a-entity>
       </a-scene>`;
@@ -552,11 +572,17 @@
     setTimeout(() => {
       const scene = sceneDiv.querySelector('a-scene');
       if (!scene) return;
-      scene.addEventListener('loaded', () => { arContent = document.getElementById('arc'); hideSplash(); });
-      scene.addEventListener('arReady', () => { document.getElementById('faceScan').classList.remove('show'); hideSplash(); });
-      scene.addEventListener('arError', () => showErr('No se pudo acceder a la cámara frontal.<br>Verifica los permisos.'));
-      setTimeout(() => hideSplash(), 10000);
-    }, 600);
+      scene.addEventListener('loaded', () => {
+        arContent = document.getElementById('arc');
+        hideSplash();
+      });
+      scene.addEventListener('arReady', () => {
+        document.getElementById('faceScan').classList.remove('show');
+        hideSplash();
+      });
+      scene.addEventListener('arError', () => showErr('No se pudo acceder a la cámara frontal.<br>Verifica los permisos en Safari/Chrome.'));
+      setTimeout(() => hideSplash(), 12000);
+    }, 800);
   }
 
   // ── IMAGE TRACKING: MindAR ──

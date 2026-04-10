@@ -6,7 +6,7 @@
   <title>ARA 3.0 — Augmented Reality Atelier</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>◈</text></svg>">
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
   <script type="importmap">{"imports":{"./controller-mGt1s8dJ.js":"https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/controller-mGt1s8dJ.js","./controller-d1-OMKPY.js":"https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/controller-d1-OMKPY.js","./ui-fBadYuor.js":"https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/ui-fBadYuor.js"}}</script>
   <script type="module" src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image.prod.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
@@ -16,7 +16,6 @@
       --bg2:    #111111;
       --bg3:    #181818;
       --border: #1e1e1e;
-      --bd2:    #2a2a2a;
       --accent: #c8f542;
       --accent2:#f5a623;
       --text:   #e4e4dc;
@@ -24,153 +23,63 @@
       --muted2: #666;
       --ok:     #42f58d;
       --err:    #ff4545;
-      --fd:     'DM Sans', sans-serif;
+      --fd:     'Montserrat', sans-serif;
       --fm:     'DM Mono', monospace;
     }
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     html, body { height: 100%; }
-    body {
-      background: var(--bg);
-      color: var(--text);
-      font-family: var(--fm);
-      font-size: 12px;
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-    }
+    body { background: var(--bg); color: var(--text); font-family: var(--fm); font-size: 12px; min-height: 100vh; display: flex; flex-direction: column; }
 
-    /* ── HEADER ── */
-    header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 18px 32px;
-      border-bottom: 1px solid var(--border);
-      position: sticky;
-      top: 0;
-      background: rgba(10,10,10,0.96);
-      backdrop-filter: blur(16px);
-      z-index: 100;
-      flex-shrink: 0;
-    }
+    /* HEADER */
+    header { display: flex; align-items: center; justify-content: space-between; padding: 16px 32px; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: rgba(10,10,10,0.97); backdrop-filter: blur(16px); z-index: 100; flex-shrink: 0; }
     .logo { display: flex; align-items: baseline; gap: 12px; }
-    .logo-text { font-family: var(--fd); font-size: 22px; font-weight: 700; color: var(--accent); letter-spacing: -0.02em; }
-    .logo-sub { font-size: 10px; color: var(--muted); letter-spacing: 0.18em; text-transform: uppercase; }
-    .hd-right { display: flex; align-items: center; gap: 10px; }
+    .logo-text { font-family: var(--fd); font-size: 22px; font-weight: 800; color: var(--accent); letter-spacing: -0.02em; }
+    .logo-sub  { font-size: 9px; color: var(--muted); letter-spacing: 0.2em; text-transform: uppercase; font-family: var(--fd); }
+    .hd-right  { display: flex; align-items: center; gap: 8px; }
     .token-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--muted); flex-shrink: 0; }
-    .token-dot.ok { background: var(--ok); }
+    .token-dot.ok  { background: var(--ok); }
     .token-dot.err { background: var(--err); }
-    .hd-status { font-size: 10px; color: var(--muted); letter-spacing: 0.1em; }
+    .hd-status { font-size: 10px; color: var(--muted); letter-spacing: 0.08em; font-family: var(--fm); }
 
-    /* ── MAIN LAYOUT ── */
-    .wrap { max-width: 1200px; margin: 0 auto; padding: 32px; flex: 1; width: 100%; }
-    .cols {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 2px;
-      background: var(--border);
-    }
+    /* LAYOUT */
+    .wrap { max-width: 1280px; margin: 0 auto; padding: 28px 32px; flex: 1; width: 100%; }
+    .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 2px; background: var(--border); }
 
-    /* ── PANEL ── */
-    .panel {
-      background: var(--bg2);
-      padding: 28px;
-      display: flex;
-      flex-direction: column;
-      gap: 18px;
-    }
-    .panel-label {
-      font-family: var(--fd);
-      font-size: 11px;
-      font-weight: 600;
-      letter-spacing: 0.18em;
-      text-transform: uppercase;
-      color: var(--muted2);
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
+    /* PANEL */
+    .panel { background: var(--bg2); padding: 24px; display: flex; flex-direction: column; gap: 16px; }
+    .panel-label { font-family: var(--fd); font-size: 10px; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase; color: var(--muted2); display: flex; align-items: center; gap: 10px; }
     .panel-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
 
-    /* ── FIELD ── */
-    .field { display: flex; flex-direction: column; gap: 7px; }
-    .field-label { font-size: 10px; color: var(--muted2); letter-spacing: 0.12em; text-transform: uppercase; }
-    .field input[type=text] {
-      width: 100%;
-      background: var(--bg);
-      border: 1px solid var(--border);
-      color: var(--text);
-      font-family: var(--fm);
-      font-size: 13px;
-      padding: 11px 14px;
-      outline: none;
-      transition: border-color 0.15s;
-    }
+    /* STEP HEADER */
+    .step-header { display: flex; align-items: center; gap: 10px; padding: 8px 0 6px; border-bottom: 1px solid var(--border); margin-top: 4px; }
+    .step-num { width: 20px; height: 20px; border-radius: 50%; background: var(--accent); color: var(--bg); font-family: var(--fd); font-size: 10px; font-weight: 800; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .step-title { font-family: var(--fd); font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text); }
+    .step-hint { font-size: 10px; color: var(--muted2); margin-left: auto; font-family: var(--fd); }
+
+    /* FIELD */
+    .field { display: flex; flex-direction: column; gap: 6px; }
+    .field-label { font-size: 10px; color: var(--muted2); letter-spacing: 0.12em; text-transform: uppercase; font-family: var(--fd); font-weight: 600; }
+    .field input[type=text] { width: 100%; background: var(--bg); border: 1px solid var(--border); color: var(--text); font-family: var(--fm); font-size: 13px; padding: 11px 14px; outline: none; transition: border-color 0.15s; }
     .field input[type=text]:focus { border-color: var(--accent); }
     .field input[type=text]::placeholder { color: var(--muted); }
 
-    /* ── MODE TABS ── */
-    .mode-tabs {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 2px;
-      background: var(--border);
-    }
-    .mode-tab {
-      padding: 12px 8px;
-      border: none;
-      background: var(--bg);
-      color: var(--muted2);
-      font-family: var(--fm);
-      font-size: 10px;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      cursor: pointer;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 5px;
-      transition: all 0.15s;
-    }
-    .mode-tab-icon { font-size: 16px; }
+    /* MODE TABS */
+    .mode-tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 2px; background: var(--border); }
+    .mode-tab { padding: 12px 8px; border: none; background: var(--bg); color: var(--muted2); font-family: var(--fd); font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 5px; transition: all 0.15s; }
+    .mode-tab-icon { font-size: 15px; }
     .mode-tab:hover { background: var(--bg3); color: var(--text); }
     .mode-tab.active { background: var(--bg2); color: var(--accent); }
 
-    /* ── TYPE CHIPS ── */
-    .type-grid {
-      display: grid;
-      gap: 2px;
-      background: var(--border);
-    }
+    /* TYPE GRID */
+    .type-grid { display: grid; gap: 2px; background: var(--border); }
     .type-grid.cols-4 { grid-template-columns: repeat(4, 1fr); }
-    .type-grid.cols-3 { grid-template-columns: repeat(3, 1fr); }
-    .tbtn {
-      background: var(--bg);
-      border: none;
-      color: var(--muted2);
-      font-family: var(--fm);
-      font-size: 10px;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      padding: 10px 4px;
-      cursor: pointer;
-      text-align: center;
-      transition: all 0.15s;
-    }
+    .tbtn { background: var(--bg); border: none; color: var(--muted2); font-family: var(--fd); font-size: 10px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; padding: 10px 4px; cursor: pointer; text-align: center; transition: all 0.15s; }
     .tbtn:hover { background: var(--bg3); color: var(--text); }
     .tbtn.active { background: var(--bg2); color: var(--accent); }
     .tbtn-icon { display: block; font-size: 14px; margin-bottom: 3px; }
 
-    /* ── UPZONE ── */
-    .upzone {
-      border: 1px dashed var(--border);
-      padding: 18px;
-      text-align: center;
-      cursor: pointer;
-      transition: all 0.15s;
-      position: relative;
-      background: var(--bg);
-    }
+    /* UPZONE */
+    .upzone { border: 1px dashed var(--border); padding: 18px; text-align: center; cursor: pointer; transition: all 0.15s; position: relative; background: var(--bg); }
     .upzone:hover, .upzone.over { border-color: var(--accent); background: rgba(200,245,66,0.03); }
     .upzone input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
     .upicon { font-size: 18px; margin-bottom: 5px; display: block; }
@@ -178,170 +87,109 @@
     .uptext strong { color: var(--accent); font-weight: 500; }
     .uppreview { margin-top: 7px; font-size: 11px; color: var(--accent2); display: none; }
 
-    /* ── DIMS BOX ── */
-    .dim-box {
-      background: rgba(200,245,66,0.03);
-      border: 1px solid rgba(200,245,66,0.1);
-      padding: 14px;
-    }
-    .dim-title { font-size: 9px; color: var(--muted); letter-spacing: 0.18em; text-transform: uppercase; margin-bottom: 10px; }
+    /* DIM BOX */
+    .dim-box { background: rgba(200,245,66,0.03); border: 1px solid rgba(200,245,66,0.1); padding: 12px; }
+    .dim-title { font-size: 9px; color: var(--muted); letter-spacing: 0.18em; text-transform: uppercase; margin-bottom: 10px; font-family: var(--fd); font-weight: 700; }
     .dim-presets { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 10px; }
-    .dim-preset {
-      background: transparent;
-      border: 1px solid var(--border);
-      color: var(--muted2);
-      font-size: 9px;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      padding: 5px 10px;
-      cursor: pointer;
-      font-family: var(--fm);
-      transition: all 0.15s;
-    }
+    .dim-preset { background: transparent; border: 1px solid var(--border); color: var(--muted2); font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; padding: 5px 10px; cursor: pointer; font-family: var(--fd); font-weight: 600; transition: all 0.15s; }
     .dim-preset:hover, .dim-preset.active { border-color: var(--accent); color: var(--accent); }
     .dim-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
-    .dim-label { font-size: 10px; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; width: 80px; flex-shrink: 0; }
-    .dim-input {
-      background: var(--bg);
-      border: 1px solid var(--border);
-      color: var(--text);
-      font-family: var(--fm);
-      font-size: 12px;
-      padding: 7px 10px;
-      width: 80px;
-      outline: none;
-      transition: border-color 0.15s;
-    }
+    .dim-label { font-size: 10px; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; width: 80px; flex-shrink: 0; font-family: var(--fd); font-weight: 600; }
+    .dim-input { background: var(--bg); border: 1px solid var(--border); color: var(--text); font-family: var(--fm); font-size: 12px; padding: 7px 10px; width: 80px; outline: none; transition: border-color 0.15s; }
     .dim-input:focus { border-color: var(--accent); }
     .dim-unit { font-size: 10px; color: var(--muted); }
+    .dim-note { font-size: 9px; color: var(--muted); margin-top: 8px; line-height: 1.7; font-family: var(--fd); }
 
-    /* ── INFO BOX ── */
-    .info-box {
-      background: rgba(200,245,66,0.04);
-      border: 1px solid rgba(200,245,66,0.12);
-      padding: 12px 14px;
-      font-size: 10px;
-      color: var(--muted2);
-      line-height: 1.8;
-      letter-spacing: 0.04em;
-    }
+    /* INFO BOX */
+    .info-box { background: rgba(200,245,66,0.04); border: 1px solid rgba(200,245,66,0.12); padding: 10px 14px; font-size: 10px; color: var(--muted2); line-height: 1.8; font-family: var(--fd); }
 
-    /* ── BTN ── */
-    .btn {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      padding: 13px 20px;
-      font-family: var(--fm);
-      font-size: 11px;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      cursor: pointer;
-      border: none;
-      transition: all 0.15s;
-    }
+    /* BUTTONS */
+    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 13px 20px; font-family: var(--fd); font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; cursor: pointer; border: none; transition: all 0.15s; }
     .btn-primary { background: var(--accent); color: var(--bg); width: 100%; }
     .btn-primary:hover { background: #d4ff55; }
     .btn-primary:disabled { opacity: 0.35; cursor: not-allowed; }
-    .btn-ghost { background: transparent; border: 1px solid var(--border); color: var(--muted2); }
-    .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
 
-    /* ── OUTPUT PANEL ── */
-    .out-panel {
-      background: var(--bg2);
-      padding: 28px;
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-      min-height: 560px;
-    }
-    .out-empty {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      text-align: center;
-      color: var(--muted);
-      gap: 12px;
-    }
-    .out-empty-icon { font-size: 40px; opacity: 0.2; }
-    .out-empty p { font-size: 11px; line-height: 1.9; max-width: 220px; }
-    .out-content { display: none; flex-direction: column; gap: 14px; }
+    /* OUTPUT PANEL */
+    .out-panel { background: var(--bg2); padding: 24px; display: flex; flex-direction: column; gap: 14px; min-height: 500px; }
+    .out-empty { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; color: var(--muted); gap: 12px; }
+    .out-empty-icon { font-size: 36px; opacity: 0.2; }
+    .out-empty p { font-size: 11px; line-height: 1.9; max-width: 220px; font-family: var(--fd); }
+    .out-content { display: none; flex-direction: column; gap: 12px; }
     .out-content.visible { display: flex; }
 
-    /* ── PROGRESS ── */
-    .prog-wrap { background: var(--bg); border: 1px solid var(--border); padding: 14px; }
-    .prog-label { display: flex; justify-content: space-between; font-size: 10px; color: var(--muted2); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 8px; }
+    /* PROGRESS */
+    .prog-wrap { background: var(--bg); border: 1px solid var(--border); padding: 12px; }
+    .prog-label { display: flex; justify-content: space-between; font-size: 10px; color: var(--muted2); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 8px; font-family: var(--fd); font-weight: 600; }
     .prog-bar { height: 2px; background: var(--border); position: relative; overflow: hidden; }
     .prog-fill { height: 100%; background: var(--accent); transition: width 0.3s; width: 0%; }
     .prog-msg { margin-top: 8px; font-size: 11px; color: var(--muted2); }
     .prog-msg.ok  { color: var(--ok); }
     .prog-msg.err { color: var(--err); }
 
-    /* ── STEPS LOG ── */
-    .steps-log { background: var(--bg); border: 1px solid var(--border); padding: 12px; font-size: 11px; line-height: 2; display: none; max-height: 140px; overflow-y: auto; }
+    /* STEPS LOG */
+    .steps-log { background: var(--bg); border: 1px solid var(--border); padding: 10px; font-size: 11px; line-height: 2; display: none; max-height: 120px; overflow-y: auto; }
     .steps-log.visible { display: block; }
     .step-line { color: var(--muted); }
     .step-line.ok  { color: var(--ok); }
     .step-line.err { color: var(--err); }
     .step-line.act { color: var(--accent2); }
 
-    /* ── QR & LINKS ── */
-    .qr-wrap { background: #fff; padding: 16px; display: flex; justify-content: center; }
+    /* RESULT: QR compacto izquierda + links derecha */
+    .result-grid { display: grid; grid-template-columns: 130px 1fr; gap: 12px; align-items: start; }
+    .qr-wrap { background: #fff; padding: 8px; display: flex; justify-content: center; align-items: center; }
+    .result-links { display: flex; flex-direction: column; gap: 8px; }
     .link-section { display: flex; flex-direction: column; gap: 4px; }
-    .link-label { font-size: 10px; color: var(--muted); letter-spacing: 0.14em; text-transform: uppercase; }
-    .linkbox { display: flex; gap: 2px; background: var(--border); }
-    .linkdisplay { flex: 1; background: var(--bg); padding: 11px 14px; font-size: 11px; color: var(--accent); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .link-label { font-size: 9px; color: var(--muted); letter-spacing: 0.16em; text-transform: uppercase; font-family: var(--fd); font-weight: 700; }
+    .linkbox { display: flex; background: var(--border); gap: 1px; }
+    .linkdisplay { flex: 1; background: var(--bg); padding: 8px 10px; font-size: 10px; color: var(--accent); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .linkdisplay.editor { color: var(--accent2); }
-    .btn-copy { background: var(--bg2); border: none; color: var(--muted2); font-family: var(--fm); font-size: 11px; padding: 11px 14px; cursor: pointer; transition: color 0.15s; white-space: nowrap; }
+    .btn-copy { background: var(--bg2); border: none; color: var(--muted2); font-family: var(--fd); font-size: 10px; font-weight: 700; padding: 8px 10px; cursor: pointer; transition: color 0.15s; white-space: nowrap; letter-spacing: 0.06em; }
     .btn-copy:hover { color: var(--accent); }
-    .action-row { display: flex; gap: 2px; background: var(--border); }
-    .action-row .btn { flex: 1; background: var(--bg); color: var(--muted2); font-size: 10px; border: none; padding: 11px 8px; }
-    .action-row .btn:hover { background: var(--bg3); color: var(--accent); }
 
-    /* ── PROJECTS LIST ── */
+    /* ACTION ROW */
+    .action-row { display: grid; grid-template-columns: repeat(3,1fr); gap: 2px; background: var(--border); }
+    .btn-act { background: var(--bg); border: none; color: var(--muted2); font-family: var(--fd); font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; padding: 10px 4px; cursor: pointer; transition: all 0.15s; text-align: center; }
+    .btn-act:hover { background: var(--bg3); color: var(--accent); }
+
+    /* PROJECTS */
     .plist-wrap { margin-top: 2px; background: var(--bg2); border-top: 1px solid var(--border); }
-    .plist-head { padding: 14px 28px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
-    .plist-title { font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--muted2); }
-    .plist-count { font-size: 11px; color: var(--accent); }
-    .plist-body { padding: 10px 28px; display: flex; flex-direction: column; gap: 2px; }
+    .plist-head { padding: 12px 24px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+    .plist-title { font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--muted2); font-family: var(--fd); font-weight: 700; }
+    .plist-count { font-size: 11px; color: var(--accent); font-family: var(--fm); }
+    .plist-body { padding: 8px 24px 16px; display: flex; flex-direction: column; gap: 2px; }
     .pitem { display: flex; align-items: center; gap: 12px; padding: 9px 12px; background: var(--bg); cursor: pointer; transition: all 0.15s; border: 1px solid transparent; }
     .pitem:hover { border-color: var(--border); }
     .pdot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); flex-shrink: 0; }
-    .pdot.video { background: #5b8def; }
-    .pdot.gif   { background: var(--accent2); }
-    .pdot.model { background: #c471ed; }
-    .pdot.audio { background: #12c2e9; }
+    .pdot.video         { background: #5b8def; }
+    .pdot.gif           { background: var(--accent2); }
+    .pdot.model         { background: #c471ed; }
+    .pdot.audio         { background: #12c2e9; }
     .pdot.surface-model { background: #ed7148; }
-    .pdot.surface-video { background: #5b8def; }
-    .pdot.surface-gif   { background: var(--accent2); }
-    .pname { flex: 1; font-size: 12px; }
-    .ptype { font-size: 10px; color: var(--muted); letter-spacing: 0.1em; text-transform: uppercase; }
-    .pdate { font-size: 10px; color: var(--muted); }
+    .pname  { flex: 1; font-size: 12px; font-family: var(--fd); font-weight: 500; }
+    .ptype  { font-size: 10px; color: var(--muted); letter-spacing: 0.1em; text-transform: uppercase; font-family: var(--fd); }
+    .pdate  { font-size: 10px; color: var(--muted); font-family: var(--fm); }
     .pactions { display: flex; gap: 4px; opacity: 0; transition: opacity 0.15s; }
     .pitem:hover .pactions { opacity: 1; }
     .pact { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 13px; padding: 2px 5px; transition: color 0.15s; }
     .pact:hover { color: var(--accent); }
     .pact.del:hover { color: var(--err); }
-    .plist-empty { padding: 20px; text-align: center; color: var(--muted); font-size: 11px; line-height: 1.9; }
+    .plist-empty { padding: 20px; text-align: center; color: var(--muted); font-size: 11px; font-family: var(--fd); }
 
-    /* ── TOAST ── */
-    .toast { position: fixed; bottom: 24px; right: 24px; background: var(--accent); color: var(--bg); padding: 10px 18px; font-size: 11px; letter-spacing: 0.1em; transform: translateY(60px); opacity: 0; transition: all 0.3s cubic-bezier(0.34,1.56,0.64,1); z-index: 2000; }
+    /* TOAST */
+    .toast { position: fixed; bottom: 24px; right: 24px; background: var(--accent); color: var(--bg); padding: 10px 18px; font-size: 11px; font-family: var(--fd); font-weight: 700; letter-spacing: 0.1em; transform: translateY(60px); opacity: 0; transition: all 0.3s cubic-bezier(0.34,1.56,0.64,1); z-index: 2000; }
     .toast.show { transform: translateY(0); opacity: 1; }
 
-    /* ── MODE PANEL VISIBILITY ── */
+    /* VISIBILITY */
     .mode-panel { display: none; }
     .mode-panel.active { display: flex; flex-direction: column; gap: 14px; }
     .cpanel { display: none; }
     .cpanel.active { display: flex; flex-direction: column; gap: 10px; }
 
-    @media (max-width: 780px) {
-      header { padding: 14px 20px; }
+    @media (max-width: 820px) {
       .wrap { padding: 16px; }
       .cols { grid-template-columns: 1fr; }
-      .type-grid.cols-4 { grid-template-columns: repeat(2, 1fr); }
+      .type-grid.cols-4 { grid-template-columns: repeat(2,1fr); }
+      .result-grid { grid-template-columns: 1fr; }
     }
   </style>
 </head>
@@ -354,24 +202,22 @@
   </div>
   <div class="hd-right">
     <div class="token-dot" id="tokenDot"></div>
-    <span class="hd-status" id="tokenStatus">ara.sergeam09.workers.dev</span>
+    <span class="hd-status" id="tokenStatus">Verificando worker...</span>
   </div>
 </header>
 
 <div class="wrap">
   <div class="cols">
 
-    <!-- ── FORM PANEL ── -->
+    <!-- FORM PANEL -->
     <div class="panel">
       <div class="panel-label">Nuevo proyecto AR</div>
 
-      <!-- Nombre -->
       <div class="field">
         <div class="field-label">Nombre del proyecto</div>
         <input type="text" id="pNombre" placeholder="ej. mural-xalapa-2025">
       </div>
 
-      <!-- Modo AR -->
       <div class="field">
         <div class="field-label">Modo AR</div>
         <div class="mode-tabs">
@@ -384,223 +230,162 @@
         </div>
       </div>
 
-      <!-- ── MODO IMAGE ── -->
+      <!-- MODO IMAGE -->
       <div id="mode-image" class="mode-panel active">
 
-        <!-- Trigger -->
-        <div class="field" id="triggerField">
-          <div class="field-label">Imagen trigger — la obra física</div>
-          <div class="upzone" id="zTrigger">
+        <div>
+          <div class="step-header">
+            <div class="step-num">1</div>
+            <div class="step-title">Imagen Trigger</div>
+            <div class="step-hint">La obra que activa el AR</div>
+          </div>
+          <div class="upzone" style="margin-top:10px;" id="zTrigger">
             <input type="file" id="fTrigger" accept="image/*">
             <span class="upicon">◈</span>
-            <div class="uptext"><strong>Selecciona o arrastra</strong><br>JPG · PNG · WEBP — mín. 300px</div>
+            <div class="uptext"><strong>Selecciona o arrastra la imagen trigger</strong><br>JPG · PNG · WEBP — mín. 300px</div>
             <div class="uppreview" id="prTrigger"></div>
           </div>
         </div>
 
-        <!-- Tipo de contenido -->
-        <div class="field">
-          <div class="field-label">Tipo de contenido</div>
-          <div class="type-grid cols-4">
+        <div>
+          <div class="step-header">
+            <div class="step-num">2</div>
+            <div class="step-title">Contenido AR</div>
+            <div class="step-hint">Lo que aparece al escanear</div>
+          </div>
+          <div class="type-grid cols-4" style="margin-top:10px;">
             <button class="tbtn active" data-type="video" onclick="setTipo('video')"><span class="tbtn-icon">▶</span>Video</button>
             <button class="tbtn" data-type="gif" onclick="setTipo('gif')"><span class="tbtn-icon">◈</span>GIF</button>
             <button class="tbtn" data-type="model" onclick="setTipo('model')"><span class="tbtn-icon">⬡</span>3D</button>
             <button class="tbtn" data-type="audio" onclick="setTipo('audio')"><span class="tbtn-icon">♪</span>Audio</button>
           </div>
-        </div>
 
-        <!-- Paneles de contenido IMAGE -->
-        <div id="cp-video" class="cpanel active">
-          <div class="upzone">
-            <input type="file" id="fVideo" accept="video/*">
-            <span class="upicon">▶</span>
-            <div class="uptext"><strong>Video MP4 o WEBM</strong><br>Recomendado &lt; 30 MB</div>
-            <div class="uppreview" id="prVideo"></div>
-          </div>
-          <div class="dim-box">
-            <div class="dim-title">Proporción del video</div>
-            <div class="dim-presets" id="videoPropPresets">
-              <button class="dim-preset active" onclick="setProp('video',16,9)">16:9</button>
-              <button class="dim-preset" onclick="setProp('video',1,1)">1:1</button>
-              <button class="dim-preset" onclick="setProp('video',4,3)">4:3</button>
-              <button class="dim-preset" onclick="setProp('video',9,16)">9:16</button>
+          <div style="margin-top:10px;">
+            <div id="cp-video" class="cpanel active">
+              <div class="upzone">
+                <input type="file" id="fVideo" accept="video/*">
+                <span class="upicon">▶</span>
+                <div class="uptext"><strong>Video MP4 o WEBM</strong><br>Recomendado &lt; 30 MB</div>
+                <div class="uppreview" id="prVideo"></div>
+              </div>
+              <div class="dim-box">
+                <div class="dim-title">Proporción del video</div>
+                <div class="dim-presets" id="videoPropPresets">
+                  <button class="dim-preset active" onclick="setProp('video',16,9)">16:9</button>
+                  <button class="dim-preset" onclick="setProp('video',1,1)">1:1</button>
+                  <button class="dim-preset" onclick="setProp('video',4,3)">4:3</button>
+                  <button class="dim-preset" onclick="setProp('video',9,16)">9:16</button>
+                </div>
+                <div class="dim-row"><span class="dim-label">Ancho obra</span><input type="number" class="dim-input" id="dimVideoW" placeholder="ej. 80" min="1" step="1"><span class="dim-unit">cm</span></div>
+                <div class="dim-row"><span class="dim-label">Alto obra</span><input type="number" class="dim-input" id="dimVideoH" placeholder="ej. 60" min="1" step="1"><span class="dim-unit">cm</span></div>
+              </div>
             </div>
-            <div class="dim-row">
-              <span class="dim-label">Ancho obra</span>
-              <input type="number" class="dim-input" id="dimVideoW" placeholder="ej. 80" min="1" step="1">
-              <span class="dim-unit">cm (opcional)</span>
-            </div>
-            <div class="dim-row">
-              <span class="dim-label">Alto obra</span>
-              <input type="number" class="dim-input" id="dimVideoH" placeholder="ej. 60" min="1" step="1">
-              <span class="dim-unit">cm (opcional)</span>
-            </div>
-          </div>
-        </div>
 
-        <div id="cp-gif" class="cpanel">
-          <div class="upzone">
-            <input type="file" id="fGif" accept="image/gif,image/webp">
-            <span class="upicon">◈</span>
-            <div class="uptext"><strong>GIF animado o WEBP</strong><br>Recomendado &lt; 10 MB</div>
-            <div class="uppreview" id="prGif"></div>
-          </div>
-          <div class="dim-box">
-            <div class="dim-title">Proporción del GIF</div>
-            <div class="dim-presets" id="gifPropPresets">
-              <button class="dim-preset active" onclick="setProp('gif',1,1)">1:1</button>
-              <button class="dim-preset" onclick="setProp('gif',16,9)">16:9</button>
-              <button class="dim-preset" onclick="setProp('gif',4,3)">4:3</button>
-              <button class="dim-preset" onclick="setProp('gif',9,16)">9:16</button>
+            <div id="cp-gif" class="cpanel">
+              <div class="upzone">
+                <input type="file" id="fGif" accept="image/gif,image/webp">
+                <span class="upicon">◈</span>
+                <div class="uptext"><strong>GIF animado o WEBP</strong><br>Recomendado &lt; 10 MB</div>
+                <div class="uppreview" id="prGif"></div>
+              </div>
+              <div class="dim-box">
+                <div class="dim-title">Proporción del GIF</div>
+                <div class="dim-presets" id="gifPropPresets">
+                  <button class="dim-preset active" onclick="setProp('gif',1,1)">1:1</button>
+                  <button class="dim-preset" onclick="setProp('gif',16,9)">16:9</button>
+                  <button class="dim-preset" onclick="setProp('gif',4,3)">4:3</button>
+                  <button class="dim-preset" onclick="setProp('gif',9,16)">9:16</button>
+                </div>
+                <div class="dim-row"><span class="dim-label">Ancho obra</span><input type="number" class="dim-input" id="dimGifW" placeholder="ej. 50" min="1" step="1"><span class="dim-unit">cm</span></div>
+                <div class="dim-row"><span class="dim-label">Alto obra</span><input type="number" class="dim-input" id="dimGifH" placeholder="ej. 50" min="1" step="1"><span class="dim-unit">cm</span></div>
+              </div>
             </div>
-            <div class="dim-row">
-              <span class="dim-label">Ancho obra</span>
-              <input type="number" class="dim-input" id="dimGifW" placeholder="ej. 50" min="1" step="1">
-              <span class="dim-unit">cm (opcional)</span>
-            </div>
-            <div class="dim-row">
-              <span class="dim-label">Alto obra</span>
-              <input type="number" class="dim-input" id="dimGifH" placeholder="ej. 50" min="1" step="1">
-              <span class="dim-unit">cm (opcional)</span>
-            </div>
-          </div>
-        </div>
 
-        <div id="cp-model" class="cpanel">
-          <div class="upzone">
-            <input type="file" id="fModel" accept=".glb,.gltf">
-            <span class="upicon">⬡</span>
-            <div class="uptext"><strong>Modelo 3D — GLB o GLTF</strong><br>Recomendado &lt; 20 MB</div>
-            <div class="uppreview" id="prModel"></div>
-          </div>
-          <div class="dim-box">
-            <div class="dim-title">Tamaño inicial del modelo</div>
-            <div class="dim-presets" id="modelScalePresets">
-              <button class="dim-preset" onclick="setModelScale('pequeno')">Pequeño</button>
-              <button class="dim-preset active" onclick="setModelScale('mediano')">Mediano</button>
-              <button class="dim-preset" onclick="setModelScale('grande')">Grande</button>
-              <button class="dim-preset" onclick="setModelScale('real')">Tamaño real</button>
+            <div id="cp-model" class="cpanel">
+              <div class="upzone">
+                <input type="file" id="fModel" accept=".glb,.gltf">
+                <span class="upicon">⬡</span>
+                <div class="uptext"><strong>Modelo 3D — GLB o GLTF</strong><br>Se ancla encima del trigger · &lt; 20 MB</div>
+                <div class="uppreview" id="prModel"></div>
+              </div>
+              <div class="dim-box">
+                <div class="dim-title">Escala inicial del modelo</div>
+                <div class="dim-presets" id="modelScalePresets">
+                  <button class="dim-preset" onclick="setModelScale('pequeno')">Pequeño</button>
+                  <button class="dim-preset active" onclick="setModelScale('mediano')">Mediano</button>
+                  <button class="dim-preset" onclick="setModelScale('grande')">Grande</button>
+                  <button class="dim-preset" onclick="setModelScale('real')">Tamaño real</button>
+                </div>
+                <div class="dim-row" id="modelRealDims" style="display:none;"><span class="dim-label">Alto máx</span><input type="number" class="dim-input" id="dimModelH" placeholder="ej. 30" min="1" step="1"><span class="dim-unit">cm</span></div>
+                <div class="dim-note">El modelo aparece anclado encima del trigger y lo sigue en todo momento.</div>
+              </div>
             </div>
-            <div class="dim-row" id="modelRealDims" style="display:none;">
-              <span class="dim-label">Alto máx</span>
-              <input type="number" class="dim-input" id="dimModelH" placeholder="ej. 30" min="1" step="1">
-              <span class="dim-unit">cm</span>
-            </div>
-          </div>
-        </div>
 
-        <div id="cp-audio" class="cpanel">
-          <div class="upzone">
-            <input type="file" id="fAudio" accept="audio/*">
-            <span class="upicon">♪</span>
-            <div class="uptext"><strong>Audio MP3, WAV u OGG</strong></div>
-            <div class="uppreview" id="prAudio"></div>
-          </div>
-          <div class="field">
-            <div class="field-label">Imagen decorativa (opcional)</div>
-            <div class="upzone">
-              <input type="file" id="fAudioImg" accept="image/*">
-              <span class="upicon">🖼</span>
-              <div class="uptext"><strong>JPG o PNG</strong><br>Se muestra al detectar el trigger</div>
+            <div id="cp-audio" class="cpanel">
+              <div class="upzone">
+                <input type="file" id="fAudio" accept="audio/*">
+                <span class="upicon">♪</span>
+                <div class="uptext"><strong>Audio MP3, WAV u OGG</strong></div>
+                <div class="uppreview" id="prAudio"></div>
+              </div>
+              <div class="field" style="margin-top:8px;">
+                <div class="field-label">Imagen decorativa (opcional)</div>
+                <div class="upzone">
+                  <input type="file" id="fAudioImg" accept="image/*">
+                  <span class="upicon">🖼</span>
+                  <div class="uptext"><strong>JPG o PNG</strong><br>Aparece al detectar el trigger</div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
 
       </div><!-- /mode-image -->
 
-      <!-- ── MODO SURFACE ── -->
+      <!-- MODO SURFACE -->
       <div id="mode-surface" class="mode-panel">
-
         <div class="info-box">
-          Surface AR no requiere imagen trigger.<br>
-          El espectador apunta al suelo o pared y toca para colocar el contenido.
+          <strong style="color:var(--accent)">Surface AR — modelos 3D</strong><br>
+          No requiere imagen trigger. El espectador apunta al suelo o pared y toca para anclar el modelo mediante ARKit / ARCore.
         </div>
-
-        <div class="field">
-          <div class="field-label">Tipo de contenido</div>
-          <div class="type-grid cols-3">
-            <button class="tbtn active" data-stype="surface-model" onclick="setTipo('surface-model')"><span class="tbtn-icon">⬡</span>3D</button>
-            <button class="tbtn" data-stype="surface-video" onclick="setTipo('surface-video')"><span class="tbtn-icon">▶</span>Video</button>
-            <button class="tbtn" data-stype="surface-gif" onclick="setTipo('surface-gif')"><span class="tbtn-icon">◈</span>GIF</button>
+        <div>
+          <div class="step-header">
+            <div class="step-num">1</div>
+            <div class="step-title">Modelo 3D</div>
+            <div class="step-hint">GLB o GLTF</div>
           </div>
-        </div>
-
-        <div id="cp-surface-model" class="cpanel active">
-          <div class="upzone">
-            <input type="file" id="fSurfModel" accept=".glb,.gltf">
-            <span class="upicon">⬡</span>
-            <div class="uptext"><strong>Modelo 3D — GLB o GLTF</strong><br>Se coloca sobre cualquier superficie plana</div>
-            <div class="uppreview" id="prSurfModel"></div>
-          </div>
-          <div class="dim-box">
-            <div class="dim-title">Escala del modelo</div>
-            <div class="dim-presets" id="surfModelPresets">
-              <button class="dim-preset" onclick="setSurfScale(0.1)">Mini</button>
-              <button class="dim-preset" onclick="setSurfScale(0.25)">Pequeño</button>
-              <button class="dim-preset active" onclick="setSurfScale(0.5)">Mediano</button>
-              <button class="dim-preset" onclick="setSurfScale(1)">Grande</button>
-              <button class="dim-preset" onclick="setSurfScale(2)">XL</button>
+          <div id="cp-surface-model" class="cpanel active" style="margin-top:10px;">
+            <div class="upzone">
+              <input type="file" id="fSurfModel" accept=".glb,.gltf">
+              <span class="upicon">⬡</span>
+              <div class="uptext"><strong>Modelo 3D — GLB o GLTF</strong><br>Se ancla a cualquier superficie plana · &lt; 20 MB</div>
+              <div class="uppreview" id="prSurfModel"></div>
             </div>
-            <div class="dim-row">
-              <span class="dim-label">Escala exacta</span>
-              <input type="number" class="dim-input" id="dimSurfScale" value="0.5" min="0.01" max="5" step="0.05">
-              <span class="dim-unit">× tamaño original</span>
-            </div>
-            <div class="dim-row">
-              <span class="dim-label">Alto real</span>
-              <input type="number" class="dim-input" id="dimSurfH" placeholder="ej. 30" min="1" step="1">
-              <span class="dim-unit">cm (opcional)</span>
+            <div class="dim-box">
+              <div class="dim-title">Escala del modelo</div>
+              <div class="dim-presets" id="surfModelPresets">
+                <button class="dim-preset" onclick="setSurfScale(0.1)">Mini</button>
+                <button class="dim-preset" onclick="setSurfScale(0.25)">Pequeño</button>
+                <button class="dim-preset active" onclick="setSurfScale(0.5)">Mediano</button>
+                <button class="dim-preset" onclick="setSurfScale(1)">Grande</button>
+                <button class="dim-preset" onclick="setSurfScale(2)">XL</button>
+              </div>
+              <div class="dim-row"><span class="dim-label">Escala exacta</span><input type="number" class="dim-input" id="dimSurfScale" value="0.5" min="0.01" max="5" step="0.05"><span class="dim-unit">× original</span></div>
+              <div class="dim-row"><span class="dim-label">Alto real</span><input type="number" class="dim-input" id="dimSurfH" placeholder="ej. 30" min="1" step="1"><span class="dim-unit">cm</span></div>
             </div>
           </div>
         </div>
-
-        <div id="cp-surface-video" class="cpanel">
-          <div class="upzone">
-            <input type="file" id="fSurfVideo" accept="video/*">
-            <span class="upicon">▶</span>
-            <div class="uptext"><strong>Video MP4 o WEBM</strong><br>Aparece como pantalla flotante sobre la superficie</div>
-            <div class="uppreview" id="prSurfVideo"></div>
-          </div>
-          <div class="dim-box">
-            <div class="dim-title">Proporción del video</div>
-            <div class="dim-presets" id="surfVideoPropPresets">
-              <button class="dim-preset active" onclick="setProp('surfVideo',16,9)">16:9</button>
-              <button class="dim-preset" onclick="setProp('surfVideo',1,1)">1:1</button>
-              <button class="dim-preset" onclick="setProp('surfVideo',4,3)">4:3</button>
-              <button class="dim-preset" onclick="setProp('surfVideo',9,16)">9:16</button>
-            </div>
-          </div>
-        </div>
-
-        <div id="cp-surface-gif" class="cpanel">
-          <div class="upzone">
-            <input type="file" id="fSurfGif" accept="image/gif,image/webp">
-            <span class="upicon">◈</span>
-            <div class="uptext"><strong>GIF animado o WEBP</strong><br>Aparece flotando sobre la superficie</div>
-            <div class="uppreview" id="prSurfGif"></div>
-          </div>
-          <div class="dim-box">
-            <div class="dim-title">Proporción del GIF</div>
-            <div class="dim-presets" id="surfGifPropPresets">
-              <button class="dim-preset active" onclick="setProp('surfGif',1,1)">1:1</button>
-              <button class="dim-preset" onclick="setProp('surfGif',16,9)">16:9</button>
-              <button class="dim-preset" onclick="setProp('surfGif',4,3)">4:3</button>
-              <button class="dim-preset" onclick="setProp('surfGif',9,16)">9:16</button>
-            </div>
-          </div>
-        </div>
-
       </div><!-- /mode-surface -->
 
       <button class="btn btn-primary" id="btnGenerar" onclick="generarProyecto()">◈ Compilar y publicar</button>
     </div><!-- /panel form -->
 
-    <!-- ── OUTPUT PANEL ── -->
+    <!-- OUTPUT PANEL -->
     <div class="out-panel">
       <div class="panel-label">Resultado</div>
       <div class="out-empty" id="outEmpty">
         <div class="out-empty-icon">◈</div>
-        <p>Completa el formulario. ARA compilará el tracking y publicará todo en GitHub automáticamente.</p>
+        <p>Completa el formulario y ARA compilará el tracking y publicará todo automáticamente.</p>
       </div>
       <div class="out-content" id="outContent">
         <div class="prog-wrap">
@@ -609,35 +394,37 @@
           <div class="prog-msg" id="progMsg">Iniciando...</div>
         </div>
         <div class="steps-log" id="stepsLog"></div>
-        <div class="qr-wrap"><div id="qrcode"></div></div>
 
-        <div class="link-section">
-          <div class="link-label">Link del espectador</div>
-          <div class="linkbox">
-            <div class="linkdisplay" id="linkDisplay">—</div>
-            <button class="btn-copy" onclick="copiarLink('linkDisplay')">Copiar</button>
-          </div>
-        </div>
-
-        <div class="link-section">
-          <div class="link-label">Link de edición — solo para ti</div>
-          <div class="linkbox">
-            <div class="linkdisplay editor" id="linkEditor">—</div>
-            <button class="btn-copy" onclick="copiarLink('linkEditor')">Copiar</button>
+        <div class="result-grid">
+          <div class="qr-wrap"><div id="qrcode"></div></div>
+          <div class="result-links">
+            <div class="link-section">
+              <div class="link-label">Link del espectador</div>
+              <div class="linkbox">
+                <div class="linkdisplay" id="linkDisplay">—</div>
+                <button class="btn-copy" onclick="copiarLink('linkDisplay')">Copiar</button>
+              </div>
+            </div>
+            <div class="link-section">
+              <div class="link-label">Link de edición — solo para ti</div>
+              <div class="linkbox">
+                <div class="linkdisplay editor" id="linkEditor">—</div>
+                <button class="btn-copy" onclick="copiarLink('linkEditor')">Copiar</button>
+              </div>
+            </div>
           </div>
         </div>
 
         <div class="action-row">
-          <button class="btn" onclick="abrirViewer()">↗ Abrir</button>
-          <button class="btn" onclick="descargarQR('publico')">↓ QR Público</button>
-          <button class="btn" onclick="descargarQR('editor')">↓ QR Editor</button>
+          <button class="btn-act" onclick="abrirViewer()">↗ Abrir</button>
+          <button class="btn-act" onclick="descargarQR('publico')">↓ QR Público</button>
+          <button class="btn-act" onclick="descargarQR('editor')">↓ QR Editor</button>
         </div>
       </div>
     </div><!-- /out-panel -->
 
   </div><!-- /cols -->
 
-  <!-- Projects List -->
   <div class="plist-wrap">
     <div class="plist-head">
       <span class="plist-title">Proyectos publicados</span>
@@ -645,492 +432,284 @@
     </div>
     <div class="plist-body" id="pList"></div>
   </div>
-
-</div><!-- /wrap -->
+</div>
 
 <div class="toast" id="toast"></div>
 
 <script>
-// ── CONFIG ──
-const GITHUB_USER  = 'sergeam09';
-const GITHUB_REPO  = 'ara';
-const GITHUB_BRANCH= 'main';
-const BASE_URL     = `https://${GITHUB_USER}.github.io/${GITHUB_REPO}`;
-const WORKER_URL   = 'https://ara.sergeam09.workers.dev';
+const BASE_URL   = 'https://sergeam09.github.io/ara';
+const WORKER_URL = 'https://ara.sergeam09.workers.dev';
 
-let tipoActual  = 'video';
-let modoActual  = 'image';
-let viewerUrlActual = null;
-let proyectos   = JSON.parse(localStorage.getItem('ara-proyectos') || '[]');
+let tipoActual = 'video', modoActual = 'image', viewerUrlActual = null;
+let proyectos  = JSON.parse(localStorage.getItem('ara-proyectos') || '[]');
+let dimConfig  = { prop:'16:9', width:1, height:0.5625, scale:0.5 };
 
-// Dimensiones
-let dimConfig = { prop: '16:9', width: 1, height: 0.5625, scale: 0.5 };
-
-// ── WORKER STATUS CHECK ──
+// Worker status
 (async () => {
   try {
-    const r = await fetch(WORKER_URL, { method: 'GET' });
+    const r = await fetch(WORKER_URL, { method:'GET' });
     const dot = document.getElementById('tokenDot');
     const st  = document.getElementById('tokenStatus');
-    if (r.ok || r.status === 405) {
-      dot.classList.add('ok');
-      st.textContent = 'Worker conectado ●';
-    } else {
-      dot.classList.add('err');
-      st.textContent = 'Worker error ' + r.status;
-    }
+    if (r.ok) { dot.classList.add('ok'); st.textContent = 'Worker conectado ●'; }
+    else       { dot.classList.add('err'); st.textContent = 'Worker error ' + r.status; }
   } catch(e) {
     document.getElementById('tokenDot').classList.add('err');
     document.getElementById('tokenStatus').textContent = 'Worker sin conexión';
   }
 })();
 
-// ── PROPORCIONES ──
 function setProp(tipo, w, h) {
-  const maxD = Math.max(w, h);
-  dimConfig.width  = parseFloat((w / maxD).toFixed(3));
-  dimConfig.height = parseFloat((h / maxD).toFixed(3));
+  const m = Math.max(w,h);
+  dimConfig.width  = parseFloat((w/m).toFixed(3));
+  dimConfig.height = parseFloat((h/m).toFixed(3));
   dimConfig.prop   = `${w}:${h}`;
-  const presetsId  = { video:'videoPropPresets', gif:'gifPropPresets', surfVideo:'surfVideoPropPresets', surfGif:'surfGifPropPresets' }[tipo];
-  if (presetsId) {
-    document.getElementById(presetsId)?.querySelectorAll('.dim-preset').forEach(b => {
-      b.classList.toggle('active', b.textContent === `${w}:${h}`);
-    });
-  }
+  const ids = { video:'videoPropPresets', gif:'gifPropPresets' };
+  const pid = ids[tipo];
+  if (pid) document.getElementById(pid)?.querySelectorAll('.dim-preset').forEach(b => {
+    b.classList.toggle('active', b.textContent === `${w}:${h}`);
+  });
 }
-
 function setModelScale(sz) {
-  const map = { pequeno: 0.2, mediano: 0.5, grande: 1, real: 1 };
+  const map = { pequeno:0.2, mediano:0.5, grande:1, real:1 };
   dimConfig.scale = map[sz] || 0.5;
-  document.getElementById('modelRealDims').style.display = sz === 'real' ? 'flex' : 'none';
+  document.getElementById('modelRealDims').style.display = sz==='real' ? 'flex' : 'none';
   document.querySelectorAll('#modelScalePresets .dim-preset').forEach(b => {
     b.classList.toggle('active', b.onclick?.toString().includes(`'${sz}'`));
   });
 }
-
 function setSurfScale(val) {
   dimConfig.scale = val;
-  const input = document.getElementById('dimSurfScale');
-  if (input) input.value = val;
+  const inp = document.getElementById('dimSurfScale'); if (inp) inp.value = val;
   document.querySelectorAll('#surfModelPresets .dim-preset').forEach(b => {
     b.classList.toggle('active', b.onclick?.toString().includes(`(${val})`));
   });
 }
-
 function getDimensions() {
   const t = tipoActual;
-  let width  = dimConfig.width  || 1;
-  let height = dimConfig.height || 1;
-  let scale  = dimConfig.scale  || 0.5;
-
-  if (t === 'video' || t === 'surface-video') {
+  let width = dimConfig.width||1, height = dimConfig.height||1, scale = dimConfig.scale||0.5;
+  if (t==='video') {
     const cw = parseFloat(document.getElementById('dimVideoW')?.value);
     const ch = parseFloat(document.getElementById('dimVideoH')?.value);
-    if (cw > 0 && ch > 0 && !isNaN(cw) && !isNaN(ch)) {
-      width  = +(cw / 100).toFixed(3);
-      height = +(ch / 100).toFixed(3);
-    }
-  } else if (t === 'gif' || t === 'surface-gif') {
+    if (cw>0&&ch>0) { width=+(cw/100).toFixed(3); height=+(ch/100).toFixed(3); }
+  } else if (t==='gif') {
     const cw = parseFloat(document.getElementById('dimGifW')?.value);
     const ch = parseFloat(document.getElementById('dimGifH')?.value);
-    if (cw > 0 && ch > 0 && !isNaN(cw) && !isNaN(ch)) {
-      width  = +(cw / 100).toFixed(3);
-      height = +(ch / 100).toFixed(3);
-    }
-  } else if (t === 'model') {
+    if (cw>0&&ch>0) { width=+(cw/100).toFixed(3); height=+(ch/100).toFixed(3); }
+  } else if (t==='model') {
     const ch = parseFloat(document.getElementById('dimModelH')?.value);
-    if (ch > 0 && !isNaN(ch)) scale = +(ch / 100).toFixed(3);
-  } else if (t === 'surface-model') {
+    if (ch>0) scale=+(ch/100).toFixed(3);
+  } else if (t==='surface-model') {
     const ch = parseFloat(document.getElementById('dimSurfH')?.value);
-    if (ch > 0 && !isNaN(ch)) {
-      scale = +(ch / 100).toFixed(3);
-    } else {
-      const sc = parseFloat(document.getElementById('dimSurfScale')?.value);
-      if (sc > 0 && !isNaN(sc)) scale = sc;
-    }
+    if (ch>0) { scale=+(ch/100).toFixed(3); }
+    else { const sc=parseFloat(document.getElementById('dimSurfScale')?.value); if(sc>0) scale=sc; }
   }
-
   return { width, height, scale };
 }
 
-// ── MODO / TIPO ──
 function setModo(m) {
   modoActual = m;
   document.querySelectorAll('[data-mode]').forEach(b => b.classList.remove('active'));
   document.querySelector(`[data-mode="${m}"]`).classList.add('active');
   document.querySelectorAll('.mode-panel').forEach(p => p.classList.remove('active'));
   document.getElementById(`mode-${m}`).classList.add('active');
-  if (m === 'image') setTipo('video');
-  else               setTipo('surface-model');
+  if (m==='image') setTipo('video'); else setTipo('surface-model');
 }
-
 function setTipo(t) {
   tipoActual = t;
   document.querySelectorAll('[data-type],[data-stype]').forEach(b => b.classList.remove('active'));
-  const btn = document.querySelector(`[data-type="${t}"]`) || document.querySelector(`[data-stype="${t}"]`);
+  const btn = document.querySelector(`[data-type="${t}"]`)||document.querySelector(`[data-stype="${t}"]`);
   if (btn) btn.classList.add('active');
   document.querySelectorAll('.cpanel').forEach(p => p.classList.remove('active'));
-  const panel = document.getElementById(`cp-${t}`);
-  if (panel) panel.classList.add('active');
+  const panel = document.getElementById(`cp-${t}`); if (panel) panel.classList.add('active');
 }
 
-// ── DRAG & DROP & FILE PREVIEW ──
+// Drag & drop + preview
 document.querySelectorAll('.upzone').forEach(z => {
   z.addEventListener('dragover', e => { e.preventDefault(); z.classList.add('over'); });
   z.addEventListener('dragleave', () => z.classList.remove('over'));
   z.addEventListener('drop', e => {
     e.preventDefault(); z.classList.remove('over');
     const inp = z.querySelector('input[type="file"]');
-    if (inp && e.dataTransfer.files[0]) {
-      const dt = new DataTransfer(); dt.items.add(e.dataTransfer.files[0]);
-      inp.files = dt.files; inp.dispatchEvent(new Event('change'));
-    }
+    if (inp&&e.dataTransfer.files[0]) { const dt=new DataTransfer(); dt.items.add(e.dataTransfer.files[0]); inp.files=dt.files; inp.dispatchEvent(new Event('change')); }
   });
 });
-
-[
-  ['fTrigger','prTrigger'],['fVideo','prVideo'],['fGif','prGif'],
-  ['fModel','prModel'],['fAudio','prAudio'],
-  ['fSurfModel','prSurfModel'],['fSurfVideo','prSurfVideo'],['fSurfGif','prSurfGif']
-].forEach(([id, pid]) => {
-  const el = document.getElementById(id); if (!el) return;
-  el.addEventListener('change', function() {
-    const p = document.getElementById(pid);
-    if (this.files[0]) { p.style.display = 'block'; p.textContent = `✓ ${this.files[0].name} (${fmt(this.files[0].size)})`; }
-  });
+[['fTrigger','prTrigger'],['fVideo','prVideo'],['fGif','prGif'],['fModel','prModel'],['fAudio','prAudio'],['fSurfModel','prSurfModel']].forEach(([id,pid]) => {
+  const el=document.getElementById(id); if (!el) return;
+  el.addEventListener('change', function() { const p=document.getElementById(pid); if(p&&this.files[0]){p.style.display='block';p.textContent=`✓ ${this.files[0].name} (${fmt(this.files[0].size)})`;} });
 });
-
-// Sync escala manual surface
 document.addEventListener('DOMContentLoaded', () => {
-  const sc = document.getElementById('dimSurfScale');
-  if (sc) sc.addEventListener('input', function() {
-    const v = parseFloat(this.value);
-    if (v > 0) {
-      dimConfig.scale = v;
-      document.querySelectorAll('#surfModelPresets .dim-preset').forEach(b => b.classList.remove('active'));
-    }
-  });
+  const sc=document.getElementById('dimSurfScale');
+  if (sc) sc.addEventListener('input', function() { const v=parseFloat(this.value); if(v>0){dimConfig.scale=v;document.querySelectorAll('#surfModelPresets .dim-preset').forEach(b=>b.classList.remove('active'));} });
 });
+function fmt(b) { if(b<1024)return b+'B'; if(b<1048576)return(b/1024).toFixed(1)+'KB'; return(b/1048576).toFixed(1)+'MB'; }
 
-function fmt(b) {
-  if (b < 1024) return b + 'B';
-  if (b < 1048576) return (b / 1024).toFixed(1) + 'KB';
-  return (b / 1048576).toFixed(1) + 'MB';
-}
+function logStep(msg, tipo='') { const log=document.getElementById('stepsLog'); log.classList.add('visible'); const l=document.createElement('div'); l.className=`step-line ${tipo}`; l.textContent=msg; log.appendChild(l); log.scrollTop=log.scrollHeight; }
+function clearLog() { const log=document.getElementById('stepsLog'); log.innerHTML=''; log.classList.remove('visible'); }
+function setProgress(pct,label,msg,status='') { document.getElementById('progFill').style.width=pct+'%'; document.getElementById('progPct').textContent=pct+'%'; document.getElementById('progLabel').textContent=label; const m=document.getElementById('progMsg'); m.textContent=msg; m.className='prog-msg'+(status?' '+status:''); }
 
-// ── LOG / PROGRESS ──
-function logStep(msg, tipo = '') {
-  const log = document.getElementById('stepsLog');
-  log.classList.add('visible');
-  const l = document.createElement('div');
-  l.className = `step-line ${tipo}`;
-  l.textContent = msg;
-  log.appendChild(l);
-  log.scrollTop = log.scrollHeight;
-}
-function clearLog() {
-  const log = document.getElementById('stepsLog');
-  log.innerHTML = ''; log.classList.remove('visible');
-}
-function setProgress(pct, label, msg, status = '') {
-  document.getElementById('progFill').style.width = pct + '%';
-  document.getElementById('progPct').textContent  = pct + '%';
-  document.getElementById('progLabel').textContent = label;
-  const m = document.getElementById('progMsg');
-  m.textContent = msg; m.className = 'prog-msg' + (status ? ' ' + status : '');
-}
-
-// ── GITHUB via CLOUDFLARE WORKER ──
 async function githubUpload(path, content, msg) {
-  const res = await fetch(WORKER_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ path, content, message: msg }),
-  });
-  if (!res.ok) {
-    let err;
-    try { err = await res.json(); } catch(e) { err = {}; }
-    throw new Error(err.error || `Error ${res.status}`);
-  }
+  const res = await fetch(WORKER_URL, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({path,content,message:msg}) });
+  if (!res.ok) { let err; try{err=await res.json();}catch(e){err={};} throw new Error(err.error||`Error ${res.status}`); }
   return res.json();
 }
+async function fileToBase64(file) { return new Promise((res,rej) => { const r=new FileReader(); r.onload=()=>res(r.result.split(',')[1]); r.onerror=rej; r.readAsDataURL(file); }); }
+function arrayBufferToBase64(buffer) { const bytes=new Uint8Array(buffer); let bin=''; for(let i=0;i<bytes.byteLength;i++) bin+=String.fromCharCode(bytes[i]); return btoa(bin); }
 
-async function fileToBase64(file) {
-  return new Promise((res, rej) => {
-    const r = new FileReader();
-    r.onload  = () => res(r.result.split(',')[1]);
-    r.onerror = rej;
-    r.readAsDataURL(file);
-  });
-}
-
-function arrayBufferToBase64(buffer) {
-  const bytes = new Uint8Array(buffer);
-  let bin = '';
-  for (let i = 0; i < bytes.byteLength; i++) bin += String.fromCharCode(bytes[i]);
-  return btoa(bin);
-}
-
-// ── MINDAR COMPILER ──
 async function waitForMINDAR() {
   return new Promise(resolve => {
-    if (window.MINDAR && window.MINDAR.IMAGE && window.MINDAR.IMAGE.Compiler) { resolve(); return; }
-    const check = setInterval(() => {
-      if (window.MINDAR && window.MINDAR.IMAGE && window.MINDAR.IMAGE.Compiler) {
-        clearInterval(check); resolve();
-      }
-    }, 100);
-    setTimeout(() => { clearInterval(check); resolve(); }, 12000);
+    if (window.MINDAR&&window.MINDAR.IMAGE&&window.MINDAR.IMAGE.Compiler){resolve();return;}
+    const check=setInterval(()=>{if(window.MINDAR&&window.MINDAR.IMAGE&&window.MINDAR.IMAGE.Compiler){clearInterval(check);resolve();}},100);
+    setTimeout(()=>{clearInterval(check);resolve();},12000);
   });
 }
-
 async function compilarMind(imagenFile) {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    const url = URL.createObjectURL(imagenFile);
-    img.onload = async () => {
+  return new Promise((resolve,reject) => {
+    const img=new Image(); const url=URL.createObjectURL(imagenFile);
+    img.onload=async()=>{
       try {
         URL.revokeObjectURL(url);
-        const compiler = new MINDAR.IMAGE.Compiler();
-        const canvas = document.createElement('canvas');
-        canvas.width  = img.width;
-        canvas.height = img.height;
-        canvas.getContext('2d').drawImage(img, 0, 0);
-        await compiler.compileImageTargets([canvas], p => {
-          setProgress(20 + Math.round(p * 0.4), 'Compilando tracking', `Analizando imagen... ${Math.round(p)}%`);
-        });
+        const compiler=new MINDAR.IMAGE.Compiler();
+        const canvas=document.createElement('canvas'); canvas.width=img.width; canvas.height=img.height;
+        canvas.getContext('2d').drawImage(img,0,0);
+        await compiler.compileImageTargets([canvas],p=>{setProgress(20+Math.round(p*0.4),'Compilando tracking',`Analizando imagen... ${Math.round(p)}%`);});
         resolve(compiler.exportData());
-      } catch(e) { reject(e); }
+      } catch(e){reject(e);}
     };
-    img.onerror = () => reject(new Error('No se pudo cargar la imagen trigger'));
-    img.src = url;
+    img.onerror=()=>reject(new Error('No se pudo cargar la imagen trigger'));
+    img.src=url;
   });
 }
 
-// ── PUBLICAR ──
 async function generarProyecto() {
-  const nombre = document.getElementById('pNombre').value.trim();
-  if (!nombre) { toast('Ponle nombre al proyecto'); return; }
-  if (!/^[a-zA-Z0-9_-]+$/.test(nombre)) { toast('Solo letras, números y guiones'); return; }
+  const nombre=document.getElementById('pNombre').value.trim();
+  if (!nombre){toast('Ponle nombre al proyecto');return;}
+  if (!/^[a-zA-Z0-9_-]+$/.test(nombre)){toast('Solo letras, números y guiones');return;}
 
-  const fTrig = document.getElementById('fTrigger').files[0];
-  const fMap  = {
-    video:'fVideo', gif:'fGif', model:'fModel', audio:'fAudio',
-    'surface-model':'fSurfModel', 'surface-video':'fSurfVideo', 'surface-gif':'fSurfGif'
-  };
-  const fCont = document.getElementById(fMap[tipoActual])?.files[0];
-  const fAImg = document.getElementById('fAudioImg')?.files[0];
+  const fTrig=document.getElementById('fTrigger')?.files[0];
+  const fMap={video:'fVideo',gif:'fGif',model:'fModel',audio:'fAudio','surface-model':'fSurfModel'};
+  const fCont=document.getElementById(fMap[tipoActual])?.files[0];
+  const fAImg=document.getElementById('fAudioImg')?.files[0];
 
-  if (modoActual === 'image' && !fTrig) { toast('Necesitas una imagen trigger'); return; }
-  if (!fCont) { toast(`Sube el archivo de ${tipoActual}`); return; }
+  if (modoActual==='image'&&!fTrig){toast('Falta la imagen trigger (Paso 1)');return;}
+  if (!fCont){toast('Falta el archivo de contenido (Paso 2)');return;}
 
-  const slug       = nombre.toLowerCase();
-  const contentExt = fCont.name.split('.').pop().toLowerCase();
-  const triggerExt = fTrig ? fTrig.name.split('.').pop().toLowerCase() : 'jpg';
-
-  const btn = document.getElementById('btnGenerar');
-  btn.disabled = true; btn.textContent = 'Procesando...';
-
-  document.getElementById('outEmpty').style.display = 'none';
+  const slug=nombre.toLowerCase();
+  const contentExt=fCont.name.split('.').pop().toLowerCase();
+  const triggerExt=fTrig?fTrig.name.split('.').pop().toLowerCase():'jpg';
+  const btn=document.getElementById('btnGenerar');
+  btn.disabled=true; btn.textContent='Procesando...';
+  document.getElementById('outEmpty').style.display='none';
   document.getElementById('outContent').classList.add('visible');
   clearLog();
 
   try {
-    const dims = getDimensions();
+    const dims=getDimensions();
 
-    if (modoActual === 'surface') {
-      setProgress(50, 'Subiendo', `Subiendo contenido.${contentExt}...`);
-      logStep(`◈ Subiendo contenido.${contentExt}...`, 'act');
-      await githubUpload(`proyectos/${slug}/contenido.${contentExt}`, await fileToBase64(fCont), `ARA: contenido ${slug}`);
-      logStep('✓ contenido subido', 'ok');
-      setProgress(90, 'Subiendo', 'Casi listo...');
+    if (modoActual==='surface') {
+      setProgress(50,'Subiendo',`Subiendo contenido.${contentExt}...`);
+      logStep(`◈ Subiendo contenido.${contentExt}...`,'act');
+      await githubUpload(`proyectos/${slug}/contenido.${contentExt}`,await fileToBase64(fCont),`ARA: contenido ${slug}`);
+      logStep('✓ contenido subido','ok');
+      setProgress(90,'Subiendo','Guardando configuración...');
     } else {
-      logStep('◈ Cargando motor de tracking...', 'act');
-      setProgress(5, 'Iniciando', 'Cargando MindAR...');
+      logStep('◈ Cargando motor de tracking...','act');
+      setProgress(5,'Iniciando','Cargando MindAR...');
       await waitForMINDAR();
-
-      logStep('◈ Compilando imagen trigger...', 'act');
-      setProgress(10, 'Compilando tracking', 'Analizando imagen...');
-      const mindBuffer = await compilarMind(fTrig);
-      logStep('✓ Archivo .mind generado', 'ok');
-
-      setProgress(60, 'Subiendo', 'Subiendo imagen trigger...');
-      logStep('◈ Subiendo trigger...', 'act');
-      await githubUpload(`proyectos/${slug}/trigger.${triggerExt}`, await fileToBase64(fTrig), `ARA: trigger ${slug}`);
-      logStep('✓ trigger subido', 'ok');
-
-      setProgress(75, 'Subiendo', `Subiendo contenido.${contentExt}...`);
-      logStep(`◈ Subiendo contenido.${contentExt}...`, 'act');
-      await githubUpload(`proyectos/${slug}/contenido.${contentExt}`, await fileToBase64(fCont), `ARA: contenido ${slug}`);
-      logStep('✓ contenido subido', 'ok');
-
-      setProgress(88, 'Subiendo', 'Subiendo targets.mind...');
-      logStep('◈ Subiendo targets.mind...', 'act');
-      await githubUpload(`proyectos/${slug}/targets.mind`, arrayBufferToBase64(mindBuffer), `ARA: targets ${slug}`);
-      logStep('✓ targets.mind subido', 'ok');
+      logStep('◈ Compilando imagen trigger...','act');
+      setProgress(10,'Compilando tracking','Analizando imagen...');
+      const mindBuffer=await compilarMind(fTrig);
+      logStep('✓ Archivo .mind generado','ok');
+      setProgress(60,'Subiendo','Subiendo imagen trigger...');
+      logStep('◈ Subiendo trigger...','act');
+      await githubUpload(`proyectos/${slug}/trigger.${triggerExt}`,await fileToBase64(fTrig),`ARA: trigger ${slug}`);
+      logStep('✓ trigger subido','ok');
+      setProgress(75,'Subiendo',`Subiendo contenido.${contentExt}...`);
+      logStep(`◈ Subiendo contenido.${contentExt}...`,'act');
+      await githubUpload(`proyectos/${slug}/contenido.${contentExt}`,await fileToBase64(fCont),`ARA: contenido ${slug}`);
+      logStep('✓ contenido subido','ok');
+      setProgress(88,'Subiendo','Subiendo targets.mind...');
+      logStep('◈ Subiendo targets.mind...','act');
+      await githubUpload(`proyectos/${slug}/targets.mind`,arrayBufferToBase64(mindBuffer),`ARA: targets ${slug}`);
+      logStep('✓ targets.mind subido','ok');
     }
 
     if (fAImg) {
-      setProgress(93, 'Subiendo', 'Subiendo imagen de audio...');
-      logStep('◈ Subiendo imagen de audio...', 'act');
-      await githubUpload(`proyectos/${slug}/audio-img.jpg`, await fileToBase64(fAImg), `ARA: audio-img ${slug}`);
-      logStep('✓ imagen de audio subida', 'ok');
+      logStep('◈ Subiendo imagen de audio...','act');
+      await githubUpload(`proyectos/${slug}/audio-img.jpg`,await fileToBase64(fAImg),`ARA: audio-img ${slug}`);
+      logStep('✓ imagen de audio subida','ok');
     }
 
-    // Guardar config.json inicial
-    const initConfig = {
-      posX: 0, posY: 0, posZ: 0.01,
-      rotX: 0, rotY: 0, rotZ: 0,
-      preset: 'vertical',
-      scale: dims.scale, width: dims.width, height: dims.height,
-      loop: true, autoplay: true, fade: false
-    };
-    try {
-      await githubUpload(`proyectos/${slug}/config.json`, btoa(JSON.stringify(initConfig, null, 2)), `ARA: config ${slug}`);
-      logStep('✓ Configuración inicial guardada', 'ok');
-    } catch(e) { logStep('⚠ Config no guardada (no crítico)', ''); }
+    const initConfig={posX:0,posY:0,posZ:0.01,rotX:0,rotY:0,rotZ:0,preset:'vertical',scale:dims.scale,width:dims.width,height:dims.height,loop:true,autoplay:true,fade:false};
+    try { await githubUpload(`proyectos/${slug}/config.json`,btoa(JSON.stringify(initConfig,null,2)),`ARA: config ${slug}`); logStep('✓ Configuración guardada','ok'); }
+    catch(e){ logStep('⚠ Config no guardada (no crítico)',''); }
 
-    setProgress(100, 'Publicado', '✓ Experiencia AR disponible', 'ok');
-    logStep('✓ ¡Publicado en GitHub Pages!', 'ok');
+    setProgress(100,'Publicado','✓ Experiencia AR disponible','ok');
+    logStep('✓ ¡Publicado en GitHub Pages!','ok');
 
-    // URL sin parámetros extra que rompan el viewer — solo lo esencial
-    const viewerUrl = `${BASE_URL}/viewer.html?p=${slug}&t=${tipoActual}&ce=${contentExt}&te=${triggerExt}&w=${dims.width}&h=${dims.height}&sc=${dims.scale}`;
-    viewerUrlActual = viewerUrl;
+    const viewerUrl=`${BASE_URL}/viewer.html?p=${slug}&t=${tipoActual}&ce=${contentExt}&te=${triggerExt}&w=${dims.width}&h=${dims.height}&sc=${dims.scale}`;
+    viewerUrlActual=viewerUrl;
 
-    const proyecto = { slug, nombre, tipo: tipoActual, contentExt, triggerExt, url: viewerUrl, creado: new Date().toLocaleDateString('es-MX') };
-    proyectos = proyectos.filter(p => p.slug !== slug);
-    proyectos.unshift(proyecto);
-    localStorage.setItem('ara-proyectos', JSON.stringify(proyectos));
-
-    mostrarOutput(viewerUrl);
-    renderProyectos();
-    toast('¡Publicado ✓');
-
-    // Visual feedback en el campo de nombre
-    const pNombre = document.getElementById('pNombre');
-    pNombre.style.borderColor = 'var(--ok)';
-    setTimeout(() => { pNombre.style.borderColor = ''; }, 3000);
+    const proyecto={slug,nombre,tipo:tipoActual,contentExt,triggerExt,url:viewerUrl,creado:new Date().toLocaleDateString('es-MX')};
+    proyectos=proyectos.filter(p=>p.slug!==slug); proyectos.unshift(proyecto);
+    localStorage.setItem('ara-proyectos',JSON.stringify(proyectos));
+    mostrarOutput(viewerUrl); renderProyectos(); toast('¡Publicado ✓');
+    const pN=document.getElementById('pNombre'); pN.style.borderColor='var(--ok)'; setTimeout(()=>{pN.style.borderColor='';},3000);
 
   } catch(e) {
-    setProgress(0, 'Error', e.message, 'err');
-    logStep(`✕ Error: ${e.message}`, 'err');
-    toast('Error: ' + e.message);
+    setProgress(0,'Error',e.message,'err'); logStep(`✕ Error: ${e.message}`,'err'); toast('Error: '+e.message);
   } finally {
-    btn.disabled = false; btn.textContent = '◈ Compilar y publicar';
+    btn.disabled=false; btn.textContent='◈ Compilar y publicar';
   }
 }
 
-// ── OUTPUT ──
-async function mostrarOutput(url) {
-  const urlEspectador = url.replace('&edit=1', '');
-  const urlEditor     = urlEspectador + '&edit=1';
-
-  document.getElementById('linkDisplay').textContent = urlEspectador;
-  document.getElementById('linkEditor').textContent  = urlEditor;
-
-  document.getElementById('qrcode').innerHTML = '';
-  new QRCode(document.getElementById('qrcode'), {
-    text: urlEspectador, width: 160, height: 160,
-    colorDark: '#0a0a0a', colorLight: '#ffffff',
-    correctLevel: QRCode.CorrectLevel.H
-  });
-  viewerUrlActual = urlEspectador;
+function mostrarOutput(url) {
+  const urlE=url.replace('&edit=1',''); const urlEd=urlE+'&edit=1';
+  document.getElementById('linkDisplay').textContent=urlE;
+  document.getElementById('linkEditor').textContent=urlEd;
+  document.getElementById('qrcode').innerHTML='';
+  new QRCode(document.getElementById('qrcode'),{text:urlE,width:114,height:114,colorDark:'#0a0a0a',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.H});
+  viewerUrlActual=urlE;
 }
-
-function copiarLink(elId) {
-  const txt = document.getElementById(elId)?.textContent || '';
-  navigator.clipboard.writeText(txt);
-  toast('Link copiado ✓');
-}
-
-function abrirViewer() { if (viewerUrlActual) window.open(viewerUrlActual, '_blank'); }
-
+function copiarLink(id) { navigator.clipboard.writeText(document.getElementById(id)?.textContent||''); toast('Link copiado ✓'); }
+function abrirViewer() { if (viewerUrlActual) window.open(viewerUrlActual,'_blank'); }
 function descargarQR(tipo) {
-  const url = tipo === 'editor'
-    ? document.getElementById('linkEditor').textContent
-    : document.getElementById('linkDisplay').textContent;
-  if (!url || url === '—') return;
-  const tmp = document.createElement('div');
-  tmp.style.cssText = 'position:fixed;left:-9999px;top:-9999px;background:#fff;padding:16px;';
+  const url=tipo==='editor'?document.getElementById('linkEditor').textContent:document.getElementById('linkDisplay').textContent;
+  if(!url||url==='—')return;
+  const tmp=document.createElement('div'); tmp.style.cssText='position:fixed;left:-9999px;top:-9999px;background:#fff;padding:16px;';
   document.body.appendChild(tmp);
-  new QRCode(tmp, { text: url, width: 256, height: 256, colorDark: '#0a0a0a', colorLight: '#ffffff', correctLevel: QRCode.CorrectLevel.H });
-  setTimeout(() => {
-    const c = tmp.querySelector('canvas');
-    if (c) { const a = document.createElement('a'); a.download = `ara-qr-${tipo}.png`; a.href = c.toDataURL(); a.click(); }
-    tmp.remove(); toast(`QR ${tipo} descargado ✓`);
-  }, 300);
+  new QRCode(tmp,{text:url,width:256,height:256,colorDark:'#0a0a0a',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.H});
+  setTimeout(()=>{ const c=tmp.querySelector('canvas'); if(c){const a=document.createElement('a');a.download=`ara-qr-${tipo}.png`;a.href=c.toDataURL();a.click();} tmp.remove(); toast(`QR ${tipo} descargado ✓`); },300);
 }
 
-// ── PROYECTOS ──
 function renderProyectos() {
-  const el = document.getElementById('pList');
-  document.getElementById('pCount').textContent = `${proyectos.length} proyecto${proyectos.length !== 1 ? 's' : ''}`;
-  if (!proyectos.length) { el.innerHTML = '<div class="plist-empty">Aún no hay proyectos publicados.</div>'; return; }
-  el.innerHTML = proyectos.map(p => `
+  const el=document.getElementById('pList');
+  document.getElementById('pCount').textContent=`${proyectos.length} proyecto${proyectos.length!==1?'s':''}`;
+  if (!proyectos.length){el.innerHTML='<div class="plist-empty">Aún no hay proyectos publicados.</div>';return;}
+  el.innerHTML=proyectos.map(p=>`
     <div class="pitem" onclick="cargarProyecto('${p.slug}')">
       <div class="pdot ${p.tipo}"></div>
       <div class="pname">${p.nombre}</div>
       <div class="ptype">${p.tipo}</div>
-      <div class="pdate">${p.creado || ''}</div>
+      <div class="pdate">${p.creado||''}</div>
       <div class="pactions">
         <button class="pact" onclick="event.stopPropagation();navigator.clipboard.writeText('${p.url}');toast('Copiado ✓')" title="Copiar">⎘</button>
-        <button class="pact del" onclick="event.stopPropagation();confirmarEliminar('${p.slug}')" title="Eliminar">✕</button>
+        <button class="pact del" onclick="event.stopPropagation();confirmarEliminar('${p.slug}')" title="Eliminar de GitHub">✕</button>
       </div>
     </div>`).join('');
 }
-
-function cargarProyecto(slug) {
-  const p = proyectos.find(x => x.slug === slug);
-  if (p) {
-    viewerUrlActual = p.url;
-    mostrarOutput(p.url);
-    document.getElementById('outEmpty').style.display = 'none';
-    document.getElementById('outContent').classList.add('visible');
-  }
-}
-
-function confirmarEliminar(slug) {
-  const p = proyectos.find(x => x.slug === slug);
-  if (!p) return;
-  if (!confirm(`¿Eliminar "${p.nombre}" de GitHub y de la lista?\n\nEsto borrará todos los archivos del proyecto en GitHub Pages.`)) return;
-  eliminarProyecto(slug);
-}
-
+function cargarProyecto(slug) { const p=proyectos.find(x=>x.slug===slug); if(p){viewerUrlActual=p.url;mostrarOutput(p.url);document.getElementById('outEmpty').style.display='none';document.getElementById('outContent').classList.add('visible');} }
+function confirmarEliminar(slug) { const p=proyectos.find(x=>x.slug===slug); if(!p)return; if(!confirm(`¿Eliminar "${p.nombre}" de GitHub y de la lista?\n\nEsto borrará todos los archivos del proyecto.`))return; eliminarProyecto(slug); }
 async function eliminarProyecto(slug) {
-  // Quitar de localStorage inmediatamente para UX rápida
-  proyectos = proyectos.filter(p => p.slug !== slug);
-  localStorage.setItem('ara-proyectos', JSON.stringify(proyectos));
-  renderProyectos();
-  toast('Eliminando de GitHub...');
-
+  proyectos=proyectos.filter(p=>p.slug!==slug); localStorage.setItem('ara-proyectos',JSON.stringify(proyectos)); renderProyectos(); toast('Eliminando de GitHub...');
   try {
-    const res = await fetch(WORKER_URL, {
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ slug }),
-    });
-
-    if (!res.ok) {
-      const err = await res.json();
-      throw new Error(err.error || `Error ${res.status}`);
-    }
-
-    const data = await res.json();
-    const n = data.deleted?.length || 0;
-    toast(n > 0 ? `✓ "${slug}" eliminado de GitHub (${n} archivos)` : `"${slug}" eliminado de la lista`);
-
-  } catch(e) {
-    toast(`Eliminado de la lista — error en GitHub: ${e.message}`);
-  }
+    const res=await fetch(WORKER_URL,{method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({slug})});
+    if (!res.ok){const err=await res.json();throw new Error(err.error||`Error ${res.status}`);}
+    const data=await res.json(); const n=data.deleted?.length||0;
+    toast(n>0?`✓ "${slug}" eliminado (${n} archivos)`:`"${slug}" eliminado de la lista`);
+  } catch(e){ toast(`Eliminado de lista — error GH: ${e.message}`); }
 }
+function toast(msg) { const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2500); }
 
-function toast(msg) {
-  const t = document.getElementById('toast');
-  t.textContent = msg; t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), 2500);
-}
-
-// Init
 renderProyectos();
 </script>
 </body>

@@ -230,6 +230,7 @@
   <div class="hlogo">ARA</div>
   <div id="hudRight">
     <button class="hbtn" id="btnEdit" onclick="toggleEditor()" style="display:none;">✦ Editar</button>
+    <button class="hbtn" id="btnVerPublico" onclick="verPublico()" style="display:none;">◉ Ver público</button>
     <button class="hbtn" onclick="cerrarViewer()">✕ Cerrar</button>
   </div>
 </div>
@@ -259,7 +260,10 @@
   <div class="ed-handle"></div>
   <div class="ed-title">
     <span>Editor de experiencia</span>
-    <button class="ed-save" onclick="guardarConfig()">✓ Guardar</button>
+    <div style="display:flex;gap:8px;">
+      <button class="ed-save" style="background:rgba(200,245,66,0.15);color:var(--a);border:1px solid rgba(200,245,66,0.3);" onclick="guardarConfig(false)">✓ Guardar</button>
+      <button class="ed-save" onclick="guardarConfig(true)">✓ Guardar y ver</button>
+    </div>
   </div>
 
   <div class="ed-section">Orientación</div>
@@ -494,7 +498,10 @@
       </model-viewer>`;
     mvWrap.classList.add('show');
     document.getElementById('hud').classList.add('show');
-    if (EDIT_MODE) document.getElementById('btnEdit').style.display = 'inline-block';
+    if (EDIT_MODE) {
+      document.getElementById('btnEdit').style.display = 'inline-block';
+      document.getElementById('btnVerPublico').style.display = 'inline-block';
+    }
 
     const hint = document.createElement('div');
     hint.id='mvHint';
@@ -638,7 +645,10 @@
     sceneDiv.classList.add('show');
     document.getElementById('hud').classList.add('show');
     document.getElementById('scan').classList.add('show');
-    if (EDIT_MODE) document.getElementById('btnEdit').style.display = 'inline-block';
+    if (EDIT_MODE) {
+      document.getElementById('btnEdit').style.display = 'inline-block';
+      document.getElementById('btnVerPublico').style.display = 'inline-block';
+    }
 
     setTimeout(() => {
       const scene = sceneDiv.querySelector('a-scene');
@@ -671,7 +681,13 @@
 
   // ── CERRAR ──
   function cerrarViewer() {
-    if (EDIT_MODE) { window.location.replace(BASE + '/index.html'); return; }
+    if (EDIT_MODE) {
+      // En modo editor: ir al viewer público para ver los cambios guardados
+      const publicUrl = location.href.replace('&edit=1','').replace('?edit=1','');
+      window.location.replace(publicUrl);
+      return;
+    }
+    // Modo espectador: limpiar y volver al start screen
     try { const s=document.querySelector('a-scene'); if(s&&s.renderer) s.renderer.setAnimationLoop(null); } catch(e){}
     document.getElementById('arScene').classList.remove('show');
     document.getElementById('arScene').innerHTML = '';
@@ -679,10 +695,11 @@
     document.getElementById('mvWrap').innerHTML = '';
     document.getElementById('hud').classList.remove('show');
     document.getElementById('scan').classList.remove('show');
-    document.getElementById('faceScan').classList.remove('show');
+    document.getElementById('faceScan')?.classList.remove('show');
     document.getElementById('ping').classList.remove('go');
     document.getElementById('editor').classList.remove('open');
     document.getElementById('btnEdit').style.display = 'none';
+    document.getElementById('btnVerPublico').style.display = 'none';
     document.getElementById('splash').classList.remove('visible');
     const hint=document.getElementById('mvHint'); if(hint) hint.remove();
     arContent = null;
@@ -766,16 +783,32 @@
   function toggleAuto(){CFG.autoplay=!CFG.autoplay;document.getElementById('togAuto').classList.toggle('active',CFG.autoplay);}
   function toggleFade(){CFG.fade=!CFG.fade;document.getElementById('togFade').classList.toggle('active',CFG.fade);}
 
-  async function guardarConfig() {
+  async function guardarConfig(verDespues = false) {
     readSliders();
     if(CFG.preset==='vertical'){CFG.rotX=0;CFG.rotY=0;CFG.rotZ=0;}
     try{
       const res=await fetch(WORKER_URL,{method:'POST',headers:{'Content-Type':'application/json','User-Agent':'ARA-Viewer'},body:JSON.stringify({path:`proyectos/${PROJECT}/config.json`,content:btoa(JSON.stringify(CFG,null,2)),message:`ARA: config ${PROJECT}`})});
       if(!res.ok) throw new Error('Error '+res.status);
-      showToast('✓ Configuración guardada');
-      document.getElementById('editor').classList.remove('open');
-      document.getElementById('btnEdit')?.classList.remove('active');
+
+      if (verDespues) {
+        // Guardar y ver: cierra el editor y deja al usuario en la experiencia con los cambios visibles
+        showToast('✓ Guardado — los cambios ya están aplicados');
+        document.getElementById('editor').classList.remove('open');
+        document.getElementById('btnEdit')?.classList.remove('active');
+        // Los cambios ya están en vivo en la escena A-Frame via updateContent()
+        // No hace falta recargar — el usuario ya está viendo el resultado
+      } else {
+        showToast('✓ Configuración guardada');
+        document.getElementById('editor').classList.remove('open');
+        document.getElementById('btnEdit')?.classList.remove('active');
+      }
     }catch(e){showToast('Error al guardar: '+e.message);}
+  }
+
+  // Abre el viewer público (sin edit=1) en pestaña nueva para verificar
+  function verPublico() {
+    const publicUrl = location.href.replace('&edit=1','').replace('?edit=1','');
+    window.open(publicUrl, '_blank');
   }
 
   function setSplash(msg){document.getElementById('smsg').textContent=msg;}

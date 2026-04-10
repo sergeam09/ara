@@ -1046,12 +1046,10 @@ async function githubUpload(path, content, message) {
     },
     body: JSON.stringify({ path, content, message })
   });
-  if (!res.ok) {
-    const e = await res.json().catch(() => ({}));
-    throw new Error(e.error || 'Error subiendo a GitHub: ' + res.status);
+  const result = await res.json().catch(() => ({ error: 'Respuesta inválida del servidor' }));
+  if (!res.ok || !result.ok) {
+    throw new Error(result.error || result.message || 'Error subiendo ' + path + ' (status ' + res.status + ')');
   }
-  const result = await res.json();
-  if (!result.ok) throw new Error(result.error || 'Error en Worker');
   return result;
 }
 

@@ -1035,22 +1035,24 @@ function logStep(msg, type) {
 }
 
 // ── GITHUB ──
-const WORKER_URL = 'https://ara.sergeam09.workers.dev';
-
 async function githubUpload(path, content, message) {
-  const res = await fetch(WORKER_URL, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-ARA-Client': 'creator'
-    },
-    body: JSON.stringify({ path, content, message })
+  const token = localStorage.getItem('ara-gh-token') || '';
+  if (!token) throw new Error('No hay token de GitHub. Agrégalo al publicar.');
+  const url = 'https://api.github.com/repos/sergeam09/ara/contents/' + path;
+  let sha = null;
+  try {
+    const r = await fetch(url, { headers: { Authorization: 'token ' + token, 'User-Agent': 'ARA' } });
+    if (r.ok) sha = (await r.json()).sha;
+  } catch(e) {}
+  const body = { message, content, branch: 'main' };
+  if (sha) body.sha = sha;
+  const res = await fetch(url, {
+    method: 'PUT',
+    headers: { Authorization: 'token ' + token, 'Content-Type': 'application/json', 'User-Agent': 'ARA' },
+    body: JSON.stringify(body)
   });
-  const result = await res.json().catch(() => ({ error: 'Respuesta inválida del servidor' }));
-  if (!res.ok || !result.ok) {
-    throw new Error(result.error || result.message || 'Error subiendo ' + path + ' (status ' + res.status + ')');
-  }
-  return result;
+  if (!res.ok) { const e = await res.json(); throw new Error(e.message || 'GitHub error ' + res.status); }
+  return res.json();
 }
 
 function fileToBase64(file) {
@@ -1090,6 +1092,13 @@ async function compilarMind(file) {
 async function generarProyecto() {
   const token = localStorage.getItem('ara-gh-token') || '';
   if (!token) { toast('Agrega tu GitHub Token primero'); document.getElementById('tokenPanel').style.display = 'block'; return; }
+
+  const ghTok = localStorage.getItem('ara-gh-token') || '';
+  if (!ghTok) {
+    const t = prompt('Ingresa tu GitHub Personal Access Token (ghp_...):', '');
+    if (!t) return;
+    localStorage.setItem('ara-gh-token', t.trim());
+  }
 
   const nombre  = document.getElementById('pNombre').value.trim();
   if (!nombre) { toast('Escribe un nombre para el proyecto'); return; }

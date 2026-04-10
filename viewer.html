@@ -406,12 +406,6 @@
 
   // ── MINDAR IMAGE TRACKING ──
   async function initMindAR() {
-    setSplash('Verificando archivos...');
-    const mindOk = await fileExists(PATHS.mind);
-    if (!mindOk) {
-      showErr(`Archivo de tracking no encontrado.<br>Verifica que <strong style="color:#c8f542">targets.mind</strong> esté en<br><strong style="color:#c8f542">proyectos/${PROJECT}/</strong>`);
-      return;
-    }
     setSplash('Preparando escena AR...');
     buildAFrameScene();
   }
@@ -491,9 +485,15 @@
         hideSplash();
         showHUD();
         document.getElementById('scan').classList.add('show');
-
         if (EDIT_MODE) document.getElementById('btnEdit').style.display = 'block';
-      }).catch(e => showErr('Error de cámara: ' + e.message));
+      }).catch(e => {
+        const msg = e.message || '';
+        if (msg.includes('404') || msg.includes('fetch') || msg.includes('mind')) {
+          showErr('Archivo de tracking no encontrado.<br>Espera 1-2 minutos y recarga la página.');
+        } else {
+          showErr('Error de cámara: ' + msg);
+        }
+      });
     });
 
     scene.addEventListener('targetFound', () => {

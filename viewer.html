@@ -479,13 +479,21 @@
     setSplash('Cargando modelo 3D...');
     const sc = CFG.scale || URL_SC || 0.5;
     const mvWrap = document.getElementById('mvWrap');
+
+    // IMPORTANTE: NO poner scale="" en el elemento — en AR nativo hace que el objeto
+    // quede pegado a la cámara. ar-scale="auto" deja que ARKit/ARCore lo manejen.
+    // La escala visual en la preview 3D se aplica vía camera-orbit.
     mvWrap.innerHTML = `
       <model-viewer id="araModelViewer" src="${PATHS.content}"
-        ar ar-modes="webxr scene-viewer quick-look"
-        camera-controls auto-rotate shadow-intensity="1"
+        ar
+        ar-modes="webxr scene-viewer quick-look"
+        ar-scale="auto"
+        camera-controls
+        auto-rotate
+        shadow-intensity="1"
         exposure="1"
-        scale="${sc} ${sc} ${sc}" ar-scale="fixed"
-        style="width:100%;height:100%;background:#0d1117;">
+        style="width:100%;height:100%;background:#0d1117;"
+        id="araModelViewer">
         <button slot="ar-button" style="
           position:absolute;bottom:80px;left:50%;transform:translateX(-50%);
           background:linear-gradient(135deg,#c8f542,#a8d820);color:#0d1117;border:none;

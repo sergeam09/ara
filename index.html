@@ -163,10 +163,7 @@
     .field input[type=text]::placeholder { color: var(--muted); }
 
     /* ── MODE TABS ── */
-    .mode-tabs {
-      display: grid; grid-template-columns: repeat(3, 1fr);
-      gap: 8px;
-    }
+    .mode-tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
     .mode-tab {
       padding: 12px 8px; border: 1px solid var(--border);
       background: var(--navy); color: var(--text2);
@@ -436,7 +433,6 @@
       .cols { grid-template-columns: 1fr; gap: 16px; }
       .type-grid.cols-4 { grid-template-columns: repeat(2,1fr); }
       .result-grid { grid-template-columns: 1fr; }
-      .mode-tabs { grid-template-columns: repeat(3,1fr); }
     }
   </style>
 </head>
@@ -471,7 +467,7 @@
         <input type="text" id="pNombre" placeholder="ej. mural-xalapa-2025">
       </div>
 
-      <!-- Modo AR — 3 opciones -->
+      <!-- Modo AR — 2 opciones -->
       <div class="field">
         <div class="field-label">Modo AR</div>
         <div class="mode-tabs">
@@ -480,9 +476,6 @@
           </button>
           <button class="mode-tab" data-mode="surface" onclick="setModo('surface')">
             <span class="mode-tab-icon">⬡</span>Surface<br>AR
-          </button>
-          <button class="mode-tab" data-mode="face" onclick="setModo('face')">
-            <span class="mode-tab-icon">◉</span>Face<br>Tracking
           </button>
         </div>
       </div>
@@ -595,56 +588,6 @@
         </div>
       </div><!-- /mode-surface -->
 
-      <!-- ══ FACE TRACKING ══ -->
-      <div id="mode-face" class="mode-panel">
-        <div class="info-box">
-          <strong style="color:var(--accent)">Face Tracking — cámara frontal</strong><br>
-          Detecta cualquier cara y superpone el contenido sobre ella. No requiere trigger. Usa la cámara frontal automáticamente.
-        </div>
-        <div>
-          <div class="step-header">
-            <div class="step-num">1</div>
-            <div class="step-title">Tipo de contenido</div>
-            <div class="step-hint">Sobre la cara</div>
-          </div>
-          <div class="type-grid cols-4" style="margin-top:12px;">
-            <button class="tbtn active" data-ftype="face-model" onclick="setTipo('face-model')"><span class="tbtn-icon">⬡</span>3D</button>
-            <button class="tbtn" data-ftype="face-gif" onclick="setTipo('face-gif')"><span class="tbtn-icon">◈</span>GIF</button>
-            <button class="tbtn" data-ftype="face-image" onclick="setTipo('face-image')"><span class="tbtn-icon">🖼</span>Imagen</button>
-            <button class="tbtn" data-ftype="face-video" onclick="setTipo('face-video')"><span class="tbtn-icon">▶</span>Video</button>
-          </div>
-          <div style="margin-top:12px;">
-            <div id="cp-face-model" class="cpanel active">
-              <div class="upzone"><input type="file" id="fFaceModel" accept=".glb,.gltf"><span class="upicon">⬡</span><div class="uptext"><strong>Modelo 3D — GLB o GLTF</strong><br>Aparece sobre la cara · &lt; 15 MB</div><div class="uppreview" id="prFaceModel"></div></div>
-              <div class="dim-box">
-                <div class="dim-title">Punto facial de anclaje</div>
-                <div class="dim-presets" id="faceAnchorPresets">
-                  <button class="dim-preset active" onclick="setFaceAnchor(0)">Frente</button>
-                  <button class="dim-preset" onclick="setFaceAnchor(1)">Nariz</button>
-                  <button class="dim-preset" onclick="setFaceAnchor(168)">Centro</button>
-                  <button class="dim-preset" onclick="setFaceAnchor(10)">Corona</button>
-                </div>
-                <div class="dim-presets" id="faceScalePresets" style="margin-top:4px;">
-                  <button class="dim-preset active" onclick="setFaceScale(0.1)">Mini</button>
-                  <button class="dim-preset" onclick="setFaceScale(0.3)">Pequeño</button>
-                  <button class="dim-preset" onclick="setFaceScale(0.6)">Mediano</button>
-                  <button class="dim-preset" onclick="setFaceScale(1)">Grande</button>
-                </div>
-              </div>
-            </div>
-            <div id="cp-face-gif" class="cpanel">
-              <div class="upzone"><input type="file" id="fFaceGif" accept="image/gif,image/webp"><span class="upicon">◈</span><div class="uptext"><strong>GIF animado o WEBP</strong><br>Se superpone sobre la cara</div><div class="uppreview" id="prFaceGif"></div></div>
-            </div>
-            <div id="cp-face-image" class="cpanel">
-              <div class="upzone"><input type="file" id="fFaceImage" accept="image/*"><span class="upicon">🖼</span><div class="uptext"><strong>JPG, PNG o WEBP</strong><br>Se superpone sobre la cara</div><div class="uppreview" id="prFaceImage"></div></div>
-            </div>
-            <div id="cp-face-video" class="cpanel">
-              <div class="upzone"><input type="file" id="fFaceVideo" accept="video/*"><span class="upicon">▶</span><div class="uptext"><strong>Video MP4 o WEBM</strong><br>Se superpone sobre la cara · &lt; 20 MB</div><div class="uppreview" id="prFaceVideo"></div></div>
-            </div>
-          </div>
-        </div>
-      </div><!-- /mode-face -->
-
       <button class="btn-primary" id="btnGenerar" onclick="generarProyecto()">◈ Compilar y publicar</button>
     </div><!-- /form card -->
 
@@ -703,8 +646,6 @@ const WORKER_URL = 'https://ara.sergeam09.workers.dev';
 
 let tipoActual   = 'video';
 let modoActual   = 'image';
-let faceAnchor   = 0;
-let faceScale    = 0.1;
 let viewerUrlActual = null;
 let proyectos    = JSON.parse(localStorage.getItem('ara-proyectos') || '[]');
 let dimConfig    = { prop:'16:9', width:1, height:0.5625, scale:0.5 };
@@ -738,22 +679,12 @@ function setSurfScale(val) {
   dimConfig.scale=val; const inp=document.getElementById('dimSurfScale'); if(inp) inp.value=val;
   document.querySelectorAll('#surfModelPresets .dim-preset').forEach(b=>b.classList.toggle('active',b.onclick?.toString().includes(`(${val})`)));
 }
-function setFaceAnchor(idx) {
-  faceAnchor=idx;
-  document.querySelectorAll('#faceAnchorPresets .dim-preset').forEach(b=>b.classList.toggle('active',b.onclick?.toString().includes(`(${idx})`)));
-}
-function setFaceScale(val) {
-  faceScale=val;
-  document.querySelectorAll('#faceScalePresets .dim-preset').forEach(b=>b.classList.toggle('active',b.onclick?.toString().includes(`(${val})`)));
-}
-
 function getDimensions() {
   const t=tipoActual; let width=dimConfig.width||1,height=dimConfig.height||1,scale=dimConfig.scale||0.5;
   if(t==='video'){const cw=parseFloat(document.getElementById('dimVideoW')?.value),ch=parseFloat(document.getElementById('dimVideoH')?.value);if(cw>0&&ch>0){width=+(cw/100).toFixed(3);height=+(ch/100).toFixed(3);}}
   else if(t==='gif'){const cw=parseFloat(document.getElementById('dimGifW')?.value),ch=parseFloat(document.getElementById('dimGifH')?.value);if(cw>0&&ch>0){width=+(cw/100).toFixed(3);height=+(ch/100).toFixed(3);}}
   else if(t==='model'){const ch=parseFloat(document.getElementById('dimModelH')?.value);if(ch>0) scale=+(ch/100).toFixed(3);}
   else if(t==='surface-model'){const ch=parseFloat(document.getElementById('dimSurfH')?.value);if(ch>0){scale=+(ch/100).toFixed(3);}else{const sc=parseFloat(document.getElementById('dimSurfScale')?.value);if(sc>0) scale=sc;}}
-  else if(t.startsWith('face-')){scale=faceScale;}
   return {width,height,scale};
 }
 
@@ -764,14 +695,13 @@ function setModo(m) {
   document.querySelectorAll('.mode-panel').forEach(p=>p.classList.remove('active'));
   document.getElementById(`mode-${m}`).classList.add('active');
   if(m==='image') setTipo('video');
-  else if(m==='surface') setTipo('surface-model');
-  else if(m==='face') setTipo('face-model');
+  else            setTipo('surface-model');
 }
 
 function setTipo(t) {
   tipoActual=t;
-  document.querySelectorAll('[data-type],[data-stype],[data-ftype]').forEach(b=>b.classList.remove('active'));
-  const btn=document.querySelector(`[data-type="${t}"]`)||document.querySelector(`[data-stype="${t}"]`)||document.querySelector(`[data-ftype="${t}"]`);
+  document.querySelectorAll('[data-type],[data-stype]').forEach(b=>b.classList.remove('active'));
+  const btn=document.querySelector(`[data-type="${t}"]`)||document.querySelector(`[data-stype="${t}"]`);
   if(btn) btn.classList.add('active');
   document.querySelectorAll('.cpanel').forEach(p=>p.classList.remove('active'));
   const panel=document.getElementById(`cp-${t}`); if(panel) panel.classList.add('active');
@@ -785,8 +715,7 @@ document.querySelectorAll('.upzone').forEach(z=>{
 });
 [
   ['fTrigger','prTrigger'],['fVideo','prVideo'],['fGif','prGif'],['fModel','prModel'],
-  ['fAudio','prAudio'],['fSurfModel','prSurfModel'],
-  ['fFaceModel','prFaceModel'],['fFaceGif','prFaceGif'],['fFaceImage','prFaceImage'],['fFaceVideo','prFaceVideo']
+  ['fAudio','prAudio'],['fSurfModel','prSurfModel']
 ].forEach(([id,pid])=>{
   const el=document.getElementById(id); if(!el) return;
   el.addEventListener('change',function(){const p=document.getElementById(pid);if(p&&this.files[0]){p.style.display='block';p.textContent=`✓ ${this.files[0].name} (${fmt(this.files[0].size)})`;} });
@@ -834,14 +763,10 @@ async function generarProyecto(){
   if(!nombre){toast('Ponle nombre al proyecto');return;}
   if(!/^[a-zA-Z0-9_-]+$/.test(nombre)){toast('Solo letras, números y guiones');return;}
 
-  const isFace=modoActual==='face';
   const isSurface=modoActual==='surface';
 
   const fTrig=document.getElementById('fTrigger')?.files[0];
-  const fMap={
-    video:'fVideo',gif:'fGif',model:'fModel',audio:'fAudio','surface-model':'fSurfModel',
-    'face-model':'fFaceModel','face-gif':'fFaceGif','face-image':'fFaceImage','face-video':'fFaceVideo'
-  };
+  const fMap={video:'fVideo',gif:'fGif',model:'fModel',audio:'fAudio','surface-model':'fSurfModel'};
   const fCont=document.getElementById(fMap[tipoActual])?.files[0];
   const fAImg=document.getElementById('fAudioImg')?.files[0];
 
@@ -866,11 +791,6 @@ async function generarProyecto(){
       logStep(`◈ Subiendo contenido.${contentExt}...`,'act');
       await githubUpload(`proyectos/${slug}/contenido.${contentExt}`,await fileToBase64(fCont),`ARA: contenido ${slug}`);
       logStep('✓ contenido subido','ok');
-    } else if(isFace){
-      setProgress(50,'Subiendo',`Subiendo contenido face.${contentExt}...`);
-      logStep(`◈ Subiendo contenido face.${contentExt}...`,'act');
-      await githubUpload(`proyectos/${slug}/contenido.${contentExt}`,await fileToBase64(fCont),`ARA: face ${slug}`);
-      logStep('✓ contenido face subido','ok');
     } else {
       logStep('◈ Cargando motor de tracking...','act');
       setProgress(5,'Iniciando','Cargando MindAR...');
@@ -895,16 +815,14 @@ async function generarProyecto(){
 
     if(fAImg){logStep('◈ Subiendo imagen audio...','act');await githubUpload(`proyectos/${slug}/audio-img.jpg`,await fileToBase64(fAImg),`ARA: audio-img ${slug}`);logStep('✓ imagen audio subida','ok');}
 
-    const initConfig={posX:0,posY:0,posZ:0.01,rotX:0,rotY:0,rotZ:0,preset:'vertical',scale:dims.scale,width:dims.width,height:dims.height,loop:true,autoplay:true,fade:false,faceAnchor,faceScale};
+    const initConfig={posX:0,posY:0,posZ:0.01,rotX:0,rotY:0,rotZ:0,preset:'vertical',scale:dims.scale,width:dims.width,height:dims.height,loop:true,autoplay:true,fade:false};
     try{await githubUpload(`proyectos/${slug}/config.json`,btoa(JSON.stringify(initConfig,null,2)),`ARA: config ${slug}`);logStep('✓ Configuración guardada','ok');}
     catch(e){logStep('⚠ Config no guardada','');}
 
     setProgress(100,'Publicado','✓ Experiencia AR disponible','ok');
     logStep('✓ ¡Publicado en GitHub Pages!','ok');
 
-    const isFaceMode = modoActual === 'face';
-    const viewerFile = isFaceMode ? 'face-viewer.html' : 'viewer.html';
-    const viewerUrl=`${BASE_URL}/${viewerFile}?p=${slug}&t=${tipoActual}&ce=${contentExt}&te=${triggerExt}&w=${dims.width}&h=${dims.height}&sc=${dims.scale}&fa=${faceAnchor}&fs=${faceScale}`;
+    const viewerUrl=`${BASE_URL}/viewer.html?p=${slug}&t=${tipoActual}&ce=${contentExt}&te=${triggerExt}&w=${dims.width}&h=${dims.height}&sc=${dims.scale}`;
     viewerUrlActual=viewerUrl;
 
     const proyecto={slug,nombre,tipo:tipoActual,contentExt,triggerExt,url:viewerUrl,creado:new Date().toLocaleDateString('es-MX')};
@@ -920,30 +838,42 @@ async function generarProyecto(){
   }
 }
 
+// URLs completas guardadas para QR (nunca usar las acortadas en QR)
+let fullUrlEspectador = '';
+let fullUrlEditor = '';
+
 async function mostrarOutput(url){
   const urlE=url.replace('&edit=1',''),urlEd=urlE+'&edit=1';
+  fullUrlEspectador = urlE;
+  fullUrlEditor     = urlEd;
 
   document.getElementById('outEmpty').style.display='none';
   document.getElementById('outContent').classList.add('visible');
 
-  // Intentar acortar con tinyurl
-  let displayUrl=urlE;
-  try{
-    const r=await fetch('https://tinyurl.com/api-create.php?url='+encodeURIComponent(urlE));
-    if(r.ok){const s=(await r.text()).trim();if(s.startsWith('http'))displayUrl=s;}
-  }catch(e){}
+  // Acortar ambos links con is.gd — redirección directa sin página intermedia
+  async function acortar(u) {
+    try {
+      const r = await fetch(`https://is.gd/create.php?format=simple&url=${encodeURIComponent(u)}`);
+      if (r.ok) { const s = (await r.text()).trim(); if (s.startsWith('http')) return s; }
+    } catch(e) {}
+    return u; // fallback: URL original
+  }
 
-  document.getElementById('linkDisplay').textContent=displayUrl;
-  document.getElementById('linkEditor').textContent=urlEd;
+  const [shortE, shortEd] = await Promise.all([acortar(urlE), acortar(urlEd)]);
+
+  document.getElementById('linkDisplay').textContent = shortE;
+  document.getElementById('linkEditor').textContent  = shortEd;
 
   document.getElementById('qrcode').innerHTML='';
+  // QR siempre con URL completa para garantizar que funcione
   new QRCode(document.getElementById('qrcode'),{text:urlE,width:160,height:160,colorDark:'#0d1117',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.H});
   viewerUrlActual=urlE;
 }
 function copiarLink(id){navigator.clipboard.writeText(document.getElementById(id)?.textContent||'');toast('Link copiado ✓');}
 function abrirViewer(){if(viewerUrlActual)window.open(viewerUrlActual,'_blank');}
 function descargarQR(tipo){
-  const url=tipo==='editor'?document.getElementById('linkEditor').textContent:document.getElementById('linkDisplay').textContent;
+  // Usar siempre la URL completa para los QR descargados
+  const url = tipo==='editor' ? fullUrlEditor : fullUrlEspectador;
   if(!url||url==='—')return;
   const tmp=document.createElement('div');tmp.style.cssText='position:fixed;left:-9999px;top:-9999px;background:#fff;padding:16px;';
   document.body.appendChild(tmp);

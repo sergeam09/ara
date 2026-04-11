@@ -345,6 +345,13 @@
       <button class="ed-toggle" id="togFade" onclick="toggleFade()">◌ Fade in</button>
     </div>
   </div>
+
+  <div id="secAnimate" style="display:none;">
+    <div class="ed-section">Animación del modelo</div>
+    <div class="ed-toggle-row">
+      <button class="ed-toggle active" id="togRotate" onclick="toggleRotate()">↻ Girar lento</button>
+    </div>
+  </div>
 </div>
 
 
@@ -383,7 +390,7 @@
   const defaultConfig = {
     posX:0, posY:0, posZ:0.01, rotX:0, rotY:0, rotZ:0,
     scale:1, width:1, height:0.5625, preset:'vertical',
-    loop:true, autoplay:true, fade:false,
+    loop:true, autoplay:true, fade:false, animate:true,
   };
   let CFG = { ...defaultConfig };
   let arContent = null;
@@ -445,6 +452,8 @@
     document.getElementById('secProp').style.display     = (isVideo || isGif) ? 'block' : 'none';
     document.getElementById('secBehavior').style.display = (isVideo || isAudio) ? 'block' : 'none';
     document.getElementById('secRotacion').style.display = CFG.preset === 'libre' ? 'block' : 'none';
+    document.getElementById('secAnimate').style.display  = isModel ? 'block' : 'none';
+    if (isModel) document.getElementById('togRotate')?.classList.toggle('active', CFG.animate !== false);
   }
 
   async function init() {
@@ -534,7 +543,10 @@
     } else if (isGif) {
       entityHTML = `<a-image id="arc" src="${PATHS.content}" width="${w}" height="${h}" position="${pos}" rotation="${rot}" scale="${scl}" ${CFG.fade?'animation="property:material.opacity;from:0;to:1;dur:800"':''}></a-image>`;
     } else if (isModel) {
-      entityHTML = `<a-gltf-model id="arc" src="${PATHS.content}" position="${pos}" rotation="${rot}" scale="${scl}"></a-gltf-model>`;
+      // Rotación lenta sobre eje Y — se detiene si CFG.animate === false
+      const animAttr = CFG.animate === false ? '' :
+        `animation__rot="property:rotation;from:${CFG.rotX||0} 0 ${CFG.rotZ||0};to:${CFG.rotX||0} 360 ${CFG.rotZ||0};loop:true;dur:8000;easing:linear"`;
+      entityHTML = `<a-gltf-model id="arc" src="${PATHS.content}" position="${pos}" rotation="${rot}" scale="${scl}" ${animAttr}></a-gltf-model>`;
     } else if (isAudio) {
       entityHTML = `<a-sound src="${PATHS.content}" autoplay="${CFG.autoplay}" loop="${CFG.loop}"></a-sound>
         <a-image id="arc" src="${PATHS.audioImg}" width="${w}" height="${h}" position="${pos}" rotation="${rot}" scale="${scl}"></a-image>
@@ -686,21 +698,40 @@
   function toggleLoop(){CFG.loop=!CFG.loop;document.getElementById('togLoop').classList.toggle('active',CFG.loop);const v=document.querySelector('a-video');if(v)v.setAttribute('loop',CFG.loop);}
   function toggleAuto(){CFG.autoplay=!CFG.autoplay;document.getElementById('togAuto').classList.toggle('active',CFG.autoplay);}
   function toggleFade(){CFG.fade=!CFG.fade;document.getElementById('togFade').classList.toggle('active',CFG.fade);}
+  function toggleRotate(){
+    CFG.animate = CFG.animate === false ? true : false;
+    document.getElementById('togRotate').classList.toggle('active', CFG.animate !== false);
+    // Aplicar/quitar animación en tiempo real sobre el modelo activo
+    if (arContent) {
+      if (CFG.animate !== false) {
+        arContent.setAttribute('animation__rot',`property:rotation;from:${CFG.rotX||0} 0 ${CFG.rotZ||0};to:${CFG.rotX||0} 360 ${CFG.rotZ||0};loop:true;dur:8000;easing:linear`);
+      } else {
+        arContent.removeAttribute('animation__rot');
+      }
+    }
+    // Para model-viewer en surface
+    const mv = document.getElementById('araModelViewer');
+    if (mv) {
+      if (CFG.animate !== false) mv.setAttribute('auto-rotate','');
+      else mv.removeAttribute('auto-rotate');
+    }
+  }
 
   async function guardarConfig(verDespues=false) {
     readSliders();
     if(CFG.preset==='vertical'){CFG.rotX=0;CFG.rotY=0;CFG.rotZ=0;}
     try{
-      const res=await fetch(WORKER_URL,{method:'POST',headers:{'Content-Type':'application/json','User-Agent':'ARA-Viewer'},
+      const res=await fetch(WORKER_URL,{method:'POST',headers:{'Content-Type':'application/json'},
         body:JSON.stringify({path:`proyectos/${PROJECT}/config.json`,content:btoa(JSON.stringify(CFG,null,2)),message:`ARA: config ${PROJECT}`})});
       if(!res.ok) throw new Error('Error '+res.status);
       if(verDespues){
-        showToast('✓ Guardado — abriendo experiencia...');
+        showToast('✓ Guardado — espera 3 segundos...');
         // Esperar 1.5s para que GitHub procese el commit, luego abrir viewer público
         setTimeout(() => {
           const publicUrl = location.href.replace('&edit=1','').replace('?edit=1','');
-          window.location.replace(publicUrl);
-        }, 1500);
+          const sep = publicUrl.includes('?') ? '&' : '?';
+          window.location.replace(publicUrl + sep + 'nocache=' + Date.now());
+        }, 3000);
       } else {
         showToast('✓ Configuración guardada');
         document.getElementById('editor').classList.remove('open');

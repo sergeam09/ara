@@ -831,7 +831,7 @@ async function generarProyecto(){
 
     if(fAImg){logStep('◈ Subiendo imagen audio...','act');await githubUpload(`proyectos/${slug}/audio-img.jpg`,await fileToBase64(fAImg),`ARA: audio-img ${slug}`);logStep('✓ imagen audio subida','ok');}
 
-    const initConfig={posX:0,posY:0,posZ:0.01,rotX:0,rotY:0,rotZ:0,preset:'vertical',scale:dims.scale,width:dims.width,height:dims.height,loop:true,autoplay:true,fade:false};
+    const initConfig={posX:0,posY:0,posZ:0.01,rotX:0,rotY:0,rotZ:0,preset:'vertical',scale:dims.scale,width:dims.width,height:dims.height,loop:true,autoplay:true,fade:false,animate:true};
     try{await githubUpload(`proyectos/${slug}/config.json`,btoa(JSON.stringify(initConfig,null,2)),`ARA: config ${slug}`);logStep('✓ Configuración guardada','ok');}
     catch(e){logStep('⚠ Config no guardada','');}
 

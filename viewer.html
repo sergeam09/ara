@@ -255,12 +255,6 @@
 <div id="arScene"></div>
 <div id="mvWrap"></div>
 
-<!-- BOTÓN DE CAPTURA — visible en todas las experiencias AR activas -->
-<div id="captureBar" style="display:none;position:fixed;bottom:24px;left:50%;transform:translateX(-50%);gap:12px;z-index:550;align-items:center;">
-  <button id="btnCaptureFoto" onclick="capturarFoto()" style="width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,#c8f542,#a8d820);border:3px solid #fff;color:#0d1117;font-size:20px;cursor:pointer;box-shadow:0 4px 20px rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;" title="Tomar foto">📷</button>
-  <button id="btnCaptureVideo" onclick="toggleVideo()" style="width:48px;height:48px;border-radius:50%;background:rgba(13,17,23,0.85);border:2px solid rgba(200,245,66,0.4);color:#c8f542;font-size:18px;cursor:pointer;box-shadow:0 4px 20px rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;" title="Grabar video">⏺</button>
-</div>
-
 <!-- EDITOR -->
 <div id="editor">
   <div class="ed-handle"></div>
@@ -392,7 +386,6 @@
   };
   let CFG = { ...defaultConfig };
   let arContent = null;
-  let grabando = false, mediaRecorder = null;
 
   // Start screen
   document.getElementById('startName').textContent = PROJECT ? PROJECT.replace(/-/g,' ') : '';
@@ -464,16 +457,26 @@
     setSplash('Cargando modelo 3D...');
     const sc = CFG.scale || URL_SC || 0.5;
     const mvWrap = document.getElementById('mvWrap');
+
+    // Construir URL de Scene Viewer para Android con parámetros correctos de anclaje
+    const modelUrl = encodeURIComponent(PATHS.content);
+    const pageUrl  = encodeURIComponent(location.href);
+
     mvWrap.innerHTML = `
       <model-viewer id="araModelViewer"
         src="${PATHS.content}"
-        ar ar-modes="scene-viewer quick-look webxr"
-        ar-placement="floor" ar-scale="fixed"
+        ar
+        ar-modes="scene-viewer quick-look webxr"
+        ar-placement="floor"
+        ar-scale="fixed"
         scale="${sc} ${sc} ${sc}"
-        camera-controls auto-rotate shadow-intensity="1" exposure="1"
+        camera-controls
+        auto-rotate
+        shadow-intensity="1"
+        exposure="1"
         style="width:100%;height:100%;background:#0d1117;">
         <button slot="ar-button" style="
-          position:absolute;bottom:100px;left:50%;transform:translateX(-50%);
+          position:absolute;bottom:48px;left:50%;transform:translateX(-50%);
           background:linear-gradient(135deg,#c8f542,#a8d820);color:#0d1117;border:none;
           padding:16px 36px;font-size:13px;font-weight:800;letter-spacing:0.12em;
           text-transform:uppercase;cursor:pointer;white-space:nowrap;
@@ -483,20 +486,24 @@
         </button>
         <div slot="progress-bar" style="display:none;"></div>
       </model-viewer>`;
+
     mvWrap.classList.add('show');
     document.getElementById('hud').classList.add('show');
     if (EDIT_MODE) {
       document.getElementById('btnEdit').style.display = 'inline-block';
       document.getElementById('btnVerPublico').style.display = 'inline-block';
     }
+
+    // Instrucción discreta — no interfiere con el botón AR
     const hint = document.createElement('div');
     hint.id = 'mvHint';
     hint.style.cssText = 'position:fixed;top:72px;left:0;right:0;text-align:center;font-size:11px;font-weight:700;color:rgba(255,255,255,0.3);letter-spacing:0.1em;text-transform:uppercase;pointer-events:none;z-index:500;font-family:Montserrat,sans-serif;';
     hint.textContent = 'Rota con los dedos · Toca el botón para ver en AR';
     document.body.appendChild(hint);
+
     const mv = document.getElementById('araModelViewer');
     if (mv) {
-      mv.addEventListener('load', () => { hideSplash(); mostrarCaptureBar(); });
+      mv.addEventListener('load', () => hideSplash());
       mv.addEventListener('error', () => showErr('No se pudo cargar el modelo 3D.'));
     }
     setTimeout(() => hideSplash(), 8000);
@@ -567,7 +574,6 @@
           document.getElementById('scan').classList.remove('show');
           const pg = document.getElementById('ping'); pg.classList.add('go'); setTimeout(()=>pg.classList.remove('go'),700);
           arContent = document.getElementById('arc');
-          mostrarCaptureBar();
           if (arContent) {
             arContent.setAttribute('position',`${CFG.posX} ${CFG.posY} ${CFG.posZ}`);
             arContent.setAttribute('rotation', getRotation());
@@ -587,7 +593,6 @@
       window.location.replace(location.href.replace('&edit=1','').replace('?edit=1',''));
       return;
     }
-    if (grabando) detenerGrabacion(document.getElementById('btnCaptureVideo'));
     try { const s=document.querySelector('a-scene'); if(s&&s.renderer) s.renderer.setAnimationLoop(null); } catch(e){}
     document.getElementById('arScene').classList.remove('show'); document.getElementById('arScene').innerHTML = '';
     document.getElementById('mvWrap').classList.remove('show');  document.getElementById('mvWrap').innerHTML = '';
@@ -597,39 +602,10 @@
     document.getElementById('editor').classList.remove('open');
     document.getElementById('btnEdit').style.display = 'none';
     document.getElementById('btnVerPublico').style.display = 'none';
-    document.getElementById('captureBar').style.display = 'none';
     document.getElementById('splash').classList.remove('visible');
     const hint = document.getElementById('mvHint'); if (hint) hint.remove();
     arContent = null;
     document.getElementById('startScreen').classList.remove('hidden');
-  }
-
-  // CAPTURA
-  function mostrarCaptureBar() { const b=document.getElementById('captureBar'); if(b) b.style.display='flex'; }
-  function capturarFoto() { showToast('Usa el botón de captura de tu dispositivo'); }
-  function toggleVideo() { const btn=document.getElementById('btnCaptureVideo'); if(!grabando) iniciarGrabacion(btn); else detenerGrabacion(btn); }
-  function iniciarGrabacion(btn) {
-    try {
-      const canvas = document.querySelector('canvas');
-      if (!canvas) { showToast('Usa la grabadora de tu dispositivo'); return; }
-      const stream = canvas.captureStream(30);
-      mediaRecorder = new MediaRecorder(stream, { mimeType:'video/webm' });
-      const chunks = [];
-      mediaRecorder.ondataavailable = e => { if(e.data.size>0) chunks.push(e.data); };
-      mediaRecorder.onstop = () => {
-        const blob = new Blob(chunks,{type:'video/webm'});
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a'); a.href=url; a.download=`ara-${PROJECT}.webm`; a.click();
-        URL.revokeObjectURL(url); showToast('🎬 Video guardado');
-      };
-      mediaRecorder.start(); grabando=true;
-      if(btn){btn.style.background='rgba(255,60,60,0.9)';btn.innerHTML='⏹';btn.title='Detener grabación';}
-      showToast('⏺ Grabando...');
-    } catch(e) { showToast('Grabación no soportada en este dispositivo'); }
-  }
-  function detenerGrabacion(btn) {
-    if(mediaRecorder&&grabando){mediaRecorder.stop();grabando=false;}
-    if(btn){btn.style.background='rgba(13,17,23,0.85)';btn.innerHTML='⏺';btn.title='Grabar video';}
   }
 
   // EDITOR

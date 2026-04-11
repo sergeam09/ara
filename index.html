@@ -605,19 +605,35 @@
           <div class="prog-msg" id="progMsg">Iniciando...</div>
         </div>
         <div class="steps-log" id="stepsLog"></div>
-        <div class="result-grid">
-          <div class="qr-wrap"><div id="qrcode"></div></div>
-          <div class="result-links">
-            <div class="link-section">
-              <div class="link-label">Link del espectador</div>
-              <div class="linkbox"><div class="linkdisplay" id="linkDisplay">—</div><button class="btn-copy" onclick="copiarLink('linkDisplay')">Copiar</button></div>
-            </div>
-            <div class="link-section">
-              <div class="link-label">Link de edición — solo para ti</div>
-              <div class="linkbox"><div class="linkdisplay editor" id="linkEditor">—</div><button class="btn-copy" onclick="copiarLink('linkEditor')">Copiar</button></div>
-            </div>
+
+        <!-- QR público + QR editor lado a lado -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div>
+            <div class="link-label" style="margin-bottom:6px;">QR Espectador</div>
+            <div class="qr-wrap"><div id="qrcode"></div></div>
+          </div>
+          <div>
+            <div class="link-label" style="margin-bottom:6px;">QR Editor</div>
+            <div class="qr-wrap"><div id="qrcode-editor"></div></div>
           </div>
         </div>
+
+        <!-- Links — texto corto + botón copiar -->
+        <div class="link-section">
+          <div class="link-label">Link del espectador</div>
+          <div class="linkbox">
+            <div class="linkdisplay" id="linkDisplay">—</div>
+            <button class="btn-copy" onclick="copiarLinkFull('espectador')">Copiar</button>
+          </div>
+        </div>
+        <div class="link-section">
+          <div class="link-label">Link de edición — solo para ti</div>
+          <div class="linkbox">
+            <div class="linkdisplay editor" id="linkEditor">—</div>
+            <button class="btn-copy" onclick="copiarLinkFull('editor')">Copiar</button>
+          </div>
+        </div>
+
         <div class="action-row">
           <button class="btn-act" onclick="abrirViewer()">↗ Abrir</button>
           <button class="btn-act" onclick="descargarQR('publico')">↓ QR Público</button>
@@ -843,38 +859,58 @@ let fullUrlEspectador = '';
 let fullUrlEditor = '';
 
 async function mostrarOutput(url){
-  const urlE=url.replace('&edit=1',''),urlEd=urlE+'&edit=1';
+  const urlE = url.replace('&edit=1','');
+  const urlEd = urlE + '&edit=1';
   fullUrlEspectador = urlE;
   fullUrlEditor     = urlEd;
 
   document.getElementById('outEmpty').style.display='none';
   document.getElementById('outContent').classList.add('visible');
 
-  // Acortar ambos links con is.gd — redirección directa sin página intermedia
-  async function acortar(u) {
+  // Mostrar URL completa mientras se acorta
+  document.getElementById('linkDisplay').textContent = urlE;
+  document.getElementById('linkEditor').textContent  = urlEd;
+
+  // Generar ambos QR con URL completa
+  document.getElementById('qrcode').innerHTML = '';
+  new QRCode(document.getElementById('qrcode'),{text:urlE,width:130,height:130,colorDark:'#0d1117',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.H});
+  document.getElementById('qrcode-editor').innerHTML = '';
+  new QRCode(document.getElementById('qrcode-editor'),{text:urlEd,width:130,height:130,colorDark:'#0d1117',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.H});
+
+  viewerUrlActual = urlE;
+
+  // Acortar via Worker (is.gd servidor a servidor — sin CORS)
+  async function acortarViaWorker(u) {
     try {
-      const r = await fetch(`https://is.gd/create.php?format=simple&url=${encodeURIComponent(u)}`);
-      if (r.ok) { const s = (await r.text()).trim(); if (s.startsWith('http')) return s; }
+      const r = await fetch(WORKER_URL, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: u })
+      });
+      if (r.ok) {
+        const d = await r.json();
+        if (d.short && d.short.startsWith('http')) return d.short;
+      }
     } catch(e) {}
     return u; // fallback: URL original
   }
 
-  const [shortE, shortEd] = await Promise.all([acortar(urlE), acortar(urlEd)]);
+  acortarViaWorker(urlE).then(s  => { document.getElementById('linkDisplay').textContent = s; });
+  acortarViaWorker(urlEd).then(s => { document.getElementById('linkEditor').textContent  = s; });
+}
 
-  document.getElementById('linkDisplay').textContent = shortE;
-  document.getElementById('linkEditor').textContent  = shortEd;
-
-  document.getElementById('qrcode').innerHTML='';
-  // QR siempre con URL completa para garantizar que funcione
-  new QRCode(document.getElementById('qrcode'),{text:urlE,width:160,height:160,colorDark:'#0d1117',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.H});
-  viewerUrlActual=urlE;
+// Copiar siempre la URL completa, no la acortada
+function copiarLinkFull(tipo) {
+  const url = tipo === 'editor' ? fullUrlEditor : fullUrlEspectador;
+  if (!url) return;
+  navigator.clipboard.writeText(url);
+  toast('Link copiado ✓');
 }
 function copiarLink(id){navigator.clipboard.writeText(document.getElementById(id)?.textContent||'');toast('Link copiado ✓');}
 function abrirViewer(){if(viewerUrlActual)window.open(viewerUrlActual,'_blank');}
 function descargarQR(tipo){
-  // Usar siempre la URL completa para los QR descargados
   const url = tipo==='editor' ? fullUrlEditor : fullUrlEspectador;
-  if(!url||url==='—')return;
+  if(!url)return;
   const tmp=document.createElement('div');tmp.style.cssText='position:fixed;left:-9999px;top:-9999px;background:#fff;padding:16px;';
   document.body.appendChild(tmp);
   new QRCode(tmp,{text:url,width:256,height:256,colorDark:'#0d1117',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.H});

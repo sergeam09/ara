@@ -257,10 +257,11 @@
 
 <!-- EDITOR -->
 <div id="editor">
-  <div class="ed-handle"></div>
+  <div class="ed-handle" onclick="toggleEditor()" style="cursor:pointer;padding:4px 0;"></div>
   <div class="ed-title">
     <span>Editor de experiencia</span>
-    <div style="display:flex;gap:8px;">
+    <div style="display:flex;gap:8px;align-items:center;">
+      <button onclick="toggleEditor()" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:#6b7a99;font-size:14px;width:28px;height:28px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;" title="Colapsar editor">↓</button>
       <button class="ed-save" style="background:rgba(200,245,66,0.15);color:var(--a);border:1px solid rgba(200,245,66,0.3);" onclick="guardarConfig(false)">✓ Guardar</button>
       <button class="ed-save" onclick="guardarConfig(true)">✓ Guardar y ver</button>
     </div>
@@ -476,7 +477,7 @@
         exposure="1"
         style="width:100%;height:100%;background:#0d1117;">
         <button slot="ar-button" style="
-          position:absolute;bottom:48px;left:50%;transform:translateX(-50%);
+          position:absolute;bottom:80px;left:50%;transform:translateX(-50%);
           background:linear-gradient(135deg,#c8f542,#a8d820);color:#0d1117;border:none;
           padding:16px 36px;font-size:13px;font-weight:800;letter-spacing:0.12em;
           text-transform:uppercase;cursor:pointer;white-space:nowrap;
@@ -693,9 +694,18 @@
       const res=await fetch(WORKER_URL,{method:'POST',headers:{'Content-Type':'application/json','User-Agent':'ARA-Viewer'},
         body:JSON.stringify({path:`proyectos/${PROJECT}/config.json`,content:btoa(JSON.stringify(CFG,null,2)),message:`ARA: config ${PROJECT}`})});
       if(!res.ok) throw new Error('Error '+res.status);
-      showToast('✓ Configuración guardada');
-      document.getElementById('editor').classList.remove('open');
-      document.getElementById('btnEdit')?.classList.remove('active');
+      if(verDespues){
+        showToast('✓ Guardado — abriendo experiencia...');
+        // Esperar 1.5s para que GitHub procese el commit, luego abrir viewer público
+        setTimeout(() => {
+          const publicUrl = location.href.replace('&edit=1','').replace('?edit=1','');
+          window.location.replace(publicUrl);
+        }, 1500);
+      } else {
+        showToast('✓ Configuración guardada');
+        document.getElementById('editor').classList.remove('open');
+        document.getElementById('btnEdit')?.classList.remove('active');
+      }
     }catch(e){showToast('Error al guardar: '+e.message);}
   }
 

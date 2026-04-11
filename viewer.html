@@ -352,6 +352,7 @@
   </div>
 </div>
 
+
 <script>
   const P       = new URLSearchParams(location.search);
   const PROJECT = P.get('p');
@@ -378,13 +379,11 @@
   const URL_SC   = parseFloat(P.get('sc')) || null;
   const EDIT_MODE= P.get('edit') === '1';
 
-  // Tipo de contenido — sin face tracking
   const isSurface = TYPE === 'surface-model';
   const isVideo   = TYPE === 'video';
   const isGif     = TYPE === 'gif';
   const isModel   = TYPE === 'model';
   const isAudio   = TYPE === 'audio';
-  const isFace    = false; // eliminado
 
   const defaultConfig = {
     posX:0, posY:0, posZ:0.01, rotX:0, rotY:0, rotZ:0,
@@ -395,16 +394,12 @@
   let arContent = null;
   let grabando = false, mediaRecorder = null;
 
-  // Start screen setup
+  // Start screen
   document.getElementById('startName').textContent = PROJECT ? PROJECT.replace(/-/g,' ') : '';
   document.getElementById('startType').textContent = TYPE || '';
-  if (isSurface) {
-    document.getElementById('startHint').textContent = 'Apunta al suelo o pared y toca para anclar el modelo';
-  } else if (isModel) {
-    document.getElementById('startHint').textContent = 'Apunta al trigger — el modelo aparece anclado sobre él';
-  } else {
-    document.getElementById('startHint').textContent = 'Apunta la cámara al trigger para activar el contenido';
-  }
+  if (isSurface)      document.getElementById('startHint').textContent = 'Apunta al suelo o pared y toca para anclar el modelo';
+  else if (isModel)   document.getElementById('startHint').textContent = 'Apunta al trigger — el modelo aparece anclado sobre él';
+  else                document.getElementById('startHint').textContent = 'Apunta la cámara al trigger para activar el contenido';
 
   if (!PROJECT) {
     document.getElementById('startScreen').classList.add('hidden');
@@ -421,28 +416,20 @@
     setSplash('Cargando configuración...');
     let configLoaded = false;
     try {
-      const r = await fetch(PATHS.config + '?t=' + Date.now()); // cache bust
-      if (r.ok) {
-        const saved = await r.json();
-        CFG = { ...defaultConfig, ...saved };
-        configLoaded = true;
-      }
+      const r = await fetch(PATHS.config + '?t=' + Date.now());
+      if (r.ok) { const saved = await r.json(); CFG = { ...defaultConfig, ...saved }; configLoaded = true; }
     } catch(e) {}
 
-    // Si no hay config.json, usar URL params del creator como valores iniciales
     if (!configLoaded) {
       if (URL_W  > 0) CFG.width  = URL_W;
       if (URL_H  > 0) CFG.height = URL_H;
       if (URL_SC > 0) CFG.scale  = URL_SC;
     }
-
-    // Sanitize — nunca valores cero o negativos
     if (!CFG.posZ  || CFG.posZ  === 0) CFG.posZ  = 0.01;
     if (!CFG.scale || CFG.scale <= 0 ) CFG.scale  = URL_SC || 1;
     if (!CFG.width  || CFG.width  <= 0) CFG.width  = URL_W  || 1;
     if (!CFG.height || CFG.height <= 0) CFG.height = URL_H  || 0.5625;
     CFG.preset = CFG.preset || 'vertical';
-
     applyConfigToSliders();
     init();
   }
@@ -472,7 +459,7 @@
     await initMindAR();
   }
 
-  // ── SURFACE: model-viewer con AR nativo ──
+  // SURFACE — model-viewer
   function initModelViewer() {
     setSplash('Cargando modelo 3D...');
     const sc = CFG.scale || URL_SC || 0.5;
@@ -480,24 +467,20 @@
     mvWrap.innerHTML = `
       <model-viewer id="araModelViewer"
         src="${PATHS.content}"
-        ar
-        ar-modes="scene-viewer quick-look webxr"
-        ar-placement="floor"
-        ar-scale="fixed"
+        ar ar-modes="scene-viewer quick-look webxr"
+        ar-placement="floor" ar-scale="fixed"
         scale="${sc} ${sc} ${sc}"
-        camera-controls
-        auto-rotate
-        shadow-intensity="1"
-        exposure="1"
+        camera-controls auto-rotate shadow-intensity="1" exposure="1"
         style="width:100%;height:100%;background:#0d1117;">
         <button slot="ar-button" style="
           position:absolute;bottom:100px;left:50%;transform:translateX(-50%);
           background:linear-gradient(135deg,#c8f542,#a8d820);color:#0d1117;border:none;
-          padding:16px 36px;font-size:13px;font-weight:800;
-          letter-spacing:0.12em;text-transform:uppercase;cursor:pointer;
-          white-space:nowrap;box-shadow:0 4px 24px rgba(200,245,66,0.4);
-          font-family:'Montserrat',sans-serif;border-radius:999px;
-        ">⬡ Ver en tu espacio</button>
+          padding:16px 36px;font-size:13px;font-weight:800;letter-spacing:0.12em;
+          text-transform:uppercase;cursor:pointer;white-space:nowrap;
+          box-shadow:0 4px 24px rgba(200,245,66,0.4);
+          font-family:'Montserrat',sans-serif;border-radius:999px;">
+          ⬡ Ver en tu espacio
+        </button>
         <div slot="progress-bar" style="display:none;"></div>
       </model-viewer>`;
     mvWrap.classList.add('show');
@@ -514,112 +497,12 @@
     const mv = document.getElementById('araModelViewer');
     if (mv) {
       mv.addEventListener('load', () => { hideSplash(); mostrarCaptureBar(); });
-      mv.addEventListener('error', () => showErr('No se pudo cargar el modelo 3D.<br>Verifica que el archivo GLB esté en GitHub.'));
+      mv.addEventListener('error', () => showErr('No se pudo cargar el modelo 3D.'));
     }
     setTimeout(() => hideSplash(), 8000);
   }
-    mvWrap.classList.add('show');
-    document.getElementById('hud').classList.add('show');
-    if (EDIT_MODE) {
-      document.getElementById('btnEdit').style.display = 'inline-block';
-      document.getElementById('btnVerPublico').style.display = 'inline-block';
-    }
 
-    const hint = document.createElement('div');
-    hint.id='mvHint';
-    hint.style.cssText='position:fixed;top:72px;left:0;right:0;text-align:center;font-size:11px;font-weight:700;color:rgba(255,255,255,0.3);letter-spacing:0.1em;text-transform:uppercase;pointer-events:none;z-index:500;font-family:Montserrat,sans-serif;';
-    hint.textContent='Rota con los dedos · Toca el botón para ver en AR';
-    document.body.appendChild(hint);
-
-    // Ocultar splash cuando el modelo termine de cargar
-    const mv = document.getElementById('araModelViewer');
-    if (mv) {
-      mv.addEventListener('load', () => hideSplash());
-      mv.addEventListener('error', () => {
-        showErr('No se pudo cargar el modelo 3D.<br>Verifica que el archivo GLB esté publicado en GitHub.');
-      });
-    }
-    // Fallback: si después de 8s no cargó, ocultar splash de todos modos
-    setTimeout(() => hideSplash(), 8000);
-  }
-
-  // ── FACE TRACKING: carga mindar-face dinámicamente ──
-  async function initFaceTracking() {
-    setSplash('Cargando motor de face tracking...');
-
-    // Cargar el script de face tracking solo cuando se necesita
-    await new Promise((resolve, reject) => {
-      // A-Frame ya está cargado — solo necesitamos mindar-face
-      const s = document.createElement('script');
-      s.src = 'https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-face-aframe.prod.js';
-      s.onload = resolve;
-      s.onerror = () => reject(new Error('No se pudo cargar el motor de face tracking'));
-      document.head.appendChild(s);
-    });
-
-    setSplash('Preparando escena facial...');
-    buildFaceScene();
-  }
-
-  function buildFaceScene() {
-    const anchor = CFG.faceAnchor ?? URL_FA ?? 0;
-    const sc     = CFG.faceScale  ?? URL_FS ?? 0.1;
-    const scl    = `${sc} ${sc} ${sc}`;
-
-    // MindAR face: el asset DEBE estar en a-assets con id,
-    // y referenciarse con # en el componente
-    let assetHTML  = '';
-    let entityHTML = '';
-
-    if (TYPE === 'face-model') {
-      assetHTML  = `<a-asset-item id="face-asset" src="${PATHS.content}"></a-asset-item>`;
-      entityHTML = `<a-gltf-model id="arc" src="#face-asset" position="0 0 0" scale="${scl}"></a-gltf-model>`;
-    } else if (TYPE === 'face-gif' || TYPE === 'face-image') {
-      assetHTML  = `<img id="face-asset" src="${PATHS.content}" crossorigin="anonymous">`;
-      entityHTML = `<a-image id="arc" src="#face-asset" width="${sc}" height="${sc}" position="0 0 0"></a-image>`;
-    } else if (TYPE === 'face-video') {
-      assetHTML  = `<video id="face-asset" src="${PATHS.content}" loop autoplay muted playsinline webkit-playsinline crossorigin="anonymous"></video>`;
-      entityHTML = `<a-video id="arc" src="#face-asset" width="${sc}" height="${sc * 0.5625}" position="0 0 0"></a-video>`;
-    }
-
-    const sceneDiv = document.getElementById('arScene');
-    sceneDiv.innerHTML = `
-      <a-scene mindar-face="autoStart:true;" embedded
-        color-space="sRGB"
-        renderer="colorManagement:true"
-        vr-mode-ui="enabled:false"
-        device-orientation-permission-ui="enabled:false"
-        style="width:100vw;height:100vh;">
-        <a-assets timeout="10000">
-          ${assetHTML}
-        </a-assets>
-        <a-entity mindar-face-target="anchorIndex:${anchor}">
-          ${entityHTML}
-        </a-entity>
-      </a-scene>`;
-
-    sceneDiv.classList.add('show');
-    document.getElementById('hud').classList.add('show');
-    document.getElementById('faceScan').classList.add('show');
-    if (EDIT_MODE) document.getElementById('btnEdit').style.display = 'inline-block';
-
-    setTimeout(() => {
-      const scene = sceneDiv.querySelector('a-scene');
-      if (!scene) return;
-      scene.addEventListener('loaded', () => {
-        arContent = document.getElementById('arc');
-        hideSplash();
-      });
-      scene.addEventListener('arReady', () => {
-        document.getElementById('faceScan').classList.remove('show');
-        hideSplash();
-      });
-      scene.addEventListener('arError', () => showErr('No se pudo acceder a la cámara frontal.<br>Verifica los permisos en Safari/Chrome.'));
-      setTimeout(() => hideSplash(), 12000);
-    }, 800);
-  }
-
-  // ── IMAGE TRACKING: MindAR ──
+  // IMAGE TRACKING — MindAR
   async function initMindAR() {
     setSplash('Cargando motor de tracking...');
     const mindOk = await fileExists(PATHS.mind);
@@ -635,7 +518,7 @@
     const pos = `${CFG.posX} ${CFG.posY} ${CFG.posZ}`;
     const rot = getRotation();
     const scl = `${CFG.scale} ${CFG.scale} ${CFG.scale}`;
-    const w   = CFG.width, h = CFG.height;
+    const w = CFG.width, h = CFG.height;
 
     let entityHTML = '';
     if (isVideo) {
@@ -682,17 +565,14 @@
       if (target) {
         target.addEventListener('targetFound', () => {
           document.getElementById('scan').classList.remove('show');
-          const pg=document.getElementById('ping'); pg.classList.add('go'); setTimeout(()=>pg.classList.remove('go'),700);
+          const pg = document.getElementById('ping'); pg.classList.add('go'); setTimeout(()=>pg.classList.remove('go'),700);
           arContent = document.getElementById('arc');
           mostrarCaptureBar();
           if (arContent) {
             arContent.setAttribute('position',`${CFG.posX} ${CFG.posY} ${CFG.posZ}`);
             arContent.setAttribute('rotation', getRotation());
             arContent.setAttribute('scale',    `${CFG.scale} ${CFG.scale} ${CFG.scale}`);
-            if (isVideo || isGif) {
-              arContent.setAttribute('width',  CFG.width);
-              arContent.setAttribute('height', CFG.height);
-            }
+            if (isVideo || isGif) { arContent.setAttribute('width', CFG.width); arContent.setAttribute('height', CFG.height); }
           }
         });
         target.addEventListener('targetLost', () => document.getElementById('scan').classList.add('show'));
@@ -701,23 +581,16 @@
     }, 600);
   }
 
-  // ── CERRAR ──
+  // CERRAR
   function cerrarViewer() {
     if (EDIT_MODE) {
-      const publicUrl = location.href.replace('&edit=1','').replace('?edit=1','');
-      window.location.replace(publicUrl);
+      window.location.replace(location.href.replace('&edit=1','').replace('?edit=1',''));
       return;
     }
-    // Detener grabación si está activa
     if (grabando) detenerGrabacion(document.getElementById('btnCaptureVideo'));
-
-    // Limpiar escena A-Frame
     try { const s=document.querySelector('a-scene'); if(s&&s.renderer) s.renderer.setAnimationLoop(null); } catch(e){}
-    document.getElementById('arScene').classList.remove('show');
-    document.getElementById('arScene').innerHTML = '';
-    document.getElementById('mvWrap').classList.remove('show');
-    document.getElementById('mvWrap').innerHTML = '';
-
+    document.getElementById('arScene').classList.remove('show'); document.getElementById('arScene').innerHTML = '';
+    document.getElementById('mvWrap').classList.remove('show');  document.getElementById('mvWrap').innerHTML = '';
     document.getElementById('hud').classList.remove('show');
     document.getElementById('scan').classList.remove('show');
     document.getElementById('ping').classList.remove('go');
@@ -726,66 +599,46 @@
     document.getElementById('btnVerPublico').style.display = 'none';
     document.getElementById('captureBar').style.display = 'none';
     document.getElementById('splash').classList.remove('visible');
-    const hint=document.getElementById('mvHint'); if(hint) hint.remove();
+    const hint = document.getElementById('mvHint'); if (hint) hint.remove();
     arContent = null;
     document.getElementById('startScreen').classList.remove('hidden');
   }
 
-  // ── CAPTURA FOTO / VIDEO ──
-  function mostrarCaptureBar() {
-    const bar = document.getElementById('captureBar');
-    if (bar) bar.style.display = 'flex';
-  }
-
-  function capturarFoto() {
-    // En AR con model-viewer, la captura es vía el sistema del dispositivo
-    showToast('Usa el botón de captura de tu dispositivo para la foto');
-  }
-
-  function toggleVideo() {
-    const btn = document.getElementById('btnCaptureVideo');
-    if (!grabando) iniciarGrabacion(btn);
-    else detenerGrabacion(btn);
-  }
-
+  // CAPTURA
+  function mostrarCaptureBar() { const b=document.getElementById('captureBar'); if(b) b.style.display='flex'; }
+  function capturarFoto() { showToast('Usa el botón de captura de tu dispositivo'); }
+  function toggleVideo() { const btn=document.getElementById('btnCaptureVideo'); if(!grabando) iniciarGrabacion(btn); else detenerGrabacion(btn); }
   function iniciarGrabacion(btn) {
     try {
-      // Capturar la pantalla completa
-      const stream = document.querySelector('canvas')?.captureStream?.(30);
-      if (!stream) { showToast('Grabación no disponible — usa la grabadora del sistema'); return; }
-      mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm' });
+      const canvas = document.querySelector('canvas');
+      if (!canvas) { showToast('Usa la grabadora de tu dispositivo'); return; }
+      const stream = canvas.captureStream(30);
+      mediaRecorder = new MediaRecorder(stream, { mimeType:'video/webm' });
       const chunks = [];
       mediaRecorder.ondataavailable = e => { if(e.data.size>0) chunks.push(e.data); };
       mediaRecorder.onstop = () => {
-        const blob = new Blob(chunks, { type:'video/webm' });
+        const blob = new Blob(chunks,{type:'video/webm'});
         const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href=url; a.download=`ara-${PROJECT}.webm`; a.click();
-        URL.revokeObjectURL(url);
-        showToast('🎬 Video guardado');
+        const a = document.createElement('a'); a.href=url; a.download=`ara-${PROJECT}.webm`; a.click();
+        URL.revokeObjectURL(url); showToast('🎬 Video guardado');
       };
-      mediaRecorder.start();
-      grabando = true;
-      if(btn){ btn.style.background='rgba(255,60,60,0.9)'; btn.innerHTML='⏹'; btn.title='Detener grabación'; }
+      mediaRecorder.start(); grabando=true;
+      if(btn){btn.style.background='rgba(255,60,60,0.9)';btn.innerHTML='⏹';btn.title='Detener grabación';}
       showToast('⏺ Grabando...');
-    } catch(e) {
-      showToast('Grabación no soportada — usa la grabadora del sistema');
-    }
+    } catch(e) { showToast('Grabación no soportada en este dispositivo'); }
   }
-
   function detenerGrabacion(btn) {
-    if (mediaRecorder && grabando) {
-      mediaRecorder.stop(); grabando = false;
-      if(btn){ btn.style.background='rgba(13,17,23,0.85)'; btn.innerHTML='⏺'; btn.title='Grabar video'; }
-    }
+    if(mediaRecorder&&grabando){mediaRecorder.stop();grabando=false;}
+    if(btn){btn.style.background='rgba(13,17,23,0.85)';btn.innerHTML='⏺';btn.title='Grabar video';}
   }
 
-  // ── EDITOR ──
+  // EDITOR
   function toggleEditor() {
     const ed=document.getElementById('editor'),btn=document.getElementById('btnEdit');
     const isOpen=ed.classList.contains('open');
     ed.classList.toggle('open',!isOpen); btn.classList.toggle('active',!isOpen);
   }
+  function verPublico() { window.open(location.href.replace('&edit=1','').replace('?edit=1',''),'_blank'); }
 
   function getRotation() {
     switch(CFG.preset) {
@@ -813,7 +666,7 @@
   }
 
   function updateContent() {
-    readSliders(); updateVals(); if(!arContent) return;
+    readSliders(); updateVals(); if(!arContent)return;
     arContent.setAttribute('position',`${CFG.posX} ${CFG.posY} ${CFG.posZ}`);
     arContent.setAttribute('rotation',getRotation());
     arContent.setAttribute('scale',`${CFG.scale} ${CFG.scale} ${CFG.scale}`);
@@ -857,32 +710,17 @@
   function toggleAuto(){CFG.autoplay=!CFG.autoplay;document.getElementById('togAuto').classList.toggle('active',CFG.autoplay);}
   function toggleFade(){CFG.fade=!CFG.fade;document.getElementById('togFade').classList.toggle('active',CFG.fade);}
 
-  async function guardarConfig(verDespues = false) {
+  async function guardarConfig(verDespues=false) {
     readSliders();
     if(CFG.preset==='vertical'){CFG.rotX=0;CFG.rotY=0;CFG.rotZ=0;}
     try{
-      const res=await fetch(WORKER_URL,{method:'POST',headers:{'Content-Type':'application/json','User-Agent':'ARA-Viewer'},body:JSON.stringify({path:`proyectos/${PROJECT}/config.json`,content:btoa(JSON.stringify(CFG,null,2)),message:`ARA: config ${PROJECT}`})});
+      const res=await fetch(WORKER_URL,{method:'POST',headers:{'Content-Type':'application/json','User-Agent':'ARA-Viewer'},
+        body:JSON.stringify({path:`proyectos/${PROJECT}/config.json`,content:btoa(JSON.stringify(CFG,null,2)),message:`ARA: config ${PROJECT}`})});
       if(!res.ok) throw new Error('Error '+res.status);
-
-      if (verDespues) {
-        // Guardar y ver: cierra el editor y deja al usuario en la experiencia con los cambios visibles
-        showToast('✓ Guardado — los cambios ya están aplicados');
-        document.getElementById('editor').classList.remove('open');
-        document.getElementById('btnEdit')?.classList.remove('active');
-        // Los cambios ya están en vivo en la escena A-Frame via updateContent()
-        // No hace falta recargar — el usuario ya está viendo el resultado
-      } else {
-        showToast('✓ Configuración guardada');
-        document.getElementById('editor').classList.remove('open');
-        document.getElementById('btnEdit')?.classList.remove('active');
-      }
+      showToast('✓ Configuración guardada');
+      document.getElementById('editor').classList.remove('open');
+      document.getElementById('btnEdit')?.classList.remove('active');
     }catch(e){showToast('Error al guardar: '+e.message);}
-  }
-
-  // Abre el viewer público (sin edit=1) en pestaña nueva para verificar
-  function verPublico() {
-    const publicUrl = location.href.replace('&edit=1','').replace('?edit=1','');
-    window.open(publicUrl, '_blank');
   }
 
   function setSplash(msg){document.getElementById('smsg').textContent=msg;}

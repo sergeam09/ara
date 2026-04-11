@@ -255,40 +255,10 @@
 <div id="arScene"></div>
 <div id="mvWrap"></div>
 
-<!-- SURFACE WebXR — canvas y controles -->
-<div id="xrWrap" style="display:none;position:fixed;inset:0;z-index:50;">
-  <canvas id="xrCanvas" style="width:100%;height:100%;display:block;"></canvas>
-  <!-- Reticle: indica dónde se colocará el objeto -->
-  <div id="xrReticle" style="display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);pointer-events:none;z-index:60;">
-    <svg width="80" height="80" viewBox="0 0 80 80">
-      <ellipse cx="40" cy="40" rx="36" ry="12" fill="none" stroke="#c8f542" stroke-width="2" opacity="0.9"/>
-      <line x1="40" y1="28" x2="40" y2="52" stroke="#c8f542" stroke-width="1.5" opacity="0.6"/>
-      <line x1="28" y1="40" x2="52" y2="40" stroke="#c8f542" stroke-width="1.5" opacity="0.6"/>
-    </svg>
-  </div>
-  <div id="xrHint" style="position:fixed;bottom:180px;left:0;right:0;text-align:center;font-size:12px;font-weight:700;color:rgba(200,245,66,0.9);letter-spacing:0.12em;text-transform:uppercase;text-shadow:0 2px 12px rgba(0,0,0,0.9);pointer-events:none;z-index:60;">Mueve el teléfono sobre el piso</div>
-  <button id="xrPlaceBtn" style="display:none;position:fixed;bottom:100px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#c8f542,#a8d820);color:#0d1117;border:none;padding:16px 40px;font-size:13px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;cursor:pointer;border-radius:999px;box-shadow:0 4px 24px rgba(200,245,66,0.4);font-family:Montserrat,sans-serif;z-index:61;" onclick="xrPlaceObject()">⬡ Colocar aquí</button>
-</div>
-
 <!-- BOTÓN DE CAPTURA — visible en todas las experiencias AR activas -->
-<div id="captureBar" style="display:none;position:fixed;bottom:24px;left:50%;transform:translateX(-50%);display:none;gap:12px;z-index:550;align-items:center;">
-  <button id="btnCaptureFoto" onclick="capturarFoto()" style="
-    width:56px;height:56px;border-radius:50%;
-    background:linear-gradient(135deg,#c8f542,#a8d820);
-    border:3px solid #fff;color:#0d1117;
-    font-size:20px;cursor:pointer;
-    box-shadow:0 4px 20px rgba(0,0,0,0.5);
-    display:flex;align-items:center;justify-content:center;
-    font-family:Montserrat,sans-serif;
-  " title="Tomar foto">📷</button>
-  <button id="btnCaptureVideo" onclick="toggleVideo()" style="
-    width:48px;height:48px;border-radius:50%;
-    background:rgba(13,17,23,0.85);
-    border:2px solid rgba(200,245,66,0.4);color:#c8f542;
-    font-size:18px;cursor:pointer;
-    box-shadow:0 4px 20px rgba(0,0,0,0.5);
-    display:flex;align-items:center;justify-content:center;
-  " title="Grabar video">⏺</button>
+<div id="captureBar" style="display:none;position:fixed;bottom:24px;left:50%;transform:translateX(-50%);gap:12px;z-index:550;align-items:center;">
+  <button id="btnCaptureFoto" onclick="capturarFoto()" style="width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,#c8f542,#a8d820);border:3px solid #fff;color:#0d1117;font-size:20px;cursor:pointer;box-shadow:0 4px 20px rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;" title="Tomar foto">📷</button>
+  <button id="btnCaptureVideo" onclick="toggleVideo()" style="width:48px;height:48px;border-radius:50%;background:rgba(13,17,23,0.85);border:2px solid rgba(200,245,66,0.4);color:#c8f542;font-size:18px;cursor:pointer;box-shadow:0 4px 20px rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;" title="Grabar video">⏺</button>
 </div>
 
 <!-- EDITOR -->
@@ -406,34 +376,29 @@
   const URL_W    = parseFloat(P.get('w'))  || null;
   const URL_H    = parseFloat(P.get('h'))  || null;
   const URL_SC   = parseFloat(P.get('sc')) || null;
-  const URL_FA   = parseInt(P.get('fa'))   || 0;
-  const URL_FS   = parseFloat(P.get('fs')) || 0.1;
   const EDIT_MODE= P.get('edit') === '1';
 
-  // Tipo de contenido
-  const isFace    = TYPE.startsWith('face-');
+  // Tipo de contenido — sin face tracking
   const isSurface = TYPE === 'surface-model';
   const isVideo   = TYPE === 'video';
   const isGif     = TYPE === 'gif';
   const isModel   = TYPE === 'model';
   const isAudio   = TYPE === 'audio';
+  const isFace    = false; // eliminado
 
   const defaultConfig = {
     posX:0, posY:0, posZ:0.01, rotX:0, rotY:0, rotZ:0,
     scale:1, width:1, height:0.5625, preset:'vertical',
     loop:true, autoplay:true, fade:false,
-    faceAnchor: URL_FA, faceScale: URL_FS,
   };
   let CFG = { ...defaultConfig };
   let arContent = null;
+  let grabando = false, mediaRecorder = null;
 
   // Start screen setup
   document.getElementById('startName').textContent = PROJECT ? PROJECT.replace(/-/g,' ') : '';
   document.getElementById('startType').textContent = TYPE || '';
-  if (isFace) {
-    document.getElementById('startHint').textContent = 'Usará la cámara frontal — centra tu cara en pantalla';
-    document.getElementById('startBtn').classList.add('face-mode');
-  } else if (isSurface) {
+  if (isSurface) {
     document.getElementById('startHint').textContent = 'Apunta al suelo o pared y toca para anclar el modelo';
   } else if (isModel) {
     document.getElementById('startHint').textContent = 'Apunta al trigger — el modelo aparece anclado sobre él';
@@ -476,9 +441,7 @@
     if (!CFG.scale || CFG.scale <= 0 ) CFG.scale  = URL_SC || 1;
     if (!CFG.width  || CFG.width  <= 0) CFG.width  = URL_W  || 1;
     if (!CFG.height || CFG.height <= 0) CFG.height = URL_H  || 0.5625;
-    CFG.preset     = CFG.preset     || 'vertical';
-    CFG.faceAnchor = CFG.faceAnchor ?? URL_FA;
-    CFG.faceScale  = CFG.faceScale  ?? URL_FS;
+    CFG.preset = CFG.preset || 'vertical';
 
     applyConfigToSliders();
     init();
@@ -506,155 +469,11 @@
   async function init() {
     setSplash('Preparando experiencia...');
     if (isSurface) { initModelViewer(); return; }
-    if (isFace)    { await initFaceTracking(); return; }
     await initMindAR();
   }
 
-  // ── SURFACE AR con WebXR Hit Test ──
-  // Android: WebXR Hit Test ancla el objeto al piso con detección de superficie real
-  // iOS: fallback a model-viewer Quick Look con ARKit
-  async function initModelViewer() {
-    setSplash('Iniciando Surface AR...');
-
-    // Detectar soporte WebXR Hit Test (Android Chrome)
-    const xrOk = navigator.xr && await navigator.xr.isSessionSupported('immersive-ar').catch(() => false);
-
-    if (xrOk) {
-      hideSplash();
-      iniciarWebXR();
-    } else {
-      // Fallback iOS / navegadores sin WebXR: model-viewer con Quick Look
-      iniciarModelViewerFallback();
-    }
-  }
-
-  // ── WebXR Hit Test — Android ──
-  let xrSession = null, xrRefSpace = null, xrHitTestSource = null;
-  let xrModel = null, xrScene3D = null, xrRenderer = null;
-  let xrObjectPlaced = false, xrObjectMesh = null;
-
-  async function iniciarWebXR() {
-    document.getElementById('xrWrap').style.display = 'block';
-    document.getElementById('hud').classList.add('show');
-    if (EDIT_MODE) {
-      document.getElementById('btnEdit').style.display = 'inline-block';
-      document.getElementById('btnVerPublico').style.display = 'inline-block';
-    }
-
-    try {
-      // Cargar Three.js dinámicamente
-      await cargarScript('https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js');
-
-      const canvas = document.getElementById('xrCanvas');
-      xrRenderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
-      xrRenderer.setPixelRatio(window.devicePixelRatio);
-      xrRenderer.setSize(window.innerWidth, window.innerHeight);
-      xrRenderer.xr.enabled = true;
-
-      xrScene3D = new THREE.Scene();
-      const camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.01, 20);
-
-      // Luz ambiental
-      xrScene3D.add(new THREE.AmbientLight(0xffffff, 0.8));
-      const dirLight = new THREE.DirectionalLight(0xffffff, 0.6);
-      dirLight.position.set(1, 3, 2);
-      xrScene3D.add(dirLight);
-
-      // Cargar GLTFLoader
-      await cargarScript('https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js');
-
-      // Cargar el modelo GLB
-      setSplash('Cargando modelo 3D...');
-      const loader = new THREE.GLTFLoader();
-      const sc = CFG.scale || URL_SC || 0.5;
-
-      await new Promise((resolve, reject) => {
-        loader.load(PATHS.content, (gltf) => {
-          xrModel = gltf.scene;
-          xrModel.scale.setScalar(sc);
-          xrModel.visible = false; // oculto hasta que se coloque
-          xrScene3D.add(xrModel);
-          resolve();
-        }, undefined, reject);
-      });
-
-      hideSplash();
-      document.getElementById('xrReticle').style.display = 'block';
-
-      // Iniciar sesión AR
-      xrSession = await navigator.xr.requestSession('immersive-ar', {
-        requiredFeatures: ['hit-test'],
-        optionalFeatures: ['dom-overlay'],
-        domOverlay: { root: document.body }
-      });
-
-      xrRenderer.xr.setSession(xrSession);
-      xrRefSpace = await xrSession.requestReferenceSpace('local');
-      const viewerSpace = await xrSession.requestReferenceSpace('viewer');
-      xrHitTestSource = await xrSession.requestHitTestSource({ space: viewerSpace });
-
-      xrSession.addEventListener('end', () => {
-        xrHitTestSource = null;
-        document.getElementById('xrWrap').style.display = 'none';
-        cerrarViewer();
-      });
-
-      // Loop de renderizado
-      xrRenderer.setAnimationLoop((time, frame) => {
-        if (!frame) return;
-
-        if (xrHitTestSource && !xrObjectPlaced) {
-          const hits = frame.getHitTestResults(xrHitTestSource);
-          const reticle = document.getElementById('xrReticle');
-          const placeBtn = document.getElementById('xrPlaceBtn');
-
-          if (hits.length > 0) {
-            const pose = hits[0].getPose(xrRefSpace);
-            if (pose) {
-              // Mostrar reticle y botón de colocar
-              reticle.style.display = 'block';
-              placeBtn.style.display = 'block';
-              document.getElementById('xrHint').textContent = 'Superficie detectada — toca para colocar';
-
-              // Guardar posición del hit para cuando el usuario confirme
-              xrRenderer._hitPose = pose.transform;
-            }
-          } else {
-            placeBtn.style.display = 'none';
-            document.getElementById('xrHint').textContent = 'Mueve el teléfono lentamente sobre el piso';
-          }
-        }
-
-        xrRenderer.render(xrScene3D, camera);
-      });
-
-    } catch(e) {
-      showErr('No se pudo iniciar Surface AR.<br><small>' + e.message + '</small><br>Intentando modo alternativo...');
-      setTimeout(() => {
-        document.getElementById('errScreen').classList.remove('show');
-        iniciarModelViewerFallback();
-      }, 2000);
-    }
-  }
-
-  function xrPlaceObject() {
-    if (!xrRenderer._hitPose || !xrModel) return;
-    const m = xrRenderer._hitPose.matrix;
-    xrModel.position.setFromMatrixPosition(new THREE.Matrix4().fromArray(m));
-    xrModel.visible = true;
-    xrObjectPlaced = true;
-
-    // Ocultar reticle y botón de colocar
-    document.getElementById('xrReticle').style.display = 'none';
-    document.getElementById('xrPlaceBtn').style.display = 'none';
-    document.getElementById('xrHint').textContent = 'Objeto colocado — camina alrededor';
-
-    // Mostrar botones de captura
-    mostrarCaptureBar();
-  }
-
-  // ── FALLBACK: model-viewer para iOS / sin WebXR ──
-  function iniciarModelViewerFallback() {
+  // ── SURFACE: model-viewer con AR nativo ──
+  function initModelViewer() {
     setSplash('Cargando modelo 3D...');
     const sc = CFG.scale || URL_SC || 0.5;
     const mvWrap = document.getElementById('mvWrap');
@@ -662,7 +481,7 @@
       <model-viewer id="araModelViewer"
         src="${PATHS.content}"
         ar
-        ar-modes="quick-look scene-viewer webxr"
+        ar-modes="scene-viewer quick-look webxr"
         ar-placement="floor"
         ar-scale="fixed"
         scale="${sc} ${sc} ${sc}"
@@ -672,7 +491,7 @@
         exposure="1"
         style="width:100%;height:100%;background:#0d1117;">
         <button slot="ar-button" style="
-          position:absolute;bottom:80px;left:50%;transform:translateX(-50%);
+          position:absolute;bottom:100px;left:50%;transform:translateX(-50%);
           background:linear-gradient(135deg,#c8f542,#a8d820);color:#0d1117;border:none;
           padding:16px 36px;font-size:13px;font-weight:800;
           letter-spacing:0.12em;text-transform:uppercase;cursor:pointer;
@@ -688,100 +507,16 @@
       document.getElementById('btnVerPublico').style.display = 'inline-block';
     }
     const hint = document.createElement('div');
-    hint.id='mvHint';
-    hint.style.cssText='position:fixed;top:72px;left:0;right:0;text-align:center;font-size:11px;font-weight:700;color:rgba(255,255,255,0.3);letter-spacing:0.1em;text-transform:uppercase;pointer-events:none;z-index:500;font-family:Montserrat,sans-serif;';
-    hint.textContent='Rota con los dedos · Toca el botón para ver en AR';
+    hint.id = 'mvHint';
+    hint.style.cssText = 'position:fixed;top:72px;left:0;right:0;text-align:center;font-size:11px;font-weight:700;color:rgba(255,255,255,0.3);letter-spacing:0.1em;text-transform:uppercase;pointer-events:none;z-index:500;font-family:Montserrat,sans-serif;';
+    hint.textContent = 'Rota con los dedos · Toca el botón para ver en AR';
     document.body.appendChild(hint);
     const mv = document.getElementById('araModelViewer');
     if (mv) {
       mv.addEventListener('load', () => { hideSplash(); mostrarCaptureBar(); });
-      mv.addEventListener('error', () => showErr('No se pudo cargar el modelo 3D.'));
+      mv.addEventListener('error', () => showErr('No se pudo cargar el modelo 3D.<br>Verifica que el archivo GLB esté en GitHub.'));
     }
     setTimeout(() => hideSplash(), 8000);
-  }
-
-  // ── CAPTURA FOTO / VIDEO ──
-  let mediaRecorder = null, grabando = false;
-
-  function mostrarCaptureBar() {
-    const bar = document.getElementById('captureBar');
-    bar.style.display = 'flex';
-  }
-
-  function capturarFoto() {
-    try {
-      // Intentar captura del canvas WebXR
-      const canvas = document.getElementById('xrCanvas');
-      if (canvas && canvas.width > 0) {
-        const link = document.createElement('a');
-        link.download = `ara-${PROJECT}-foto.png`;
-        link.href = canvas.toDataURL('image/png');
-        link.click();
-        showToast('📷 Foto guardada');
-        return;
-      }
-      // Fallback: captura de pantalla via API del sistema
-      showToast('Usa el botón de captura de tu dispositivo');
-    } catch(e) {
-      showToast('Usa el botón de captura de tu dispositivo');
-    }
-  }
-
-  function toggleVideo() {
-    const btn = document.getElementById('btnCaptureVideo');
-    if (!grabando) {
-      iniciarGrabacion(btn);
-    } else {
-      detenerGrabacion(btn);
-    }
-  }
-
-  function iniciarGrabacion(btn) {
-    try {
-      const canvas = document.getElementById('xrCanvas');
-      if (!canvas || canvas.width === 0) { showToast('Coloca el objeto en AR primero'); return; }
-      const stream = canvas.captureStream(30);
-      mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm;codecs=vp8' });
-      const chunks = [];
-      mediaRecorder.ondataavailable = e => chunks.push(e.data);
-      mediaRecorder.onstop = () => {
-        const blob = new Blob(chunks, { type: 'video/webm' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url; a.download = `ara-${PROJECT}-video.webm`; a.click();
-        URL.revokeObjectURL(url);
-        showToast('🎬 Video guardado');
-      };
-      mediaRecorder.start();
-      grabando = true;
-      btn.style.background = 'rgba(255,60,60,0.9)';
-      btn.style.borderColor = 'rgba(255,60,60,0.6)';
-      btn.innerHTML = '⏹';
-      btn.title = 'Detener grabación';
-      showToast('⏺ Grabando...');
-    } catch(e) {
-      showToast('Grabación no soportada en este dispositivo');
-    }
-  }
-
-  function detenerGrabacion(btn) {
-    if (mediaRecorder && grabando) {
-      mediaRecorder.stop();
-      grabando = false;
-      btn.style.background = 'rgba(13,17,23,0.85)';
-      btn.style.borderColor = 'rgba(200,245,66,0.4)';
-      btn.innerHTML = '⏺';
-      btn.title = 'Grabar video';
-    }
-  }
-
-  function cargarScript(src) {
-    return new Promise((resolve, reject) => {
-      if (document.querySelector(`script[src="${src}"]`)) { resolve(); return; }
-      const s = document.createElement('script');
-      s.src = src; s.onload = resolve; s.onerror = reject;
-      document.head.appendChild(s);
-    });
   }
     mvWrap.classList.add('show');
     document.getElementById('hud').classList.add('show');
@@ -976,21 +711,15 @@
     // Detener grabación si está activa
     if (grabando) detenerGrabacion(document.getElementById('btnCaptureVideo'));
 
-    // Terminar sesión WebXR si existe
-    if (xrSession) { try { xrSession.end(); } catch(e) {} xrSession = null; }
-    if (xrRenderer) { try { xrRenderer.setAnimationLoop(null); } catch(e) {} }
-
     // Limpiar escena A-Frame
     try { const s=document.querySelector('a-scene'); if(s&&s.renderer) s.renderer.setAnimationLoop(null); } catch(e){}
     document.getElementById('arScene').classList.remove('show');
     document.getElementById('arScene').innerHTML = '';
     document.getElementById('mvWrap').classList.remove('show');
     document.getElementById('mvWrap').innerHTML = '';
-    document.getElementById('xrWrap').style.display = 'none';
 
     document.getElementById('hud').classList.remove('show');
     document.getElementById('scan').classList.remove('show');
-    document.getElementById('faceScan')?.classList.remove('show');
     document.getElementById('ping').classList.remove('go');
     document.getElementById('editor').classList.remove('open');
     document.getElementById('btnEdit').style.display = 'none';
@@ -998,11 +727,57 @@
     document.getElementById('captureBar').style.display = 'none';
     document.getElementById('splash').classList.remove('visible');
     const hint=document.getElementById('mvHint'); if(hint) hint.remove();
-
-    // Reset WebXR state
-    xrObjectPlaced = false; xrModel = null; xrScene3D = null; xrRenderer = null;
     arContent = null;
     document.getElementById('startScreen').classList.remove('hidden');
+  }
+
+  // ── CAPTURA FOTO / VIDEO ──
+  function mostrarCaptureBar() {
+    const bar = document.getElementById('captureBar');
+    if (bar) bar.style.display = 'flex';
+  }
+
+  function capturarFoto() {
+    // En AR con model-viewer, la captura es vía el sistema del dispositivo
+    showToast('Usa el botón de captura de tu dispositivo para la foto');
+  }
+
+  function toggleVideo() {
+    const btn = document.getElementById('btnCaptureVideo');
+    if (!grabando) iniciarGrabacion(btn);
+    else detenerGrabacion(btn);
+  }
+
+  function iniciarGrabacion(btn) {
+    try {
+      // Capturar la pantalla completa
+      const stream = document.querySelector('canvas')?.captureStream?.(30);
+      if (!stream) { showToast('Grabación no disponible — usa la grabadora del sistema'); return; }
+      mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm' });
+      const chunks = [];
+      mediaRecorder.ondataavailable = e => { if(e.data.size>0) chunks.push(e.data); };
+      mediaRecorder.onstop = () => {
+        const blob = new Blob(chunks, { type:'video/webm' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href=url; a.download=`ara-${PROJECT}.webm`; a.click();
+        URL.revokeObjectURL(url);
+        showToast('🎬 Video guardado');
+      };
+      mediaRecorder.start();
+      grabando = true;
+      if(btn){ btn.style.background='rgba(255,60,60,0.9)'; btn.innerHTML='⏹'; btn.title='Detener grabación'; }
+      showToast('⏺ Grabando...');
+    } catch(e) {
+      showToast('Grabación no soportada — usa la grabadora del sistema');
+    }
+  }
+
+  function detenerGrabacion(btn) {
+    if (mediaRecorder && grabando) {
+      mediaRecorder.stop(); grabando = false;
+      if(btn){ btn.style.background='rgba(13,17,23,0.85)'; btn.innerHTML='⏺'; btn.title='Grabar video'; }
+    }
   }
 
   // ── EDITOR ──

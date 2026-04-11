@@ -96,14 +96,29 @@
     .token-dot.err { background: var(--err); }
     .hd-status { font-size: 10px; color: var(--text2); font-family: var(--fm); }
 
-    /* ── MAIN LAYOUT ── */
-    .wrap { max-width: 1320px; margin: 0 auto; padding: 28px 36px; flex: 1; width: 100%; position: relative; z-index: 1; }
-    .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start; }
-    /* El card de resultado NO crece con su contenido — altura fija con scroll interno */
-    .col-result {
-      position: sticky;
-      top: 24px;
+    /* ── MAIN LAYOUT — SOLUCIÓN DEFINITIVA ── */
+    .wrap {
+      max-width: 1280px; margin: 0 auto; padding: 28px 36px;
+      flex: 1; width: 100%; position: relative; z-index: 1;
     }
+    .cols {
+      display: grid;
+      /* Columnas de ancho FIJO — nunca crecen sin importar el contenido */
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      gap: 24px;
+      align-items: start;
+      /* El grid mismo nunca crece más allá del wrap */
+      width: 100%;
+      overflow: hidden;
+    }
+    /* CADA columna tiene ancho máximo absoluto y nunca puede expandirse */
+    .cols > * {
+      min-width: 0;
+      max-width: 100%;
+      overflow: hidden;
+      box-sizing: border-box;
+    }
+    .col-result { align-self: start; }
     .card {
       background: linear-gradient(145deg, var(--navy2) 0%, var(--navy3) 100%);
       border: 1px solid var(--border);
@@ -250,7 +265,7 @@
     .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 24px rgba(200,245,66,0.4); }
     .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
 
-    /* ── OUTPUT CARD — altura controlada, nunca expande el grid ── */
+    /* ── OUTPUT CARD — NUNCA SALE DE SU COLUMNA ── */
     .out-card {
       background: linear-gradient(145deg, var(--navy2) 0%, var(--navy3) 100%);
       border: 1px solid var(--border);
@@ -258,10 +273,28 @@
       box-shadow: var(--shadow);
       padding: 24px;
       display: flex; flex-direction: column; gap: 14px;
-      /* Altura mínima cómoda para el estado vacío */
       min-height: 320px;
-      /* El card NO se estira para igualar la columna izquierda */
       align-self: start;
+      /* Estas tres líneas son las que resuelven el problema de forma permanente */
+      width: 100%;
+      min-width: 0;
+      overflow: hidden;
+    }
+    /* Todo hijo del out-card también respeta el ancho */
+    .out-card * {
+      max-width: 100%;
+      box-sizing: border-box;
+    }
+    /* Los textos largos se cortan con ellipsis, nunca empujan el ancho */
+    .out-card .linkdisplay,
+    .out-card .step-line,
+    .out-card .prog-msg {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .out-card .step-line {
+      white-space: nowrap;
     }
     .out-empty {
       padding: 48px 24px;
@@ -290,7 +323,7 @@
       background: var(--navy); border: 1px solid var(--border);
       border-radius: var(--r-sm); padding: 12px; font-size: 11px;
       line-height: 2.1; display: none; max-height: 120px; overflow-y: auto;
-      font-family: var(--fm);
+      font-family: var(--fm); overflow-x: hidden; word-break: break-all;
     }
     .steps-log.visible { display: block; }
     .step-line { color: var(--muted); }

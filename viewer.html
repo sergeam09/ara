@@ -416,21 +416,44 @@
   async function loadConfigAndInit() {
     setSplash('Cargando configuración...');
     let configLoaded = false;
+
+    // 1. Intentar leer config de KV (instantáneo, sin caché)
     try {
-      const r = await fetch(PATHS.config + '?t=' + Date.now());
-      if (r.ok) { const saved = await r.json(); CFG = { ...defaultConfig, ...saved }; configLoaded = true; }
+      const r = await fetch(WORKER_URL + '?config=' + PROJECT);
+      if (r.ok) {
+        const saved = await r.json();
+        if (!saved.error) {
+          CFG = { ...defaultConfig, ...saved };
+          configLoaded = true;
+        }
+      }
     } catch(e) {}
 
+    // 2. Fallback: GitHub Pages (puede tener caché de hasta 10 min)
+    if (!configLoaded) {
+      try {
+        const r = await fetch(PATHS.config + '?t=' + Date.now());
+        if (r.ok) {
+          const saved = await r.json();
+          CFG = { ...defaultConfig, ...saved };
+          configLoaded = true;
+        }
+      } catch(e) {}
+    }
+
+    // 3. Sin config — usar URL params del creator
     if (!configLoaded) {
       if (URL_W  > 0) CFG.width  = URL_W;
       if (URL_H  > 0) CFG.height = URL_H;
       if (URL_SC > 0) CFG.scale  = URL_SC;
     }
+
     if (!CFG.posZ  || CFG.posZ  === 0) CFG.posZ  = 0.01;
     if (!CFG.scale || CFG.scale <= 0 ) CFG.scale  = URL_SC || 1;
     if (!CFG.width  || CFG.width  <= 0) CFG.width  = URL_W  || 1;
     if (!CFG.height || CFG.height <= 0) CFG.height = URL_H  || 0.5625;
     CFG.preset = CFG.preset || 'vertical';
+
     applyConfigToSliders();
     init();
   }

@@ -1,16 +1,16 @@
 {
   "posX": 0,
   "posY": 0,
-  "posZ": 0.01,
+  "posZ": 0.02,
   "rotX": 0,
   "rotY": 0,
   "rotZ": 0,
-  "preset": "vertical",
-  "scale": 1,
+  "scale": 3,
   "width": 1,
-  "height": 0.5625,
+  "height": 0.56,
+  "preset": "vertical",
   "loop": true,
   "autoplay": true,
   "fade": false,
-  "animate": true
+  "animate": false
 }

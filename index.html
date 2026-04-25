@@ -449,6 +449,49 @@
     .stack-params { font-size: 9px; color: var(--muted); margin-top: 2px; font-family: var(--fm); }
     .stack-anim { color: rgba(200,245,66,0.65); }
 
+    /* ── PASO 2 — AR PREVIEW CANVAS ── */
+    .ar-canvas-wrap {
+      position: relative; width: 100%; border-radius: var(--r-sm);
+      overflow: hidden; background: var(--navy);
+      border: 1px solid var(--border); aspect-ratio: 4/3;
+      user-select: none; touch-action: none;
+    }
+    .ar-canvas-bg {
+      position: absolute; inset: 0; width: 100%; height: 100%;
+      object-fit: cover; display: block; pointer-events: none;
+    }
+    .ar-canvas-checker {
+      position: absolute; inset: 0;
+      background-image:
+        linear-gradient(45deg, var(--navy3) 25%, transparent 25%),
+        linear-gradient(-45deg, var(--navy3) 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, var(--navy3) 75%),
+        linear-gradient(-45deg, transparent 75%, var(--navy3) 75%);
+      background-size: 24px 24px;
+      background-position: 0 0, 0 12px, 12px -12px, -12px 0px;
+      background-color: var(--navy2);
+    }
+    .layer-rect {
+      position: absolute; transform: translate(-50%, -50%);
+      border-radius: 6px; border: 2px solid rgba(255,255,255,0.2);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px; font-weight: 700; color: rgba(255,255,255,0.85);
+      cursor: pointer; transition: border-color 0.15s, box-shadow 0.15s;
+      text-shadow: 0 1px 3px rgba(0,0,0,0.6);
+      min-width: 28px; min-height: 20px;
+    }
+    .layer-rect.active {
+      border-color: #fff;
+      box-shadow: 0 0 0 1px rgba(255,255,255,0.3), 0 0 14px rgba(255,255,255,0.25);
+      cursor: grab; z-index: 10;
+    }
+    .layer-rect.active.dragging { cursor: grabbing; }
+    .ar-canvas-hint {
+      position: absolute; bottom: 7px; right: 9px;
+      font-size: 9px; color: rgba(255,255,255,0.3);
+      font-family: var(--fm); pointer-events: none; letter-spacing: 0.05em;
+    }
+
     /* ── PROJECTS LIST ── */
     .plist-card {
       background: linear-gradient(145deg, var(--navy2), var(--navy3));
@@ -651,9 +694,14 @@
       <div id="prev2" class="prev-panel">
         <div id="p2-empty" class="p2-empty">
           <div class="p2-empty-icon">◫</div>
-          <p>Añade capas para ver el stack aquí.</p>
+          <p>Añade capas para ver la escena AR aquí.</p>
         </div>
-        <div id="p2-stack" class="stack-list" style="display:none;"></div>
+        <div id="p2-canvas-wrap" class="ar-canvas-wrap" style="display:none;">
+          <div id="p2-checker" class="ar-canvas-checker"></div>
+          <img id="p2-trigger-bg" class="ar-canvas-bg" src="" alt="" style="display:none;">
+          <div id="p2-rects" style="position:absolute;inset:0;"></div>
+          <div class="ar-canvas-hint">Arrastra capa activa · clic para seleccionar</div>
+        </div>
       </div><!-- /prev2 -->
 
       <!-- Preview paso 3 / resultado -->
@@ -691,7 +739,9 @@ const APP = {
   layers:      [],
 };
 
-let proyectos = JSON.parse(localStorage.getItem('ara-proyectos') || '[]');
+let proyectos    = JSON.parse(localStorage.getItem('ara-proyectos') || '[]');
+let activeLayerId = null;
+let _drag         = null;
 
 // ── Definición de tipos de capa ────────────────────────────
 const LAYER_TYPES = {
@@ -848,6 +898,7 @@ function goToStep(n) {
   });
   document.getElementById('track-12').classList.toggle('done', n > 1);
   document.getElementById('track-23').classList.toggle('done', n > 2);
+  if (n === 2) renderPreviewCanvas();
 }
 
 // ── PASO 2 — Capas ─────────────────────────────────────────
@@ -868,6 +919,7 @@ function addLayer() {
   if (APP.layers.length >= 6) return;
   const layer = newLayerData();
   APP.layers.push(layer);
+  activeLayerId = layer.id;
   renderLayerCard(layer, true);
   syncStep2State();
   updatePreview2();
@@ -876,6 +928,8 @@ function addLayer() {
 function removeLayer(id) {
   APP.layers = APP.layers.filter(l => l.id !== id);
   document.getElementById('lcard-' + id)?.remove();
+  if (activeLayerId === id)
+    activeLayerId = APP.layers.length ? APP.layers[APP.layers.length - 1].id : null;
   renumberLayers();
   syncStep2State();
   updatePreview2();
@@ -901,7 +955,9 @@ function moveLayer(id, dir) {
 }
 
 function toggleLayerCard(id) {
+  activeLayerId = id;
   document.getElementById('lcard-' + id)?.classList.toggle('open');
+  renderPreviewCanvas();
 }
 
 function renderLayerCard(layer, openByDefault) {
@@ -1108,37 +1164,130 @@ function syncStep2State() {
   });
 }
 
-const ANIM_LABELS = { fade:'Fade', scale:'Scale ↑', slide:'Slide', sequential:'Secuencial', none:'—' };
-
 function updatePreview2() {
-  const stack   = document.getElementById('p2-stack');
-  const empty   = document.getElementById('p2-empty');
-  if (!stack || !empty) return;
+  renderPreviewCanvas();
+  syncStep2State();
+}
+
+// ── PASO 2 — AR canvas interactivo ────────────────────────
+
+const RECT_COLORS = {
+  video: 'rgba(200,245,66,0.35)',
+  image: 'rgba(91,141,239,0.35)',
+  gif:   'rgba(245,166,35,0.35)',
+  model: 'rgba(196,113,237,0.35)',
+  text:  'rgba(245,66,182,0.35)',
+};
+
+function renderPreviewCanvas() {
+  const wrap  = document.getElementById('p2-canvas-wrap');
+  const empty = document.getElementById('p2-empty');
+  const rects = document.getElementById('p2-rects');
+  if (!wrap || !rects || !empty) return;
 
   if (!APP.layers.length) {
-    empty.style.display = 'flex'; stack.style.display = 'none'; return;
+    empty.style.display = 'flex'; wrap.style.display = 'none'; return;
   }
-  empty.style.display = 'none'; stack.style.display = 'flex';
+  empty.style.display = 'none'; wrap.style.display = 'block';
 
-  stack.innerHTML = APP.layers.map((l, i) => {
-    const type  = LAYER_TYPES[l.type];
-    const fname = l.type === 'text'
-      ? (l.text.trim().slice(0, 30) || 'Sin texto') + (l.text.length > 30 ? '…' : '')
-      : (l.fileName || 'Sin archivo');
-    const posStr = `X:${l.posX >= 0 ? '+' : ''}${l.posX.toFixed(1)} Y:${l.posY >= 0 ? '+' : ''}${l.posY.toFixed(1)}`;
-    const params = `${posStr} · ×${l.scale.toFixed(1)} · ${Math.round(l.opacity * 100)}%`;
-    return `
-      <div class="stack-item">
-        <div class="stack-num">${i + 1}</div>
-        <span class="stack-icon">${type.icon}</span>
-        <div class="stack-info">
-          <div class="stack-fname">${fname}</div>
-          <div class="stack-params">${params} <span class="stack-anim">· ${ANIM_LABELS[l.animation] || ''}</span></div>
-        </div>
-      </div>`;
-  }).join('');
+  const bg      = document.getElementById('p2-trigger-bg');
+  const checker = document.getElementById('p2-checker');
+  if (APP.modo === 'image' && APP.triggerUrl) {
+    bg.src = APP.triggerUrl; bg.style.display = 'block'; checker.style.display = 'none';
+  } else {
+    bg.style.display = 'none'; checker.style.display = 'block';
+  }
 
-  syncStep2State();
+  rects.innerHTML = '';
+  APP.layers.forEach((l, i) => {
+    const isActive = l.id === activeLayerId;
+    const color    = RECT_COLORS[l.type] || 'rgba(200,245,66,0.35)';
+    const leftPct  = ((l.posX + 1) / 2) * 100;
+    const topPct   = ((-l.posY + 1) / 2) * 100;
+    const wPct     = Math.max(8, 25 * l.scale);
+    const hPct     = Math.max(6, 20 * l.scale);
+    const label    = l.type === 'text'
+      ? (l.text.slice(0, 5) || 'T')
+      : LAYER_TYPES[l.type].icon + ' ' + (i + 1);
+    const div = document.createElement('div');
+    div.className      = 'layer-rect' + (isActive ? ' active' : '');
+    div.dataset.id     = l.id;
+    div.style.left     = leftPct + '%';
+    div.style.top      = topPct  + '%';
+    div.style.width    = wPct    + '%';
+    div.style.height   = hPct   + '%';
+    div.style.background = color;
+    div.style.opacity  = l.opacity;
+    div.textContent    = label;
+    div.addEventListener('pointerdown', onRectDown);
+    rects.appendChild(div);
+  });
+}
+
+function onRectDown(e) {
+  const id  = e.currentTarget.dataset.id;
+  activeLayerId = id;
+  renderPreviewCanvas();
+  const layer = APP.layers.find(l => l.id === id);
+  if (!layer) return;
+  const wrap  = document.getElementById('p2-canvas-wrap');
+  const cRect = wrap.getBoundingClientRect();
+  _drag = {
+    id,
+    startX:    e.clientX, startY:    e.clientY,
+    startPosX: layer.posX, startPosY: layer.posY,
+    cw: cRect.width,       ch: cRect.height,
+  };
+  const rectEl = document.querySelector(`.layer-rect[data-id="${id}"]`);
+  if (rectEl) {
+    rectEl.classList.add('dragging');
+    rectEl.setPointerCapture(e.pointerId);
+  }
+  e.preventDefault();
+}
+
+document.addEventListener('pointermove', e => {
+  if (!_drag) return;
+  const layer = APP.layers.find(l => l.id === _drag.id);
+  if (!layer) { _drag = null; return; }
+  const dx = e.clientX - _drag.startX;
+  const dy = e.clientY - _drag.startY;
+  layer.posX = Math.max(-1, Math.min(1, _drag.startPosX + (dx / _drag.cw) * 2));
+  layer.posY = Math.max(-1, Math.min(1, _drag.startPosY - (dy / _drag.ch) * 2));
+  const rectEl = document.querySelector(`.layer-rect[data-id="${_drag.id}"]`);
+  if (rectEl) {
+    rectEl.style.left = ((layer.posX + 1) / 2 * 100) + '%';
+    rectEl.style.top  = ((-layer.posY + 1) / 2 * 100) + '%';
+  }
+  syncSlidersFromLayer(_drag.id);
+});
+
+document.addEventListener('pointerup', () => {
+  if (_drag) {
+    const rectEl = document.querySelector(`.layer-rect[data-id="${_drag.id}"]`);
+    if (rectEl) rectEl.classList.remove('dragging');
+    _drag = null;
+  }
+});
+
+function syncSlidersFromLayer(id) {
+  const layer = APP.layers.find(l => l.id === id);
+  const card  = document.getElementById('lcard-' + id);
+  if (!layer || !card) return;
+  card.querySelectorAll('.lrow').forEach(row => {
+    const lbl = row.querySelector('.llabel');
+    const sl  = row.querySelector('.lslider');
+    const val = row.querySelector('.lval');
+    if (!lbl || !sl || !val) return;
+    const t = lbl.textContent.trim();
+    if (t === 'Pos X') {
+      sl.value = layer.posX;
+      val.textContent = (layer.posX >= 0 ? '+' : '') + layer.posX.toFixed(2);
+    } else if (t === 'Pos Y') {
+      sl.value = layer.posY;
+      val.textContent = (layer.posY >= 0 ? '+' : '') + layer.posY.toFixed(2);
+    }
+  });
 }
 
 // ── Projects list ─────────────────────────────────────────

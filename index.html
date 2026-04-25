@@ -481,8 +481,8 @@
       min-width: 28px; min-height: 20px;
     }
     .layer-rect.active {
-      border-color: #fff;
-      box-shadow: 0 0 0 1px rgba(255,255,255,0.3), 0 0 14px rgba(255,255,255,0.25);
+      border-color: var(--accent);
+      box-shadow: 0 0 0 1px rgba(200,245,66,0.35), 0 0 12px rgba(200,245,66,0.3);
       cursor: grab; z-index: 10;
     }
     .layer-rect.active.dragging { cursor: grabbing; }
@@ -490,6 +490,38 @@
       position: absolute; bottom: 7px; right: 9px;
       font-size: 9px; color: rgba(255,255,255,0.3);
       font-family: var(--fm); pointer-events: none; letter-spacing: 0.05em;
+    }
+    /* real content inside layer rects */
+    .lr-media {
+      position: absolute; inset: 0; width: 100%; height: 100%;
+      object-fit: cover; border-radius: 4px; pointer-events: none; display: block;
+    }
+    .lr-text {
+      font-size: 10px; font-weight: 600; text-align: center; padding: 3px 5px;
+      word-break: break-word; overflow: hidden; line-height: 1.3;
+      max-height: 100%; pointer-events: none;
+    }
+    .lr-label {
+      position: absolute; bottom: 2px; left: 4px;
+      font-size: 9px; font-weight: 800; color: rgba(255,255,255,0.9);
+      text-shadow: 0 1px 4px rgba(0,0,0,0.9); pointer-events: none; line-height: 1;
+    }
+    /* view mode toggle */
+    .p2-view-toggle { display: flex; gap: 6px; justify-content: flex-end; }
+    .p2-vtbtn {
+      display: flex; align-items: center; gap: 5px; padding: 5px 12px;
+      border-radius: var(--r-pill); border: 1px solid var(--border2);
+      background: var(--navy); color: var(--muted); font-family: var(--fd);
+      font-size: 9px; font-weight: 700; letter-spacing: 0.08em;
+      text-transform: uppercase; cursor: pointer; transition: all 0.15s;
+    }
+    .p2-vtbtn:hover { color: var(--text2); border-color: var(--accent); }
+    .p2-vtbtn.active { background: rgba(200,245,66,0.1); border-color: rgba(200,245,66,0.4); color: var(--accent); }
+    /* iso outer container */
+    .p2-iso-outer {
+      overflow: hidden; border: 1px solid var(--border); border-radius: var(--r-sm);
+      background: var(--navy2); padding: 18% 8%;
+      display: flex; align-items: center; justify-content: center;
     }
 
     /* ── PROJECTS LIST ── */
@@ -809,11 +841,21 @@
           <div class="p2-empty-icon">◫</div>
           <p>Añade capas para ver la escena AR aquí.</p>
         </div>
-        <div id="p2-canvas-wrap" class="ar-canvas-wrap" style="display:none;">
-          <div id="p2-checker" class="ar-canvas-checker"></div>
-          <img id="p2-trigger-bg" class="ar-canvas-bg" src="" alt="" style="display:none;">
-          <div id="p2-rects" style="position:absolute;inset:0;"></div>
-          <div class="ar-canvas-hint">Arrastra capa activa · clic para seleccionar</div>
+
+        <!-- Toggle de vista (visible cuando hay capas) -->
+        <div id="p2-view-toggle" class="p2-view-toggle" style="display:none;">
+          <button class="p2-vtbtn active" id="btn-front" onclick="setPreviewMode('front')">⬜ Frontal</button>
+          <button class="p2-vtbtn"        id="btn-iso"   onclick="setPreviewMode('iso')">⬡ Isométrico</button>
+        </div>
+
+        <!-- Contenedor perspectiva (solo activo en modo iso) -->
+        <div id="p2-canvas-outer" style="display:none;">
+          <div id="p2-canvas-wrap" class="ar-canvas-wrap">
+            <div id="p2-checker" class="ar-canvas-checker"></div>
+            <img id="p2-trigger-bg" class="ar-canvas-bg" src="" alt="" style="display:none;">
+            <div id="p2-rects" style="position:absolute;inset:0;"></div>
+            <div class="ar-canvas-hint" id="p2-canvas-hint">Arrastra capa activa · clic para seleccionar</div>
+          </div>
         </div>
       </div><!-- /prev2 -->
 
@@ -890,6 +932,7 @@ const APP = {
 let proyectos    = JSON.parse(localStorage.getItem('ara-proyectos') || '[]');
 let activeLayerId = null;
 let _drag         = null;
+let previewMode   = 'front';
 
 // ── Definición de tipos de capa ────────────────────────────
 const LAYER_TYPES = {
@@ -1054,12 +1097,13 @@ function goToStep(n) {
 
 function newLayerData() {
   return {
-    id:        'lyr_' + Date.now() + '_' + Math.floor(Math.random() * 9999),
-    type:      'video',
-    file:      null, fileExt: null, fileName: '',
-    text:      '', textColor: '#ffffff', textSize: 24,
-    posX:      0, posY: 0, scale: 1.0, opacity: 1.0,
-    animation: 'fade',
+    id:          'lyr_' + Date.now() + '_' + Math.floor(Math.random() * 9999),
+    type:        'video',
+    file:        null, fileExt: null, fileName: '',
+    _previewUrl: null,
+    text:        '', textColor: '#ffffff', textSize: 24,
+    posX:        0, posY: 0, scale: 1.0, opacity: 1.0,
+    animation:   'fade',
     loop: true, autoplay: true,
   };
 }
@@ -1266,9 +1310,11 @@ function syncLayerSections(id, type) {
 function onLayerFile(id, inp) {
   const file = inp.files[0]; if (!file) return;
   const layer = APP.layers.find(l => l.id === id); if (!layer) return;
-  layer.file     = file;
-  layer.fileExt  = file.name.split('.').pop().toLowerCase();
-  layer.fileName = file.name;
+  if (layer._previewUrl) { URL.revokeObjectURL(layer._previewUrl); layer._previewUrl = null; }
+  layer.file        = file;
+  layer.fileExt     = file.name.split('.').pop().toLowerCase();
+  layer.fileName    = file.name;
+  layer._previewUrl = URL.createObjectURL(file);
   const fn = document.getElementById('lfname-' + id);
   if (fn) { fn.textContent = file.name; fn.classList.remove('empty'); }
   const pr = document.getElementById('lfprev-' + id);
@@ -1321,24 +1367,47 @@ function updatePreview2() {
 // ── PASO 2 — AR canvas interactivo ────────────────────────
 
 const RECT_COLORS = {
-  video: 'rgba(200,245,66,0.35)',
-  image: 'rgba(91,141,239,0.35)',
-  gif:   'rgba(245,166,35,0.35)',
-  model: 'rgba(196,113,237,0.35)',
-  text:  'rgba(245,66,182,0.35)',
+  video: 'rgba(200,245,66,0.18)',
+  image: 'rgba(91,141,239,0.18)',
+  gif:   'rgba(245,166,35,0.18)',
+  model: 'rgba(196,113,237,0.18)',
+  text:  'rgba(245,66,182,0.18)',
+};
+const RECT_BORDER = {
+  video: 'rgba(200,245,66,0.5)',
+  image: 'rgba(91,141,239,0.5)',
+  gif:   'rgba(245,166,35,0.5)',
+  model: 'rgba(196,113,237,0.5)',
+  text:  'rgba(245,66,182,0.5)',
 };
 
+function setPreviewMode(mode) {
+  previewMode = mode;
+  document.getElementById('btn-front').classList.toggle('active', mode === 'front');
+  document.getElementById('btn-iso').classList.toggle('active', mode === 'iso');
+  renderPreviewCanvas();
+}
+
 function renderPreviewCanvas() {
-  const wrap  = document.getElementById('p2-canvas-wrap');
-  const empty = document.getElementById('p2-empty');
-  const rects = document.getElementById('p2-rects');
-  if (!wrap || !rects || !empty) return;
+  const outer  = document.getElementById('p2-canvas-outer');
+  const wrap   = document.getElementById('p2-canvas-wrap');
+  const toggle = document.getElementById('p2-view-toggle');
+  const empty  = document.getElementById('p2-empty');
+  const rects  = document.getElementById('p2-rects');
+  const hint   = document.getElementById('p2-canvas-hint');
+  if (!outer || !wrap || !rects || !empty) return;
 
   if (!APP.layers.length) {
-    empty.style.display = 'flex'; wrap.style.display = 'none'; return;
+    empty.style.display  = 'flex';
+    outer.style.display  = 'none';
+    toggle.style.display = 'none';
+    return;
   }
-  empty.style.display = 'none'; wrap.style.display = 'block';
+  empty.style.display  = 'none';
+  outer.style.display  = 'block';
+  toggle.style.display = 'flex';
 
+  // Background
   const bg      = document.getElementById('p2-trigger-bg');
   const checker = document.getElementById('p2-checker');
   if (APP.modo === 'image' && APP.triggerUrl) {
@@ -1347,34 +1416,94 @@ function renderPreviewCanvas() {
     bg.style.display = 'none'; checker.style.display = 'block';
   }
 
+  // ISO vs FRONT transform on the wrap container
+  if (previewMode === 'iso') {
+    outer.style.perspective     = '800px';
+    outer.style.padding         = '14% 6%';
+    outer.style.backgroundColor = 'var(--navy)';
+    wrap.style.transform        = 'rotateX(45deg) rotateZ(-30deg)';
+    wrap.style.boxShadow        = '0 40px 80px rgba(0,0,0,0.7)';
+    wrap.style.borderRadius     = '8px';
+    wrap.style.overflow         = 'visible';
+    if (hint) hint.style.display = 'none';
+  } else {
+    outer.style.perspective     = '';
+    outer.style.padding         = '0';
+    outer.style.backgroundColor = '';
+    wrap.style.transform        = '';
+    wrap.style.boxShadow        = '';
+    wrap.style.borderRadius     = '';
+    wrap.style.overflow         = 'hidden';
+    if (hint) hint.style.display = 'block';
+  }
+
   rects.innerHTML = '';
   APP.layers.forEach((l, i) => {
-    const isActive = l.id === activeLayerId;
-    const color    = RECT_COLORS[l.type] || 'rgba(200,245,66,0.35)';
-    const leftPct  = ((l.posX + 1) / 2) * 100;
-    const topPct   = ((-l.posY + 1) / 2) * 100;
-    const wPct     = Math.max(8, 25 * l.scale);
-    const hPct     = Math.max(6, 20 * l.scale);
-    const label    = l.type === 'text'
-      ? (l.text.slice(0, 5) || 'T')
-      : LAYER_TYPES[l.type].icon + ' ' + (i + 1);
+    const isActive  = l.id === activeLayerId;
+    const color     = RECT_COLORS[l.type] || 'rgba(200,245,66,0.18)';
+    const border    = isActive ? 'var(--accent)' : (RECT_BORDER[l.type] || 'rgba(255,255,255,0.3)');
+    const leftPct   = ((l.posX + 1) / 2) * 100;
+    const topPct    = ((-l.posY + 1) / 2) * 100;
+    const wPct      = Math.max(10, 28 * l.scale);
+    const hPct      = Math.max(8,  22 * l.scale);
+
     const div = document.createElement('div');
-    div.className      = 'layer-rect' + (isActive ? ' active' : '');
-    div.dataset.id     = l.id;
-    div.style.left     = leftPct + '%';
-    div.style.top      = topPct  + '%';
-    div.style.width    = wPct    + '%';
-    div.style.height   = hPct   + '%';
-    div.style.background = color;
-    div.style.opacity  = l.opacity;
-    div.textContent    = label;
-    div.addEventListener('pointerdown', onRectDown);
+    div.className = 'layer-rect' + (isActive ? ' active' : '');
+    div.dataset.id = l.id;
+    div.style.cssText = `
+      left:${leftPct}%; top:${topPct}%;
+      width:${wPct}%; height:${hPct}%;
+      background:${color};
+      border-color:${border};
+      opacity:${l.opacity};
+    `;
+
+    // ISO: slight Z-separation as translateZ per layer order
+    if (previewMode === 'iso') {
+      div.style.transform = `translate(-50%,-50%) translateZ(${i * 6}px)`;
+    }
+
+    // Real media content
+    if (l._previewUrl) {
+      if (l.type === 'video') {
+        const vid = document.createElement('video');
+        vid.src = l._previewUrl; vid.className = 'lr-media';
+        vid.muted = true; vid.autoplay = true; vid.loop = true; vid.playsInline = true;
+        div.appendChild(vid);
+      } else if (l.type === 'image' || l.type === 'gif') {
+        const img = document.createElement('img');
+        img.src = l._previewUrl; img.className = 'lr-media'; img.alt = '';
+        div.appendChild(img);
+      }
+    } else if (l.type === 'text' && l.text.trim()) {
+      const span = document.createElement('span');
+      span.className = 'lr-text';
+      span.style.color = l.textColor;
+      span.style.fontSize = Math.max(8, Math.min(14, l.textSize * 0.4)) + 'px';
+      span.textContent = l.text.slice(0, 40);
+      div.appendChild(span);
+    }
+
+    // Layer number label
+    const lbl = document.createElement('span');
+    lbl.className = 'lr-label';
+    lbl.textContent = (i + 1) + ' ' + LAYER_TYPES[l.type].icon;
+    div.appendChild(lbl);
+
+    // Drag only in front mode
+    if (previewMode === 'front') {
+      div.addEventListener('pointerdown', onRectDown);
+    } else {
+      div.style.cursor = 'default';
+    }
+
     rects.appendChild(div);
   });
 }
 
 function onRectDown(e) {
-  const id  = e.currentTarget.dataset.id;
+  if (previewMode !== 'front') return;
+  const id = e.currentTarget.dataset.id;
   activeLayerId = id;
   renderPreviewCanvas();
   const layer = APP.layers.find(l => l.id === id);
@@ -1383,15 +1512,12 @@ function onRectDown(e) {
   const cRect = wrap.getBoundingClientRect();
   _drag = {
     id,
-    startX:    e.clientX, startY:    e.clientY,
+    startX: e.clientX, startY: e.clientY,
     startPosX: layer.posX, startPosY: layer.posY,
-    cw: cRect.width,       ch: cRect.height,
+    cw: cRect.width,    ch: cRect.height,
   };
   const rectEl = document.querySelector(`.layer-rect[data-id="${id}"]`);
-  if (rectEl) {
-    rectEl.classList.add('dragging');
-    rectEl.setPointerCapture(e.pointerId);
-  }
+  if (rectEl) { rectEl.classList.add('dragging'); rectEl.setPointerCapture(e.pointerId); }
   e.preventDefault();
 }
 

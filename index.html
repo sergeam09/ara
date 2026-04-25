@@ -9,6 +9,10 @@
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
   <script type="importmap">{"imports":{"./controller-mGt1s8dJ.js":"https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/controller-mGt1s8dJ.js","./controller-d1-OMKPY.js":"https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/controller-d1-OMKPY.js","./ui-fBadYuor.js":"https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/ui-fBadYuor.js"}}</script>
   <script type="module" src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image.prod.js"></script>
+  <script type="module">
+    import { Compiler } from 'https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image.prod.js';
+    window._MINDARCompiler = Compiler;
+  </script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <style>
     :root {
@@ -546,6 +550,78 @@
     ::-webkit-scrollbar-track { background: var(--navy); }
     ::-webkit-scrollbar-thumb { background: var(--navy4); border-radius: 4px; }
 
+    /* ── PASO 3 — PUBLICAR ── */
+    .prog-bar-wrap {
+      height: 5px; background: var(--border); border-radius: var(--r-pill); overflow: hidden;
+    }
+    .prog-bar {
+      height: 100%; width: 0%;
+      background: linear-gradient(90deg, var(--accent), #a8d820);
+      border-radius: var(--r-pill); transition: width 0.4s ease;
+    }
+    .prog-log {
+      display: flex; flex-direction: column; gap: 3px;
+      max-height: 200px; overflow-y: auto; padding: 2px 0;
+    }
+    .prog-line {
+      font-family: var(--fm); font-size: 10px; color: var(--text2);
+      line-height: 1.75; display: flex; gap: 7px; align-items: baseline;
+    }
+    .prog-line::before { content: '›'; color: var(--muted); flex-shrink: 0; }
+    .prog-line.ok   { color: var(--ok); }
+    .prog-line.ok::before   { content: '✓'; color: var(--ok); }
+    .prog-line.err  { color: var(--err); }
+    .prog-line.err::before  { content: '✕'; color: var(--err); }
+    .prog-line.warn { color: var(--accent2); }
+    .prog-line.warn::before { content: '!'; color: var(--accent2); }
+    .prog-line.head { color: var(--text); font-weight: 700; }
+    .prog-line.head::before { content: '◈'; color: var(--accent); }
+    .pub-success {
+      display: flex; align-items: center; gap: 12px;
+      padding: 13px 16px;
+      background: rgba(66,245,141,0.08); border: 1px solid rgba(66,245,141,0.25);
+      border-radius: var(--r-sm);
+    }
+    .pub-success-icon  { font-size: 20px; }
+    .pub-success-title { font-size: 12px; font-weight: 800; color: var(--ok); }
+    .pub-success-sub   { font-size: 10px; color: var(--text2); margin-top: 2px; font-family: var(--fm); }
+    .pub-url-card {
+      padding: 13px 14px; background: var(--navy);
+      border: 1px solid var(--border); border-radius: var(--r-sm);
+      display: flex; flex-direction: column; gap: 7px;
+    }
+    .pub-url-label { font-size: 9px; color: var(--muted); letter-spacing: 0.14em; text-transform: uppercase; font-weight: 700; }
+    .pub-url-row   { display: flex; align-items: center; gap: 8px; }
+    .pub-url-text  {
+      flex: 1; font-family: var(--fm); font-size: 10px; color: var(--accent);
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .pub-copy-btn {
+      flex-shrink: 0; background: var(--navy3); border: 1px solid var(--border2);
+      color: var(--text2); font-size: 14px; cursor: pointer; padding: 3px 8px;
+      border-radius: 6px; line-height: 1; transition: all 0.15s;
+    }
+    .pub-copy-btn:hover { color: var(--accent); border-color: var(--accent); }
+    .pub-qr-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .pub-qr-item { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+    .pub-qr-box  {
+      background: #fff; border-radius: var(--r-sm); padding: 10px;
+      display: flex; align-items: center; justify-content: center;
+      width: 100%; aspect-ratio: 1; overflow: hidden;
+    }
+    .pub-qr-box canvas, .pub-qr-box img { max-width: 100%; height: auto; display: block; }
+    .pub-qr-cap { font-size: 9px; color: var(--muted); letter-spacing: 0.12em; text-transform: uppercase; font-weight: 700; text-align: center; }
+    .pub-done-actions { display: flex; gap: 8px; }
+    .btn-ghost {
+      flex: 1; display: flex; align-items: center; justify-content: center;
+      padding: 11px 14px; background: transparent;
+      border: 1px solid var(--border2); color: var(--text2);
+      font-family: var(--fd); font-size: 10px; font-weight: 700;
+      letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer;
+      border-radius: var(--r-pill); transition: all 0.2s; white-space: nowrap;
+    }
+    .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+
     @media (max-width: 860px) {
       .wrap { padding: 20px; }
       .cols { grid-template-columns: 1fr; }
@@ -658,8 +734,49 @@
         </div>
       </div><!-- /step2 -->
 
-      <!-- ══ PASO 3 (stub) ══ -->
-      <div id="step3" class="step-panel"></div>
+      <!-- ══ PASO 3 ══ -->
+      <div id="step3" class="step-panel">
+        <div class="card-title">Publicar proyecto</div>
+
+        <!-- Pre-publish summary -->
+        <div id="s3-ready" style="display:flex;flex-direction:column;gap:12px;">
+          <div class="meta-rows" id="s3-meta"></div>
+          <button class="btn-primary" id="btnPublicar" onclick="publicar()">
+            ◈ &nbsp;Compilar y publicar
+          </button>
+          <div class="step-nav">
+            <button class="btn-back" onclick="goToStep(2)">← Paso 2</button>
+          </div>
+        </div>
+
+        <!-- Progress -->
+        <div id="s3-progress" style="display:none;flex-direction:column;gap:12px;">
+          <div class="prog-bar-wrap"><div class="prog-bar" id="progBar"></div></div>
+          <div id="progLog" class="prog-log"></div>
+        </div>
+
+        <!-- Result -->
+        <div id="s3-result" style="display:none;flex-direction:column;gap:14px;">
+          <div class="pub-success">
+            <div class="pub-success-icon">✓</div>
+            <div>
+              <div class="pub-success-title">¡Publicado en GitHub Pages!</div>
+              <div class="pub-success-sub" id="pub-status-sub"></div>
+            </div>
+          </div>
+          <div class="pub-url-card">
+            <div class="pub-url-label">URL del espectador AR</div>
+            <div class="pub-url-row">
+              <div class="pub-url-text" id="pub-viewer-url"></div>
+              <button class="pub-copy-btn" onclick="copiarPubUrl('viewer')" title="Copiar">⎘</button>
+            </div>
+          </div>
+          <div class="pub-done-actions">
+            <button class="btn-ghost" onclick="window.open(document.getElementById('pub-viewer-url').textContent,'_blank')">Abrir ↗</button>
+            <button class="btn-ghost" onclick="nuevoProyecto()">+ Nuevo proyecto</button>
+          </div>
+        </div>
+      </div><!-- /step3 -->
 
     </div><!-- /wizard card -->
 
@@ -705,7 +822,42 @@
       </div><!-- /prev2 -->
 
       <!-- Preview paso 3 / resultado -->
-      <div id="prev3" class="prev-panel"></div>
+      <div id="prev3" class="prev-panel">
+        <div id="p3-waiting" style="display:flex;flex-direction:column;align-items:center;
+             justify-content:center;text-align:center;min-height:240px;padding:32px 24px;gap:12px;
+             border:1.5px dashed var(--border);border-radius:var(--r-sm);">
+          <div style="font-size:40px;opacity:0.1;">◈</div>
+          <p style="font-size:11px;color:var(--text2);line-height:1.9;max-width:210px;">
+            Publica el proyecto para obtener el QR y la URL del espectador AR.
+          </p>
+        </div>
+        <div id="p3-qrs" style="display:none;flex-direction:column;gap:16px;">
+          <div class="pub-qr-pair">
+            <div class="pub-qr-item">
+              <div class="pub-qr-box" id="qrViewerBox"></div>
+              <div class="pub-qr-cap">Espectador AR</div>
+            </div>
+            <div class="pub-qr-item">
+              <div class="pub-qr-box" id="qrEditorBox"></div>
+              <div class="pub-qr-cap">Editor ARA</div>
+            </div>
+          </div>
+          <div class="pub-url-card">
+            <div class="pub-url-label">URL espectador</div>
+            <div class="pub-url-row">
+              <div class="pub-url-text" id="p3-viewer-url"></div>
+              <button class="pub-copy-btn" onclick="copiarPubUrl('viewer')" title="Copiar">⎘</button>
+            </div>
+          </div>
+          <div class="pub-url-card">
+            <div class="pub-url-label">URL editor ARA</div>
+            <div class="pub-url-row">
+              <div class="pub-url-text" id="p3-editor-url"></div>
+              <button class="pub-copy-btn" onclick="copiarPubUrl('editor')" title="Copiar">⎘</button>
+            </div>
+          </div>
+        </div>
+      </div>
 
     </div><!-- /out-card -->
 
@@ -899,6 +1051,7 @@ function goToStep(n) {
   document.getElementById('track-12').classList.toggle('done', n > 1);
   document.getElementById('track-23').classList.toggle('done', n > 2);
   if (n === 2) renderPreviewCanvas();
+  if (n === 3) renderS3Meta();
 }
 
 // ── PASO 2 — Capas ─────────────────────────────────────────
@@ -1346,6 +1499,277 @@ function toast(msg) {
   const t = document.getElementById('toast');
   t.textContent = msg; t.classList.add('show');
   setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// ── PASO 3 — Publicar ─────────────────────────────────────
+
+function renderS3Meta() {
+  const meta = document.getElementById('s3-meta');
+  if (!meta) return;
+  const capasOk = APP.layers.filter(l => l.type === 'text' ? l.text.trim() : l.file).length;
+  meta.innerHTML = `
+    <div class="meta-row">
+      <span class="meta-icon">◈</span>
+      <div class="meta-body">
+        <div class="meta-lbl">Proyecto</div>
+        <div class="meta-val accent">${APP.nombre}</div>
+      </div>
+    </div>
+    <div class="meta-row">
+      <span class="meta-icon">${APP.modo === 'image' ? '◈' : '⬡'}</span>
+      <div class="meta-body">
+        <div class="meta-lbl">Modo AR</div>
+        <div class="meta-val">${APP.modo === 'image' ? 'Image Tracking' : 'Surface AR'}</div>
+      </div>
+    </div>
+    <div class="meta-row">
+      <span class="meta-icon">◫</span>
+      <div class="meta-body">
+        <div class="meta-lbl">Capas con contenido</div>
+        <div class="meta-val">${capasOk} / ${APP.layers.length}</div>
+      </div>
+    </div>`;
+}
+
+function fileToBase64(file) {
+  return new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = e => res(e.target.result.split(',')[1]);
+    r.onerror = rej;
+    r.readAsDataURL(file);
+  });
+}
+
+function bufferToBase64(buf) {
+  const bytes = new Uint8Array(buf);
+  let s = '';
+  bytes.forEach(b => s += String.fromCharCode(b));
+  return btoa(s);
+}
+
+function setProgreso(pct) {
+  const bar = document.getElementById('progBar');
+  if (bar) bar.style.width = Math.min(100, pct) + '%';
+}
+
+function logProg(msg, tipo) {
+  const log = document.getElementById('progLog');
+  if (!log) return;
+  const div = document.createElement('div');
+  div.className = 'prog-line' + (tipo ? ' ' + tipo : '');
+  div.textContent = msg;
+  log.appendChild(div);
+  log.scrollTop = log.scrollHeight;
+}
+
+async function subirArchivo(path, base64) {
+  const res = await fetch(WORKER_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ path, content: base64 }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || `HTTP ${res.status} al subir ${path}`);
+  }
+  return res.json();
+}
+
+async function getCompiler() {
+  if (window._MINDARCompiler) return window._MINDARCompiler;
+  logProg('Cargando compilador MindAR...');
+  const mod = await import('https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image.prod.js');
+  if (!mod.Compiler) throw new Error('No se pudo acceder al compilador MindAR');
+  window._MINDARCompiler = mod.Compiler;
+  return mod.Compiler;
+}
+
+async function publicar() {
+  const slug = APP.nombre;
+
+  // Switch UI to progress mode
+  document.getElementById('s3-ready').style.display    = 'none';
+  document.getElementById('s3-progress').style.display = 'flex';
+  document.getElementById('progLog').innerHTML = '';
+  setProgreso(0);
+
+  try {
+    const isImage = APP.modo === 'image';
+    logProg(`Iniciando publicación de "${slug}"`, 'head');
+
+    // ── 1. Compilar .mind ────────────────────────────────
+    let mindB64 = null;
+    if (isImage) {
+      logProg('Compilando imagen trigger con MindAR...');
+      setProgreso(5);
+      const Compiler = await getCompiler();
+      const compiler = new Compiler();
+      const img = await new Promise((res, rej) => {
+        const i = new Image();
+        i.onload = () => res(i);
+        i.onerror = () => rej(new Error('No se pudo cargar la imagen trigger'));
+        i.src = APP.triggerUrl;
+      });
+      await compiler.compileImageTargets([img], p => setProgreso(5 + p * 25));
+      const buf = await compiler.exportData();
+      mindB64 = bufferToBase64(buf);
+      setProgreso(30);
+      logProg('Compilación completada', 'ok');
+    }
+
+    // ── 2. Subir trigger + .mind ─────────────────────────
+    if (isImage) {
+      logProg(`Subiendo trigger.${APP.triggerExt}...`);
+      const trigB64 = await fileToBase64(APP.triggerFile);
+      await subirArchivo(`proyectos/${slug}/trigger.${APP.triggerExt}`, trigB64);
+      setProgreso(40);
+      logProg(`trigger.${APP.triggerExt} subido`, 'ok');
+
+      logProg('Subiendo trigger.mind...');
+      await subirArchivo(`proyectos/${slug}/trigger.mind`, mindB64);
+      setProgreso(50);
+      logProg('trigger.mind subido', 'ok');
+    }
+
+    // ── 3. Subir capas ───────────────────────────────────
+    const capasConfig = [];
+    const n = APP.layers.length;
+    const base = isImage ? 50 : 5;
+    const span = 35;
+
+    for (let i = 0; i < n; i++) {
+      const l   = APP.layers[i];
+      const pct = base + Math.round((i / n) * span);
+      setProgreso(pct);
+
+      const entry = {
+        id:      i,
+        tipo:    l.type,
+        archivo: l.type === 'text' ? null : `layer-${i}.${l.fileExt}`,
+        posX:    +l.posX.toFixed(4),
+        posY:    +l.posY.toFixed(4),
+        posZ:    0.01,
+        escala:  +l.scale.toFixed(4),
+        opacidad: +l.opacity.toFixed(4),
+        entrada: l.animation,
+        delay:   0,
+        loop:    l.loop,
+      };
+
+      if (l.type === 'text') {
+        entry.texto       = l.text;
+        entry.colorTexto  = l.textColor;
+        entry.tamanoTexto = l.textSize;
+        delete entry.archivo;
+        logProg(`Capa ${i}: texto "${l.text.slice(0, 24)}"`, 'ok');
+      } else if (l.file) {
+        logProg(`Subiendo layer-${i}.${l.fileExt}...`);
+        const b64 = await fileToBase64(l.file);
+        await subirArchivo(`proyectos/${slug}/layer-${i}.${l.fileExt}`, b64);
+        logProg(`layer-${i}.${l.fileExt} subido`, 'ok');
+      } else {
+        logProg(`Capa ${i}: sin archivo, omitida`, 'warn');
+        entry.archivo = null;
+      }
+
+      capasConfig.push(entry);
+    }
+
+    setProgreso(base + span);
+
+    // ── 4. Subir config.json ─────────────────────────────
+    logProg('Subiendo config.json...');
+    const config = { modo: APP.modo, capas: capasConfig };
+    if (isImage) {
+      config.trigger = `trigger.${APP.triggerExt}`;
+      config.mind    = 'trigger.mind';
+    }
+    const configStr = JSON.stringify(config, null, 2);
+    const configB64 = btoa(unescape(encodeURIComponent(configStr)));
+    await subirArchivo(`proyectos/${slug}/config.json`, configB64);
+    setProgreso(95);
+    logProg('config.json subido', 'ok');
+
+    // ── 5. Éxito ─────────────────────────────────────────
+    setProgreso(100);
+    logProg('¡Publicación completada!', 'ok');
+
+    const viewerUrl = `${BASE_URL}/viewer.html?p=${slug}`;
+    const editorUrl = `${BASE_URL}/`;
+
+    // Guardar en lista local
+    proyectos = proyectos.filter(p => p.slug !== slug);
+    proyectos.unshift({
+      slug, nombre: slug, tipo: 'layers',
+      url: viewerUrl,
+      creado: new Date().toLocaleDateString('es-MX'),
+    });
+    localStorage.setItem('ara-proyectos', JSON.stringify(proyectos));
+    renderProyectos();
+
+    setTimeout(() => showPubResult(viewerUrl, editorUrl), 500);
+
+  } catch (err) {
+    logProg('Error: ' + err.message, 'err');
+    logProg('Revisa la conexión al worker e intenta de nuevo', 'warn');
+    const bar = document.getElementById('progBar');
+    if (bar) bar.style.background = 'var(--err)';
+    // Restore back button
+    document.getElementById('s3-ready').style.display = 'flex';
+  }
+}
+
+function showPubResult(viewerUrl, editorUrl) {
+  document.getElementById('s3-progress').style.display = 'none';
+  document.getElementById('s3-result').style.display   = 'flex';
+
+  document.getElementById('pub-status-sub').textContent = `proyectos/${APP.nombre}/`;
+  document.getElementById('pub-viewer-url').textContent  = viewerUrl;
+
+  // Preview panel QRs
+  document.getElementById('p3-waiting').style.display = 'none';
+  const qrsEl = document.getElementById('p3-qrs');
+  qrsEl.style.display = 'flex';
+
+  document.getElementById('p3-viewer-url').textContent = viewerUrl;
+  document.getElementById('p3-editor-url').textContent = editorUrl;
+
+  const qvBox = document.getElementById('qrViewerBox');
+  const qeBox = document.getElementById('qrEditorBox');
+  qvBox.innerHTML = '';
+  qeBox.innerHTML = '';
+  new QRCode(qvBox, { text: viewerUrl, width: 150, height: 150, colorDark: '#000', colorLight: '#fff', correctLevel: QRCode.CorrectLevel.M });
+  new QRCode(qeBox, { text: editorUrl, width: 150, height: 150, colorDark: '#000', colorLight: '#fff', correctLevel: QRCode.CorrectLevel.M });
+}
+
+function copiarPubUrl(which) {
+  const id  = which === 'editor' ? 'p3-editor-url' : 'p3-viewer-url';
+  const el  = document.getElementById(id) || document.getElementById('pub-viewer-url');
+  if (el) { navigator.clipboard.writeText(el.textContent); toast('URL copiada ✓'); }
+}
+
+function nuevoProyecto() {
+  APP.step = 1; APP.nombre = ''; APP.modo = 'image';
+  APP.triggerFile = null; APP.triggerExt = 'jpg';
+  if (APP.triggerUrl) { URL.revokeObjectURL(APP.triggerUrl); APP.triggerUrl = null; }
+  APP.layers = [];
+  activeLayerId = null;
+
+  document.getElementById('pNombre').value = '';
+  document.getElementById('nombreHint').textContent = '';
+  document.getElementById('prTrigger').style.display = 'none';
+  document.getElementById('layerList').innerHTML = '';
+  document.getElementById('s3-ready').style.display    = 'flex';
+  document.getElementById('s3-progress').style.display = 'none';
+  document.getElementById('s3-result').style.display   = 'none';
+  document.getElementById('p3-waiting').style.display  = 'flex';
+  document.getElementById('p3-qrs').style.display      = 'none';
+  const bar = document.getElementById('progBar');
+  if (bar) { bar.style.width = '0%'; bar.style.background = ''; }
+
+  setModo('image');
+  syncStep2State();
+  goToStep(1);
 }
 
 // ── Init ──────────────────────────────────────────────────

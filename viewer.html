@@ -369,7 +369,7 @@
   })();
 
   const PATHS = {
-    mind:    `${BASE}/proyectos/${PROJECT}/targets.mind`,
+    mind:    `${BASE}/proyectos/${PROJECT}/trigger.mind`,
     content: `${BASE}/proyectos/${PROJECT}/contenido.${CE}`,
     trigger: `${BASE}/proyectos/${PROJECT}/trigger.${TE}`,
     audioImg:`${BASE}/proyectos/${PROJECT}/audio-img.jpg`,
@@ -393,7 +393,20 @@
     loop:true, autoplay:true, fade:false, animate:true,
   };
   let CFG = { ...defaultConfig };
+  let CAPAS     = null;
+  let isLayered = false;
   let arContent = null;
+
+  function processConfig(saved) {
+    if (saved.capas && Array.isArray(saved.capas)) {
+      CAPAS     = saved.capas;
+      isLayered = true;
+      document.getElementById('startType').textContent =
+        (saved.modo === 'image' ? 'Image Tracking' : 'Surface AR') +
+        ' · ' + CAPAS.length + ' capa' + (CAPAS.length !== 1 ? 's' : '');
+    }
+    CFG = { ...defaultConfig, ...saved };
+  }
 
   // Start screen
   document.getElementById('startName').textContent = PROJECT ? PROJECT.replace(/-/g,' ') : '';
@@ -423,7 +436,7 @@
       if (r.ok) {
         const saved = await r.json();
         if (!saved.error) {
-          CFG = { ...defaultConfig, ...saved };
+          processConfig(saved);
           configLoaded = true;
         }
       }
@@ -435,7 +448,7 @@
         const r = await fetch(PATHS.config + '?t=' + Date.now());
         if (r.ok) {
           const saved = await r.json();
-          CFG = { ...defaultConfig, ...saved };
+          processConfig(saved);
           configLoaded = true;
         }
       } catch(e) {}
@@ -547,7 +560,7 @@
     setSplash('Cargando motor de tracking...');
     const mindOk = await fileExists(PATHS.mind);
     if (!mindOk) {
-      showErr(`Archivo de tracking no encontrado.<br>Verifica que <strong style="color:#c8f542">targets.mind</strong> esté en <strong style="color:#c8f542">proyectos/${PROJECT}/</strong>`);
+      showErr(`Archivo de tracking no encontrado.<br>Verifica que <strong style="color:#c8f542">trigger.mind</strong> esté en <strong style="color:#c8f542">proyectos/${PROJECT}/</strong>`);
       return;
     }
     setSplash('Preparando escena AR...');
@@ -577,6 +590,7 @@
   });
 
   function buildAFrameScene() {
+    if (isLayered) { buildLayeredScene(); return; }
     const pos = `${CFG.posX} ${CFG.posY} ${CFG.posZ}`;
     const rot = getRotation();
     const scl = `${CFG.scale} ${CFG.scale} ${CFG.scale}`;
@@ -639,6 +653,90 @@
             arContent.setAttribute('scale',    `${CFG.scale} ${CFG.scale} ${CFG.scale}`);
             if (isVideo || isGif) { arContent.setAttribute('width', CFG.width); arContent.setAttribute('height', CFG.height); }
           }
+        });
+        target.addEventListener('targetLost', () => document.getElementById('scan').classList.add('show'));
+      }
+      setTimeout(() => hideSplash(), 10000);
+    }, 600);
+  }
+
+  function buildLayeredScene() {
+    const BP = `${BASE}/proyectos/${PROJECT}/`;
+    const entities = CAPAS.map((capa, i) => {
+      if (!capa.archivo && capa.tipo !== 'text') return '';
+      const posX = capa.posX ?? 0, posY = capa.posY ?? 0, posZ = (capa.posZ ?? 0.01) + i * 0.001;
+      const pos  = `${posX} ${posY} ${posZ}`;
+      const s    = capa.escala   ?? 1;
+      const op   = capa.opacidad ?? 1;
+      const loop = capa.loop !== false;
+      const src  = capa.archivo ? `${BP}${capa.archivo}` : '';
+      const ext  = capa.archivo ? capa.archivo.split('.').pop().toLowerCase() : '';
+      let anim = '';
+      if      (capa.entrada === 'fade')  anim = `animation__in="property:material.opacity;from:0;to:${op};dur:800"`;
+      else if (capa.entrada === 'scale') anim = `animation__in="property:scale;from:0 0 0;to:${s} ${s} ${s};dur:600"`;
+      else if (capa.entrada === 'slide') anim = `animation__in="property:position;from:${posX} ${(posY-0.3).toFixed(3)} ${posZ};to:${pos};dur:600"`;
+      const matOp = `material="opacity:${op}"`;
+      const scl   = `${s} ${s} ${s}`;
+      switch (capa.tipo) {
+        case 'video': {
+          const mat = ext === 'webm'
+            ? `material="transparent:true;opacity:1;alphaTest:0;"` : matOp;
+          return `<a-video id="arc-${i}" src="${src}" width="1" height="0.5625"
+            position="${pos}" scale="${scl}" loop="${loop}" autoplay="true"
+            playsinline="true" webkit-playsinline="true" ${mat} ${anim}></a-video>`;
+        }
+        case 'image':
+        case 'gif':
+          return `<a-image id="arc-${i}" src="${src}" width="1" height="1"
+            position="${pos}" scale="${scl}" ${matOp} ${anim}></a-image>`;
+        case 'model':
+          return `<a-gltf-model id="arc-${i}" src="${src}"
+            position="${pos}" scale="${scl}" ${anim}></a-gltf-model>`;
+        case 'text': {
+          const txt   = (capa.texto || '').replace(/"/g, '&quot;');
+          const color = capa.colorTexto || '#ffffff';
+          const fw    = Math.max(0.4, s * (capa.tamanoTexto || 24) / 48);
+          return `<a-text id="arc-${i}" value="${txt}" color="${color}"
+            position="${pos}" scale="${scl}" width="${fw}" align="center"
+            ${matOp} ${anim}></a-text>`;
+        }
+        default: return '';
+      }
+    }).join('\n          ');
+
+    const sceneDiv = document.getElementById('arScene');
+    sceneDiv.innerHTML = `
+      <a-scene mindar-image="imageTargetSrc:${PATHS.mind};autoStart:true;uiScanning:false;uiLoading:false;filterMinCF:0.001;filterBeta:0.001;"
+        color-space="sRGB" embedded renderer="colorManagement:true;physicallyCorrectLights:true"
+        vr-mode-ui="enabled:false" device-orientation-permission-ui="enabled:false"
+        style="width:100vw;height:100vh;">
+        <a-light type="ambient" intensity="1.2"></a-light>
+        <a-light type="directional" intensity="0.8" position="1 3 2"></a-light>
+        <a-camera position="0 0 0" look-controls="enabled:false"></a-camera>
+        <a-entity id="target" mindar-image-target="targetIndex:0;" ar-smooth>
+          ${entities}
+        </a-entity>
+      </a-scene>`;
+
+    sceneDiv.classList.add('show');
+    document.getElementById('hud').classList.add('show');
+    document.getElementById('scan').classList.add('show');
+    if (EDIT_MODE) {
+      document.getElementById('btnEdit').style.display = 'inline-block';
+      document.getElementById('btnVerPublico').style.display = 'inline-block';
+    }
+
+    setTimeout(() => {
+      const scene = sceneDiv.querySelector('a-scene');
+      if (!scene) return;
+      scene.addEventListener('loaded',  () => hideSplash());
+      scene.addEventListener('arReady', () => hideSplash());
+      scene.addEventListener('arError', () => showErr('No se pudo acceder a la cámara.<br>Verifica los permisos.'));
+      const target = scene.querySelector('[mindar-image-target]');
+      if (target) {
+        target.addEventListener('targetFound', () => {
+          document.getElementById('scan').classList.remove('show');
+          const pg = document.getElementById('ping'); pg.classList.add('go'); setTimeout(()=>pg.classList.remove('go'),700);
         });
         target.addEventListener('targetLost', () => document.getElementById('scan').classList.add('show'));
       }

@@ -9,10 +9,6 @@
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
   <script type="importmap">{"imports":{"./controller-mGt1s8dJ.js":"https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/controller-mGt1s8dJ.js","./controller-d1-OMKPY.js":"https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/controller-d1-OMKPY.js","./ui-fBadYuor.js":"https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/ui-fBadYuor.js"}}</script>
   <script type="module" src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image.prod.js"></script>
-  <script type="module">
-    import { Compiler } from 'https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image.prod.js';
-    window._MINDARCompiler = Compiler;
-  </script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <style>
     :root {
@@ -1580,12 +1576,22 @@ async function subirArchivo(path, base64) {
 }
 
 async function getCompiler() {
+  // 1. Cached from a previous call
   if (window._MINDARCompiler) return window._MINDARCompiler;
-  logProg('Cargando compilador MindAR...');
+
+  // 2. window.MINDAR.IMAGE.Compiler — set by mindar-image.prod.js on load
+  if (window.MINDAR?.IMAGE?.Compiler) {
+    window._MINDARCompiler = window.MINDAR.IMAGE.Compiler;
+    return window._MINDARCompiler;
+  }
+
+  // 3. Dynamic import (returns cached module, no re-download)
+  logProg('Esperando compilador MindAR...');
   const mod = await import('https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image.prod.js');
-  if (!mod.Compiler) throw new Error('No se pudo acceder al compilador MindAR');
-  window._MINDARCompiler = mod.Compiler;
-  return mod.Compiler;
+  const C = mod.Compiler ?? mod.default?.Compiler ?? window.MINDAR?.IMAGE?.Compiler;
+  if (!C) throw new Error('Compilador MindAR no disponible — recarga la página e intenta de nuevo');
+  window._MINDARCompiler = C;
+  return C;
 }
 
 async function publicar() {
@@ -1604,21 +1610,29 @@ async function publicar() {
     // ── 1. Compilar .mind ────────────────────────────────
     let mindB64 = null;
     if (isImage) {
-      logProg('Compilando imagen trigger con MindAR...');
-      setProgreso(5);
-      const Compiler = await getCompiler();
-      const compiler = new Compiler();
-      const img = await new Promise((res, rej) => {
-        const i = new Image();
-        i.onload = () => res(i);
-        i.onerror = () => rej(new Error('No se pudo cargar la imagen trigger'));
-        i.src = APP.triggerUrl;
-      });
-      await compiler.compileImageTargets([img], p => setProgreso(5 + p * 25));
-      const buf = await compiler.exportData();
-      mindB64 = bufferToBase64(buf);
-      setProgreso(30);
-      logProg('Compilación completada', 'ok');
+      try {
+        logProg('Obteniendo compilador MindAR...');
+        setProgreso(4);
+        const Compiler = await getCompiler();
+        logProg('Compilando imagen trigger...');
+        setProgreso(5);
+        const compiler = new Compiler();
+        const img = await new Promise((res, rej) => {
+          const i = new Image();
+          i.onload = () => res(i);
+          i.onerror = () => rej(new Error('No se pudo cargar la imagen trigger desde memoria'));
+          i.src = APP.triggerUrl;
+        });
+        await compiler.compileImageTargets([img], p => setProgreso(5 + p * 25));
+        const buf = await compiler.exportData();
+        if (!buf || buf.byteLength === 0) throw new Error('El compilador devolvió un archivo .mind vacío');
+        mindB64 = bufferToBase64(buf);
+        setProgreso(30);
+        logProg(`Compilación OK (${(buf.byteLength / 1024).toFixed(1)} KB)`, 'ok');
+      } catch (compErr) {
+        console.error('[ARA] Error de compilación:', compErr);
+        throw new Error('Compilación fallida: ' + compErr.message);
+      }
     }
 
     // ── 2. Subir trigger + .mind ─────────────────────────

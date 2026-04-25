@@ -10,6 +10,7 @@
   <script type="importmap">{"imports":{"./controller-mGt1s8dJ.js":"https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/controller-mGt1s8dJ.js","./controller-d1-OMKPY.js":"https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/controller-d1-OMKPY.js","./ui-fBadYuor.js":"https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/ui-fBadYuor.js"}}</script>
   <script type="module" src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image.prod.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <style>
     :root {
       --navy:    #0d1117;
@@ -650,6 +651,20 @@
     }
     .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
 
+    /* ── THREE.JS 3D PREVIEW ── */
+    #p2-three-outer {
+      width: 100%; aspect-ratio: 4/3; position: relative;
+      border-radius: var(--r-sm); overflow: hidden;
+      background: #0d1117; border: 1px solid var(--border);
+      cursor: grab;
+    }
+    #p2-three-outer:active { cursor: grabbing; }
+    #p2-three-outer canvas { position: absolute; inset: 0; width: 100% !important; height: 100% !important; display: block; }
+    .three-hint {
+      position: absolute; bottom: 7px; right: 9px; pointer-events: none;
+      font-size: 9px; color: rgba(255,255,255,0.3); font-family: var(--fm); letter-spacing: 0.05em; z-index: 2;
+    }
+
     @media (max-width: 860px) {
       .wrap { padding: 20px; }
       .cols { grid-template-columns: 1fr; }
@@ -846,6 +861,7 @@
         <div id="p2-view-toggle" class="p2-view-toggle" style="display:none;">
           <button class="p2-vtbtn active" id="btn-front" onclick="setPreviewMode('front')">⬜ Frontal</button>
           <button class="p2-vtbtn"        id="btn-iso"   onclick="setPreviewMode('iso')">⬡ Isométrico</button>
+          <button class="p2-vtbtn"        id="btn-3d"    onclick="setPreviewMode('3d')">◈ 3D</button>
         </div>
 
         <!-- Contenedor perspectiva (solo activo en modo iso) -->
@@ -856,6 +872,11 @@
             <div id="p2-rects" style="position:absolute;inset:0;"></div>
             <div class="ar-canvas-hint" id="p2-canvas-hint">Arrastra capa activa · clic para seleccionar</div>
           </div>
+        </div>
+
+        <!-- Contenedor Three.js 3D -->
+        <div id="p2-three-outer" style="display:none;">
+          <div class="three-hint">Arrastra para rotar</div>
         </div>
       </div><!-- /prev2 -->
 
@@ -1385,27 +1406,39 @@ function setPreviewMode(mode) {
   previewMode = mode;
   document.getElementById('btn-front').classList.toggle('active', mode === 'front');
   document.getElementById('btn-iso').classList.toggle('active', mode === 'iso');
+  const btn3d = document.getElementById('btn-3d');
+  if (btn3d) btn3d.classList.toggle('active', mode === '3d');
+  if (mode !== '3d') stopThreeLoop();
   renderPreviewCanvas();
 }
 
 function renderPreviewCanvas() {
-  const outer  = document.getElementById('p2-canvas-outer');
-  const wrap   = document.getElementById('p2-canvas-wrap');
-  const toggle = document.getElementById('p2-view-toggle');
-  const empty  = document.getElementById('p2-empty');
-  const rects  = document.getElementById('p2-rects');
-  const hint   = document.getElementById('p2-canvas-hint');
+  const outer      = document.getElementById('p2-canvas-outer');
+  const threeOuter = document.getElementById('p2-three-outer');
+  const wrap       = document.getElementById('p2-canvas-wrap');
+  const toggle     = document.getElementById('p2-view-toggle');
+  const empty      = document.getElementById('p2-empty');
+  const rects      = document.getElementById('p2-rects');
+  const hint       = document.getElementById('p2-canvas-hint');
   if (!outer || !wrap || !rects || !empty) return;
 
   if (!APP.layers.length) {
     empty.style.display  = 'flex';
     outer.style.display  = 'none';
+    if (threeOuter) threeOuter.style.display = 'none';
     toggle.style.display = 'none';
     return;
   }
   empty.style.display  = 'none';
-  outer.style.display  = 'block';
   toggle.style.display = 'flex';
+
+  if (previewMode === '3d') {
+    outer.style.display = 'none';
+    if (threeOuter) { threeOuter.style.display = 'block'; initThree(); updateThreeScene(); }
+    return;
+  }
+  outer.style.display = 'block';
+  if (threeOuter) threeOuter.style.display = 'none';
 
   // Background
   const bg      = document.getElementById('p2-trigger-bg');
@@ -1561,6 +1594,154 @@ function syncSlidersFromLayer(id) {
     } else if (t === 'Pos Y') {
       sl.value = layer.posY;
       val.textContent = (layer.posY >= 0 ? '+' : '') + layer.posY.toFixed(2);
+    }
+  });
+}
+
+// ── PASO 2 — Three.js 3D Preview ─────────────────────────
+const T3 = {
+  renderer: null, scene: null, camera: null, animId: null,
+  theta: 0, phi: 1.1, radius: 3.5,
+  dragging: false, lastX: 0, lastY: 0,
+  layerMeshes: [], triggerMesh: null,
+};
+
+function t3CamPos() {
+  if (!T3.camera) return;
+  T3.camera.position.set(
+    T3.radius * Math.sin(T3.phi) * Math.sin(T3.theta),
+    T3.radius * Math.cos(T3.phi),
+    T3.radius * Math.sin(T3.phi) * Math.cos(T3.theta)
+  );
+  T3.camera.lookAt(0, 0.25, 0);
+}
+
+function startThreeLoop() {
+  if (T3.animId || !T3.renderer) return;
+  (function loop() { T3.animId = requestAnimationFrame(loop); T3.renderer.render(T3.scene, T3.camera); })();
+}
+function stopThreeLoop() {
+  if (T3.animId) { cancelAnimationFrame(T3.animId); T3.animId = null; }
+}
+
+function initThree() {
+  const container = document.getElementById('p2-three-outer');
+  if (!container) return;
+  if (T3.renderer) { if (!T3.animId) startThreeLoop(); return; }
+
+  const w = container.offsetWidth || 400;
+  const h = Math.round(w * 0.75);
+
+  T3.renderer = new THREE.WebGLRenderer({ antialias: true });
+  T3.renderer.setSize(w, h);
+  T3.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  T3.renderer.setClearColor(0x0d1117, 1);
+
+  const hint = container.querySelector('.three-hint');
+  container.insertBefore(T3.renderer.domElement, hint);
+
+  T3.scene  = new THREE.Scene();
+  T3.camera = new THREE.PerspectiveCamera(45, w / h, 0.01, 100);
+  t3CamPos();
+
+  T3.scene.add(new THREE.AmbientLight(0xffffff, 0.65));
+  const dir = new THREE.DirectionalLight(0xffffff, 0.75);
+  dir.position.set(2, 4, 3);
+  T3.scene.add(dir);
+
+  const cv = T3.renderer.domElement;
+  cv.addEventListener('mousedown', e => {
+    T3.dragging = true; T3.lastX = e.clientX; T3.lastY = e.clientY; e.preventDefault();
+  });
+  cv.addEventListener('mousemove', e => {
+    if (!T3.dragging) return;
+    T3.theta -= (e.clientX - T3.lastX) * 0.012;
+    T3.phi    = Math.max(0.14, Math.min(Math.PI * 0.88, T3.phi - (e.clientY - T3.lastY) * 0.012));
+    T3.lastX  = e.clientX; T3.lastY = e.clientY;
+    t3CamPos();
+  });
+  cv.addEventListener('mouseup',    () => T3.dragging = false);
+  cv.addEventListener('mouseleave', () => T3.dragging = false);
+
+  startThreeLoop();
+}
+
+function t3Clear() {
+  if (!T3.scene) return;
+  for (const { mesh, border } of T3.layerMeshes) {
+    T3.scene.remove(mesh);
+    mesh.geometry.dispose(); mesh.material.dispose();
+    if (mesh.material.map) mesh.material.map.dispose();
+    if (border) {
+      T3.scene.remove(border);
+      border.geometry.dispose(); border.material.dispose();
+    }
+  }
+  T3.layerMeshes = [];
+  if (T3.triggerMesh) {
+    T3.scene.remove(T3.triggerMesh);
+    T3.triggerMesh.geometry.dispose(); T3.triggerMesh.material.dispose();
+    if (T3.triggerMesh.material.map) T3.triggerMesh.material.map.dispose();
+    T3.triggerMesh = null;
+  }
+}
+
+function updateThreeScene() {
+  if (!T3.renderer) return;
+  t3Clear();
+
+  // Trigger: plano horizontal
+  const tGeo = new THREE.PlaneGeometry(2.0, 1.5);
+  tGeo.rotateX(-Math.PI / 2);
+  const tMat = new THREE.MeshLambertMaterial({
+    color: 0x334455, side: THREE.DoubleSide, transparent: true, opacity: 0.85,
+  });
+  T3.triggerMesh = new THREE.Mesh(tGeo, tMat);
+  T3.scene.add(T3.triggerMesh);
+
+  if (APP.triggerUrl) {
+    new THREE.TextureLoader().load(APP.triggerUrl, tex => {
+      tMat.map = tex; tMat.color.set(0xffffff); tMat.needsUpdate = true;
+    });
+  }
+
+  // Capas: planos verticales flotando sobre el trigger
+  const LCOL = { video: 0xc8f542, image: 0x5b8def, gif: 0xf5a623, model: 0xc471ed, text: 0xf542b6 };
+
+  APP.layers.forEach((l, i) => {
+    const rw = 0.45 * l.scale;
+    const rh = 0.36 * l.scale;
+    const geo = new THREE.PlaneGeometry(rw, rh);
+    const useTex = (l.type === 'image' || l.type === 'gif') && l._previewUrl;
+
+    const mat = new THREE.MeshLambertMaterial({
+      side: THREE.DoubleSide, transparent: true,
+      color:   useTex ? 0xffffff : (LCOL[l.type] || 0xaaaaaa),
+      opacity: useTex ? l.opacity : l.opacity * 0.65,
+    });
+
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.position.set(l.posX * 0.85, 0.25 + l.posY * 0.35, i * 0.01);
+    T3.scene.add(mesh);
+
+    const entry = { mesh, border: null };
+    T3.layerMeshes.push(entry);
+
+    // Capa activa → borde lima
+    if (l.id === activeLayerId) {
+      const eGeo  = new THREE.EdgesGeometry(geo);
+      const eMat  = new THREE.LineBasicMaterial({ color: 0xc8f542 });
+      const edges = new THREE.LineSegments(eGeo, eMat);
+      edges.position.copy(mesh.position);
+      edges.position.z += 0.003;
+      T3.scene.add(edges);
+      entry.border = edges;
+    }
+
+    if (useTex) {
+      new THREE.TextureLoader().load(l._previewUrl, tex => {
+        mat.map = tex; mat.needsUpdate = true;
+      });
     }
   });
 }

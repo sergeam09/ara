@@ -1,0 +1,33 @@
+{
+  "modo": "image",
+  "capas": [
+    {
+      "id": 0,
+      "tipo": "video",
+      "archivo": "layer-0.webm",
+      "posX": 0,
+      "posY": 0,
+      "posZ": 0.01,
+      "escala": 3,
+      "opacidad": 1,
+      "entrada": "fade",
+      "delay": 0,
+      "loop": true
+    },
+    {
+      "id": 1,
+      "tipo": "video",
+      "archivo": "layer-1.webm",
+      "posX": 0,
+      "posY": 0,
+      "posZ": 0.01,
+      "escala": 2.6,
+      "opacidad": 1,
+      "entrada": "none",
+      "delay": 0,
+      "loop": true
+    }
+  ],
+  "trigger": "trigger.jpg",
+  "mind": "trigger.mind"
+}

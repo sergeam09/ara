@@ -1566,7 +1566,11 @@ async function subirArchivo(path, base64) {
   const res = await fetch(WORKER_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ path, content: base64 }),
+    body: JSON.stringify({
+      path,
+      content: base64,
+      message: `ARA 4.0: upload ${path.split('/').pop()}`,
+    }),
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));

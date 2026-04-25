@@ -1,0 +1,1707 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ARA 4.0 — Augmented Reality Atelier v4</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>◈</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg:       #0a0a0a;
+      --surface:  #111111;
+      --surface2: #1a1a1a;
+      --accent:   #e63329;
+      --text:     #f0f0f0;
+      --text2:    #666666;
+      --border:   #2a2a2a;
+      --fd: 'Montserrat', sans-serif;
+      --fm: 'DM Mono', monospace;
+    }
+
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      font-family: var(--fd);
+      background: var(--bg);
+      color: var(--text);
+      font-size: 13px;
+    }
+
+    body {
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* ── HEADER ── */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+      padding: 16px 24px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+      z-index: 100;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      min-width: 0;
+    }
+
+    .logo-mark {
+      width: 32px;
+      height: 32px;
+      background: linear-gradient(135deg, var(--accent), #ff5a4d);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      color: white;
+      font-weight: 900;
+      flex-shrink: 0;
+    }
+
+    .logo-text {
+      font-size: 18px;
+      font-weight: 900;
+      letter-spacing: -0.02em;
+    }
+
+    .header-input {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 8px 12px;
+      color: var(--text);
+      font-family: var(--fd);
+      font-size: 12px;
+      outline: none;
+      transition: all 0.2s;
+      min-width: 0;
+    }
+
+    .header-input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px rgba(230, 51, 41, 0.1);
+    }
+
+    .header-input::placeholder {
+      color: var(--text2);
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-shrink: 0;
+    }
+
+    .size-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 6px 10px;
+    }
+
+    .size-label {
+      font-size: 11px;
+      color: var(--text2);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      min-width: 30px;
+    }
+
+    .size-input {
+      width: 50px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 5px 8px;
+      color: var(--text);
+      font-family: var(--fm);
+      font-size: 11px;
+      outline: none;
+      transition: all 0.2s;
+    }
+
+    .size-input:focus {
+      border-color: var(--accent);
+      background: var(--bg);
+    }
+
+    .btn-publish {
+      background: var(--accent);
+      color: white;
+      border: none;
+      padding: 9px 18px;
+      border-radius: 6px;
+      font-family: var(--fd);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: all 0.2s;
+      flex-shrink: 0;
+    }
+
+    .btn-publish:hover {
+      background: #ff5a4d;
+      transform: translateY(-1px);
+    }
+
+    .btn-publish:active {
+      transform: translateY(0);
+    }
+
+    /* ── MAIN LAYOUT ── */
+    .main {
+      display: flex;
+      flex: 1;
+      min-height: 0;
+      gap: 0;
+    }
+
+    /* ── LEFT PANEL ── */
+    .panel-left {
+      width: 280px;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+      flex-shrink: 0;
+    }
+
+    .panel-section {
+      padding: 16px 12px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .panel-section:last-child {
+      border-bottom: none;
+    }
+
+    .section-title {
+      font-size: 10px;
+      color: var(--text2);
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+
+    /* Upload trigger zone */
+    .upload-zone {
+      border: 1.5px dashed var(--border);
+      border-radius: 8px;
+      padding: 24px 12px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      position: relative;
+      background: rgba(230, 51, 41, 0.02);
+    }
+
+    .upload-zone:hover {
+      border-color: var(--accent);
+      background: rgba(230, 51, 41, 0.06);
+    }
+
+    .upload-zone input[type="file"] {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+    }
+
+    .upload-icon {
+      font-size: 24px;
+      margin-bottom: 6px;
+      display: block;
+    }
+
+    .upload-text {
+      font-size: 10px;
+      color: var(--text2);
+      line-height: 1.4;
+    }
+
+    .upload-hint {
+      font-size: 9px;
+      color: var(--text2);
+      margin-top: 4px;
+      font-family: var(--fm);
+    }
+
+    .upload-preview {
+      margin-top: 8px;
+      font-size: 10px;
+      color: var(--accent);
+      display: none;
+    }
+
+    /* Layers list */
+    .layers-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .layers-empty {
+      font-size: 10px;
+      color: var(--text2);
+      text-align: center;
+      padding: 20px 8px;
+      opacity: 0.6;
+    }
+
+    .layer-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 9px 10px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .layer-item:hover {
+      border-color: var(--accent);
+      background: var(--bg);
+    }
+
+    .layer-item.active {
+      background: rgba(230, 51, 41, 0.1);
+      border-color: var(--accent);
+    }
+
+    .layer-num {
+      width: 20px;
+      height: 20px;
+      border-radius: 4px;
+      background: rgba(230, 51, 41, 0.15);
+      border: 1px solid rgba(230, 51, 41, 0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 9px;
+      font-weight: 700;
+      color: var(--accent);
+      flex-shrink: 0;
+    }
+
+    .layer-type {
+      font-size: 10px;
+      flex-shrink: 0;
+    }
+
+    .layer-name {
+      font-size: 10px;
+      color: var(--text);
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    /* Layer props */
+    .layer-props {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .prop-row {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .prop-label {
+      font-size: 9px;
+      color: var(--text2);
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .prop-control {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .prop-slider {
+      flex: 1;
+      height: 3px;
+      appearance: none;
+      background: var(--border);
+      border: none;
+      border-radius: 2px;
+      outline: none;
+      cursor: pointer;
+    }
+
+    .prop-slider::-webkit-slider-thumb {
+      appearance: none;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: var(--accent);
+      cursor: pointer;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+    }
+
+    .prop-slider::-moz-range-thumb {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: var(--accent);
+      border: none;
+      cursor: pointer;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+    }
+
+    .prop-value {
+      font-size: 10px;
+      color: var(--accent);
+      font-family: var(--fm);
+      min-width: 40px;
+      text-align: right;
+    }
+
+    /* ── CENTER CANVAS ── */
+    .canvas-container {
+      flex: 1;
+      background: var(--bg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    #canvas3d {
+      width: 100%;
+      height: 100%;
+      background: var(--bg);
+    }
+
+    /* ── FOOTER ── */
+    footer {
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      padding: 12px 24px;
+      overflow-x: auto;
+      overflow-y: hidden;
+      flex-shrink: 0;
+      max-height: 90px;
+    }
+
+    .proyectos-title {
+      font-size: 10px;
+      color: var(--text2);
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+      display: block;
+    }
+
+    #proyectos {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding-bottom: 6px;
+    }
+
+    #proyectos::-webkit-scrollbar {
+      height: 4px;
+    }
+
+    #proyectos::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    #proyectos::-webkit-scrollbar-thumb {
+      background: var(--border);
+      border-radius: 2px;
+    }
+
+    .proyecto-item {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 9px 12px;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.2s;
+      flex-shrink: 0;
+    }
+
+    .proyecto-item:hover {
+      border-color: var(--accent);
+      background: var(--bg);
+    }
+
+    .proyecto-name {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .proyecto-date {
+      font-size: 9px;
+      color: var(--text2);
+      font-family: var(--fm);
+      margin-top: 2px;
+    }
+
+    /* ── SCROLLBAR ── */
+    ::-webkit-scrollbar {
+      width: 4px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: var(--surface);
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: var(--border);
+      border-radius: 2px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--text2);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ── HEADER ── -->
+  <header>
+    <div class="header-left">
+      <div class="logo-mark">◈</div>
+      <div class="logo-text">ARA 4.0</div>
+      <input type="text" class="header-input" id="inputNombre" placeholder="Nombre del proyecto">
+    </div>
+
+    <div class="header-right">
+      <div class="size-group">
+        <label class="size-label">W</label>
+        <input type="number" class="size-input" id="inputWidth" placeholder="21" value="21">
+        <label class="size-label" style="margin-left: 6px;">H</label>
+        <input type="number" class="size-input" id="inputHeight" placeholder="29.7" value="29.7">
+        <span style="font-size: 9px; color: var(--text2); margin-left: 4px; white-space: nowrap;">cm</span>
+      </div>
+
+      <button class="btn-publish" id="btnPublish">◈ Publicar</button>
+    </div>
+  </header>
+
+  <!-- ── MAIN ── -->
+  <div class="main">
+
+    <!-- LEFT PANEL -->
+    <div class="panel-left">
+
+      <!-- Trigger upload -->
+      <div class="panel-section">
+        <div class="section-title">Imagen trigger</div>
+        <div class="upload-zone">
+          <input type="file" id="fileTrigger" accept="image/*">
+          <span class="upload-icon">◈</span>
+          <div class="upload-text">Arrastra o selecciona</div>
+          <div class="upload-hint">JPG · PNG · WEBP</div>
+          <div class="upload-preview" id="triggerPreview"></div>
+        </div>
+      </div>
+
+      <!-- Layers list -->
+      <div class="panel-section">
+        <div class="section-title">Capas (0)</div>
+        <div class="layers-empty">Sin capas</div>
+        <div id="layersList" class="layers-list"></div>
+      </div>
+
+      <!-- Layer props -->
+      <div class="panel-section" id="layerPropsPanel" style="display:none;">
+        <div class="section-title">Propiedades</div>
+        <div class="layer-props">
+
+          <div class="prop-row">
+            <div class="prop-label">Escala</div>
+            <div class="prop-control">
+              <input type="range" class="prop-slider" id="propScale" min="0.1" max="3" step="0.1" value="1">
+              <div class="prop-value" id="propScaleValue">1.00</div>
+            </div>
+          </div>
+
+          <div class="prop-row">
+            <div class="prop-label">Opacidad</div>
+            <div class="prop-control">
+              <input type="range" class="prop-slider" id="propOpacity" min="0" max="100" step="5" value="100">
+              <div class="prop-value" id="propOpacityValue">100%</div>
+            </div>
+          </div>
+
+          <div class="prop-row">
+            <div class="prop-label">Pos X</div>
+            <div class="prop-control">
+              <input type="range" class="prop-slider" id="propPosX" min="-1" max="1" step="0.1" value="0">
+              <div class="prop-value" id="propPosXValue">0.00</div>
+            </div>
+          </div>
+
+          <div class="prop-row">
+            <div class="prop-label">Pos Y</div>
+            <div class="prop-control">
+              <input type="range" class="prop-slider" id="propPosY" min="-1" max="1" step="0.1" value="0">
+              <div class="prop-value" id="propPosYValue">0.00</div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+
+    <!-- CENTER CANVAS -->
+    <div class="canvas-container">
+      <div id="canvas3d"></div>
+    </div>
+
+  </div>
+
+  <!-- ── FOOTER ── -->
+  <footer>
+    <span class="proyectos-title">Proyectos publicados</span>
+    <div id="proyectos"></div>
+  </footer>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script>
+    // ── Three.js Canvas Variables ──
+    let scene, camera, renderer, triggerPlane;
+    let mouseDown = false;
+    let mouseX = 0, mouseY = 0;
+    let cameraTheta = 0.8; // azimuth
+    let cameraPhi = 1.2;   // polar
+    let cameraRadius = 200;
+    let layers = [];
+
+    // ── Init Canvas ──
+    function initCanvas() {
+      const container = document.getElementById('canvas3d');
+      if (!container) return;
+
+      // Scene
+      scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x0a0a0a);
+
+      // Camera
+      camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 1000);
+      updateCameraPosition();
+
+      // Renderer
+      renderer = new THREE.WebGLRenderer({ antialias: true });
+      renderer.setSize(container.clientWidth, container.clientHeight);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      container.appendChild(renderer.domElement);
+
+      // Lights
+      const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+      scene.add(ambientLight);
+
+      const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+      directionalLight.position.set(50, 100, 50);
+      directionalLight.castShadow = true;
+      scene.add(directionalLight);
+
+      // Grid helper
+      const gridHelper = new THREE.GridHelper(300, 30, 0x333333, 0x222222);
+      gridHelper.position.y = -0.1;
+      scene.add(gridHelper);
+
+      // Trigger plane (horizontal, 150x100 units)
+      const triggerGeometry = new THREE.PlaneGeometry(150, 100);
+      triggerGeometry.rotateX(-Math.PI / 2); // Make it horizontal
+      const triggerMaterial = new THREE.MeshLambertMaterial({
+        color: 0x666666,
+        transparent: true,
+        opacity: 0.8
+      });
+      triggerPlane = new THREE.Mesh(triggerGeometry, triggerMaterial);
+      triggerPlane.position.y = 0;
+      scene.add(triggerPlane);
+
+      // Dimension lines and labels
+      createDimensionLines();
+
+      // Mouse controls
+      setupMouseControls();
+
+      // Resize handler
+      window.addEventListener('resize', onWindowResize);
+
+      // Start render loop
+      animate();
+    }
+
+    function updateCameraPosition() {
+      if (!camera) return;
+
+      const x = cameraRadius * Math.sin(cameraPhi) * Math.sin(cameraTheta);
+      const y = cameraRadius * Math.cos(cameraPhi);
+      const z = cameraRadius * Math.sin(cameraPhi) * Math.cos(cameraTheta);
+
+      camera.position.set(x, y, z);
+      camera.lookAt(0, 0, 0);
+    }
+
+    function createDimensionLines() {
+      // Width dimension (along X axis)
+      const widthLineGeometry = new THREE.BufferGeometry();
+      const widthPoints = [
+        new THREE.Vector3(-75, 5, 50),
+        new THREE.Vector3(-75, 5, 55),
+        new THREE.Vector3(75, 5, 55),
+        new THREE.Vector3(75, 5, 50)
+      ];
+      widthLineGeometry.setFromPoints(widthPoints);
+      const lineMaterial = new THREE.LineBasicMaterial({ color: 0xe63329, opacity: 0.8, transparent: true });
+      const widthLine = new THREE.Line(widthLineGeometry, lineMaterial);
+      scene.add(widthLine);
+
+      // Height dimension (along Z axis)
+      const heightLineGeometry = new THREE.BufferGeometry();
+      const heightPoints = [
+        new THREE.Vector3(-80, 5, -50),
+        new THREE.Vector3(-85, 5, -50),
+        new THREE.Vector3(-85, 5, 50),
+        new THREE.Vector3(-80, 5, 50)
+      ];
+      heightLineGeometry.setFromPoints(heightPoints);
+      const heightLine = new THREE.Line(heightLineGeometry, lineMaterial);
+      scene.add(heightLine);
+
+      // Width label
+      createTextSprite('W: -- cm', new THREE.Vector3(0, 8, 58), 0xe63329);
+
+      // Height label
+      createTextSprite('H: -- cm', new THREE.Vector3(-88, 8, 0), 0xe63329);
+    }
+
+    function createTextSprite(text, position, color = 0xffffff) {
+      const canvas = document.createElement('canvas');
+      const context = canvas.getContext('2d');
+      const fontSize = 36; // Increased from 24
+
+      canvas.width = 512;  // Increased from 256
+      canvas.height = 128; // Increased from 64
+
+      // Black semi-transparent background
+      context.fillStyle = 'rgba(0, 0, 0, 0.8)';
+      context.fillRect(0, 0, canvas.width, canvas.height);
+
+      // White border
+      context.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+      context.lineWidth = 2;
+      context.strokeRect(4, 4, canvas.width - 8, canvas.height - 8);
+
+      // White text (ignore color param for readability)
+      context.fillStyle = '#ffffff';
+      context.font = `bold ${fontSize}px 'DM Mono', monospace`;
+      context.textAlign = 'center';
+      context.textBaseline = 'middle';
+      context.fillText(text, canvas.width / 2, canvas.height / 2);
+
+      const texture = new THREE.CanvasTexture(canvas);
+      const material = new THREE.SpriteMaterial({ map: texture, transparent: true });
+      const sprite = new THREE.Sprite(material);
+
+      sprite.position.copy(position);
+      sprite.scale.set(50, 12, 1); // Increased from 20, 5
+
+      scene.add(sprite);
+      return sprite;
+    }
+
+    function setupMouseControls() {
+      const canvas = renderer.domElement;
+
+      canvas.addEventListener('mousedown', (event) => {
+        mouseDown = true;
+        mouseX = event.clientX;
+        mouseY = event.clientY;
+        canvas.style.cursor = 'grabbing';
+      });
+
+      canvas.addEventListener('mousemove', (event) => {
+        if (!mouseDown) return;
+
+        const deltaX = event.clientX - mouseX;
+        const deltaY = event.clientY - mouseY;
+
+        cameraTheta -= deltaX * 0.01;
+        cameraPhi = Math.max(0.1, Math.min(Math.PI - 0.1, cameraPhi + deltaY * 0.01));
+
+        updateCameraPosition();
+
+        mouseX = event.clientX;
+        mouseY = event.clientY;
+      });
+
+      canvas.addEventListener('mouseup', () => {
+        mouseDown = false;
+        canvas.style.cursor = 'grab';
+      });
+
+      canvas.addEventListener('mouseleave', () => {
+        mouseDown = false;
+        canvas.style.cursor = 'grab';
+      });
+
+      // Zoom with mouse wheel
+      canvas.addEventListener('wheel', (event) => {
+        event.preventDefault();
+        cameraRadius += event.deltaY * 0.1;
+        cameraRadius = Math.max(50, Math.min(500, cameraRadius));
+        updateCameraPosition();
+      });
+
+      canvas.style.cursor = 'grab';
+    }
+
+    function onWindowResize() {
+      const container = document.getElementById('canvas3d');
+      if (!container || !camera || !renderer) return;
+
+      camera.aspect = container.clientWidth / container.clientHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(container.clientWidth, container.clientHeight);
+    }
+
+    function animate() {
+      requestAnimationFrame(animate);
+      if (renderer && scene && camera) {
+        renderer.render(scene, camera);
+      }
+    }
+
+    // ── Global Functions ──
+    function addLayerToCanvas(id, color) {
+      // Create horizontal plane for layer (parallel to trigger)
+      const layerGeometry = new THREE.PlaneGeometry(20, 15);
+      layerGeometry.rotateX(-Math.PI / 2); // Make it horizontal like trigger
+
+      const layerMaterial = new THREE.MeshLambertMaterial({
+        color: color || 0x00ff00,
+        transparent: true,
+        opacity: 0.8,
+        side: THREE.DoubleSide
+      });
+
+      const layerMesh = new THREE.Mesh(layerGeometry, layerMaterial);
+
+      // Position above trigger at height proportional to index
+      const layerIndex = layers.length;
+      layerMesh.position.set(
+        (Math.random() - 0.5) * 100, // Random X position
+        layerIndex * 0.05,            // Small increments above trigger
+        (Math.random() - 0.5) * 60    // Random Z position
+      );
+
+      layerMesh.userData = { id: id };
+      layers.push(layerMesh);
+      scene.add(layerMesh);
+
+      return layerMesh;
+    }
+
+    function updateCanvas() {
+      // Empty for now - will be used for real-time updates
+    }
+
+    // ── Initialize on load ──
+    document.addEventListener('DOMContentLoaded', initCanvas);
+
+    // ── Global App State ──
+    const APP = {
+      triggerFile: null,
+      layers: [],
+      activeLayerId: null,
+      nextId: 1
+    };
+
+    // ── 1. UPLOAD TRIGGER ──
+    function initTriggerUpload() {
+      const triggerZone = document.querySelector('.upload-zone');
+      const triggerInput = document.getElementById('fileTrigger');
+      const triggerPreview = document.getElementById('triggerPreview');
+
+      // Click to upload
+      triggerZone.addEventListener('click', () => {
+        triggerInput.click();
+      });
+
+      // File change
+      triggerInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file && file.type.startsWith('image/')) {
+          handleTriggerFile(file);
+        }
+      });
+
+      // Drag & drop
+      triggerZone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        triggerZone.style.borderColor = '#e63329';
+        triggerZone.style.background = 'rgba(230, 51, 41, 0.1)';
+      });
+
+      triggerZone.addEventListener('dragleave', () => {
+        triggerZone.style.borderColor = '';
+        triggerZone.style.background = '';
+      });
+
+      triggerZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        triggerZone.style.borderColor = '';
+        triggerZone.style.background = '';
+
+        const file = e.dataTransfer.files[0];
+        if (file && file.type.startsWith('image/')) {
+          handleTriggerFile(file);
+        }
+      });
+    }
+
+    function handleTriggerFile(file) {
+      APP.triggerFile = file;
+      const preview = document.getElementById('triggerPreview');
+      preview.textContent = `✓ ${file.name}`;
+      preview.style.display = 'block';
+
+      // Calculate proportions and update inputs
+      const img = new Image();
+      img.onload = () => {
+        const ratio = img.naturalWidth / img.naturalHeight;
+        const currentW = parseFloat(document.getElementById('inputWidth').value) || 21;
+        const newH = currentW / ratio;
+
+        document.getElementById('inputHeight').value = newH.toFixed(1);
+        updateDimensionLabels();
+
+        // Update trigger plane proportions in Three.js
+        if (triggerPlane) {
+          const newGeometry = new THREE.PlaneGeometry(150, 150 / ratio);
+          newGeometry.rotateX(-Math.PI / 2);
+          triggerPlane.geometry.dispose();
+          triggerPlane.geometry = newGeometry;
+        }
+      };
+      img.src = URL.createObjectURL(file);
+
+      // Apply texture to Three.js trigger plane
+      if (triggerPlane) {
+        const url = URL.createObjectURL(file);
+        const loader = new THREE.TextureLoader();
+        loader.load(url, (texture) => {
+          triggerPlane.material.map = texture;
+          triggerPlane.material.color.set(0xffffff);
+          triggerPlane.material.needsUpdate = true;
+        });
+      }
+    }
+
+    // ── 2. CAPAS SYSTEM ──
+    function initLayersSystem() {
+      const layersSection = document.querySelector('.panel-section:nth-child(2)');
+
+      // Add button after layers list
+      const addButton = document.createElement('button');
+      addButton.className = 'btn-add-layer';
+      addButton.innerHTML = '+ AÑADIR CAPA';
+      addButton.style.cssText = `
+        width: 100%;
+        padding: 8px 12px;
+        margin-top: 8px;
+        background: #1a1a1a;
+        border: 1px dashed #2a2a2a;
+        color: #666;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 10px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        transition: all 0.2s;
+      `;
+
+      addButton.addEventListener('mouseenter', () => {
+        if (APP.layers.length < 6) {
+          addButton.style.borderColor = '#e63329';
+          addButton.style.color = '#e63329';
+        }
+      });
+
+      addButton.addEventListener('mouseleave', () => {
+        addButton.style.borderColor = '#2a2a2a';
+        addButton.style.color = '#666';
+      });
+
+      addButton.addEventListener('click', () => {
+        if (APP.layers.length < 6) {
+          addLayer();
+        }
+      });
+
+      layersSection.appendChild(addButton);
+      updateLayersList();
+    }
+
+    function addLayer() {
+      const layer = {
+        id: `layer_${APP.nextId++}`,
+        type: 'image',
+        file: null,
+        posX: 0,
+        posY: 0,
+        scale: 1,
+        opacity: 1,
+        animation: 'fade'
+      };
+
+      APP.layers.push(layer);
+      APP.activeLayerId = layer.id;
+
+      // Add to Three.js canvas
+      const color = getLayerColor(layer.type);
+      addLayerToCanvas(layer.id, color);
+
+      updateLayersList();
+      updateLayerProps();
+
+      // Show file picker immediately
+      showLayerFilePicker(layer.id);
+
+      updateCanvas();
+    }
+
+    function showLayerFilePicker(layerId) {
+      const layer = APP.layers.find(l => l.id === layerId);
+      if (!layer) return;
+
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = getAcceptTypes(layer.type);
+      input.style.display = 'none';
+
+      input.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) {
+          layer.file = file;
+          updateLayersList();
+          updateCanvas();
+        }
+        document.body.removeChild(input);
+      });
+
+      document.body.appendChild(input);
+      input.click();
+    }
+
+    function getAcceptTypes(type) {
+      const accepts = {
+        video: 'video/mp4,video/webm',
+        image: 'image/png,image/jpg,image/jpeg,image/gif',
+        gif: 'image/gif',
+        glb: '.glb,.gltf',
+        texto: ''
+      };
+      return accepts[type] || 'image/*';
+    }
+
+    function getLayerColor(type) {
+      const colors = {
+        image: 0x5b8def,
+        video: 0xc8f542,
+        gif: 0xf5a623,
+        glb: 0xc471ed,
+        texto: 0xf542b6
+      };
+      return colors[type] || 0x666666;
+    }
+
+    function updateLayersList() {
+      const container = document.getElementById('layersList');
+      const empty = container.parentElement.querySelector('.layers-empty');
+      const title = container.parentElement.querySelector('.section-title');
+
+      title.textContent = `Capas (${APP.layers.length})`;
+
+      if (APP.layers.length === 0) {
+        empty.style.display = 'block';
+        container.innerHTML = '';
+        return;
+      }
+
+      empty.style.display = 'none';
+      container.innerHTML = APP.layers.map((layer, index) => `
+        <div class="layer-item ${layer.id === APP.activeLayerId ? 'active' : ''}"
+             onclick="selectLayer('${layer.id}')">
+          <div class="layer-num">${index + 1}</div>
+          <div class="layer-type">${getLayerIcon(layer.type)}</div>
+          <div class="layer-name">${layer.file ? layer.file.name : 'Sin archivo'}</div>
+        </div>
+      `).join('');
+    }
+
+    function getLayerIcon(type) {
+      const icons = {
+        image: '◈', video: '▶', gif: '⟳', glb: '⬡', texto: 'T'
+      };
+      return icons[type] || '?';
+    }
+
+    function selectLayer(layerId) {
+      APP.activeLayerId = layerId;
+      updateLayersList();
+      updateLayerProps();
+
+      // Highlight in canvas - update layer materials
+      layers.forEach(mesh => {
+        if (mesh.userData.id === layerId) {
+          mesh.material.emissive.setHex(0x330000); // Red tint for active
+        } else {
+          mesh.material.emissive.setHex(0x000000); // No tint for inactive
+        }
+      });
+    }
+
+    function updateLayerProps() {
+      const panel = document.getElementById('layerPropsPanel');
+      const activeLayer = APP.layers.find(l => l.id === APP.activeLayerId);
+
+      if (!activeLayer) {
+        panel.style.display = 'none';
+        return;
+      }
+
+      panel.style.display = 'block';
+
+      // Update slider values
+      document.getElementById('propScale').value = activeLayer.scale;
+      document.getElementById('propScaleValue').textContent = activeLayer.scale.toFixed(2);
+
+      document.getElementById('propOpacity').value = activeLayer.opacity * 100;
+      document.getElementById('propOpacityValue').textContent = Math.round(activeLayer.opacity * 100) + '%';
+
+      document.getElementById('propPosX').value = activeLayer.posX;
+      document.getElementById('propPosXValue').textContent = activeLayer.posX.toFixed(2);
+
+      document.getElementById('propPosY').value = activeLayer.posY;
+      document.getElementById('propPosYValue').textContent = activeLayer.posY.toFixed(2);
+    }
+
+    function initLayerProps() {
+      // Scale slider
+      const scaleSlider = document.getElementById('propScale');
+      const scaleValue = document.getElementById('propScaleValue');
+
+      scaleSlider.addEventListener('input', (e) => {
+        const layer = APP.layers.find(l => l.id === APP.activeLayerId);
+        if (layer) {
+          layer.scale = parseFloat(e.target.value);
+          scaleValue.textContent = layer.scale.toFixed(2);
+          updateCanvas();
+        }
+      });
+
+      // Opacity slider
+      const opacitySlider = document.getElementById('propOpacity');
+      const opacityValue = document.getElementById('propOpacityValue');
+
+      opacitySlider.addEventListener('input', (e) => {
+        const layer = APP.layers.find(l => l.id === APP.activeLayerId);
+        if (layer) {
+          layer.opacity = parseFloat(e.target.value) / 100;
+          opacityValue.textContent = Math.round(layer.opacity * 100) + '%';
+          updateCanvas();
+        }
+      });
+
+      // PosX slider
+      const posXSlider = document.getElementById('propPosX');
+      const posXValue = document.getElementById('propPosXValue');
+
+      posXSlider.addEventListener('input', (e) => {
+        const layer = APP.layers.find(l => l.id === APP.activeLayerId);
+        if (layer) {
+          layer.posX = parseFloat(e.target.value);
+          posXValue.textContent = layer.posX.toFixed(2);
+          updateCanvas();
+        }
+      });
+
+      // PosY slider
+      const posYSlider = document.getElementById('propPosY');
+      const posYValue = document.getElementById('propPosYValue');
+
+      posYSlider.addEventListener('input', (e) => {
+        const layer = APP.layers.find(l => l.id === APP.activeLayerId);
+        if (layer) {
+          layer.posY = parseFloat(e.target.value);
+          posYValue.textContent = layer.posY.toFixed(2);
+          updateCanvas();
+        }
+      });
+    }
+
+    // ── 3. MEDIDAS REALES ──
+    function initRealMeasures() {
+      const widthInput = document.getElementById('inputWidth');
+      const heightInput = document.getElementById('inputHeight');
+
+      widthInput.addEventListener('input', updateDimensionLabels);
+      heightInput.addEventListener('input', updateDimensionLabels);
+    }
+
+    function updateDimensionLabels() {
+      const width = document.getElementById('inputWidth').value || '--';
+      const height = document.getElementById('inputHeight').value || '--';
+
+      // Update text sprites in Three.js scene
+      if (scene) {
+        // Remove old labels
+        const spritesToRemove = [];
+        scene.traverse((child) => {
+          if (child.isSprite && child.userData.isDimensionLabel) {
+            spritesToRemove.push(child);
+          }
+        });
+        spritesToRemove.forEach(sprite => scene.remove(sprite));
+
+        // Create new labels
+        const widthSprite = createTextSprite(`W: ${width} cm`, new THREE.Vector3(0, 8, 58), 0xe63329);
+        widthSprite.userData.isDimensionLabel = true;
+
+        const heightSprite = createTextSprite(`H: ${height} cm`, new THREE.Vector3(-88, 8, 0), 0xe63329);
+        heightSprite.userData.isDimensionLabel = true;
+      }
+    }
+
+    // ── 4. PROYECTOS ──
+    function initProyectos() {
+      loadProyectos();
+    }
+
+    function loadProyectos() {
+      const proyectos = JSON.parse(localStorage.getItem('ara-proyectos') || '[]');
+      const container = document.getElementById('proyectos');
+
+      if (proyectos.length === 0) {
+        container.innerHTML = '<div style="color: #666; font-size: 10px; padding: 8px;">Sin proyectos</div>';
+        return;
+      }
+
+      container.innerHTML = proyectos.map(proyecto => `
+        <div class="proyecto-item" onclick="openProyecto('${proyecto.slug}')">
+          <div class="proyecto-name">${proyecto.nombre}</div>
+          <div class="proyecto-date">${proyecto.fecha}</div>
+        </div>
+      `).join('');
+    }
+
+    function openProyecto(slug) {
+      window.open(`viewer.html?p=${slug}`, '_blank');
+    }
+
+    // ── Update Canvas Override ──
+    // Override the empty updateCanvas function
+    function updateCanvas() {
+      if (!scene || APP.layers.length === 0) return;
+
+      // Update layer positions, scales, and opacity in Three.js
+      layers.forEach((mesh, index) => {
+        const layer = APP.layers.find(l => l.id === mesh.userData.id);
+        if (layer) {
+          mesh.position.x = layer.posX * 30; // Scale for better visibility
+          mesh.position.y = index * 0.05;    // Height based on index
+          mesh.position.z = layer.posY * 20;
+          mesh.scale.setScalar(layer.scale);
+          mesh.material.opacity = layer.opacity;
+        }
+      });
+    }
+
+    // ── Initialize Everything ──
+    function initApp() {
+      initTriggerUpload();
+      initLayersSystem();
+      initLayerProps();
+      initRealMeasures();
+      initProyectos();
+
+      // Initial dimension labels update
+      updateDimensionLabels();
+    }
+
+    // Initialize app after Three.js canvas is ready
+    document.addEventListener('DOMContentLoaded', () => {
+      // Wait a bit for Three.js to initialize
+      setTimeout(initApp, 100);
+    });
+
+    // ── PUBLICACIÓN ──
+    const WORKER_URL = 'https://ara-worker.sergeam09.workers.dev';
+    const BASE_URL = 'https://sergeam09.github.io/ara';
+
+    function initPublishButton() {
+      const publishBtn = document.getElementById('btnPublish');
+      publishBtn.addEventListener('click', handlePublish);
+    }
+
+    async function handlePublish() {
+      try {
+        // 1. Validación
+        const validation = validateProject();
+        if (!validation.valid) {
+          alert(validation.error);
+          return;
+        }
+
+        // 2. Mostrar modal de progreso
+        showProgressModal();
+
+        const projectName = document.getElementById('inputNombre').value.trim();
+        const slug = projectName.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').trim('-');
+
+        logProgress('Iniciando publicación...', 'info');
+        updateProgress(5);
+
+        // 3. Compilar MindAR
+        logProgress('Compilando imagen trigger...', 'info');
+        const mindData = await compileTrigger();
+        updateProgress(25);
+
+        // 4. Upload archivos
+        logProgress('Subiendo archivos al servidor...', 'info');
+
+        // 4a. Upload trigger
+        const triggerExt = getFileExtension(APP.triggerFile.name);
+        const triggerB64 = await fileToBase64(APP.triggerFile);
+        await uploadFile(`proyectos/${slug}/trigger.${triggerExt}`, triggerB64, 'trigger image');
+        updateProgress(35);
+
+        // 4b. Upload mind
+        await uploadFile(`proyectos/${slug}/trigger.mind`, mindData, 'compiled mind file');
+        updateProgress(45);
+
+        // 4c. Upload capas
+        const capasConfig = [];
+        for (let i = 0; i < APP.layers.length; i++) {
+          const layer = APP.layers[i];
+          if (layer.file) {
+            const layerExt = getFileExtension(layer.file.name);
+            const layerB64 = await fileToBase64(layer.file);
+            await uploadFile(`proyectos/${slug}/layer-${i}.${layerExt}`, layerB64, `layer ${i}`);
+
+            capasConfig.push({
+              id: i,
+              tipo: layer.type,
+              archivo: `layer-${i}.${layerExt}`,
+              posX: layer.posX,
+              posY: layer.posY,
+              posZ: 0.01,
+              escala: layer.scale,
+              opacidad: layer.opacity,
+              entrada: layer.animation,
+              delay: 0,
+              loop: true
+            });
+          }
+          updateProgress(45 + (i + 1) * 30 / APP.layers.length);
+        }
+
+        // 4d. Generar y subir config.json
+        logProgress('Generando configuración...', 'info');
+        const config = {
+          modo: 'image',
+          trigger: `trigger.${triggerExt}`,
+          mind: 'trigger.mind',
+          anchoReal: parseFloat(document.getElementById('inputWidth').value) || 21,
+          altoReal: parseFloat(document.getElementById('inputHeight').value) || 29.7,
+          unidad: 'cm',
+          capas: capasConfig
+        };
+
+        const configB64 = btoa(JSON.stringify(config, null, 2));
+        await uploadFile(`proyectos/${slug}/config.json`, configB64, 'configuration');
+        updateProgress(85);
+
+        // 5. Completado - mostrar resultado
+        logProgress('¡Publicación completada!', 'success');
+        updateProgress(100);
+
+        const viewerUrl = `${BASE_URL}/viewer.html?p=${slug}`;
+        showSuccessResult(viewerUrl, projectName, slug);
+
+        // 6. Guardar en localStorage
+        saveProject(slug, projectName, viewerUrl);
+        loadProyectos(); // Refrescar lista
+
+      } catch (error) {
+        logProgress(`Error: ${error.message}`, 'error');
+        console.error('Error en publicación:', error);
+      }
+    }
+
+    function validateProject() {
+      const nombre = document.getElementById('inputNombre').value.trim();
+      if (!nombre) {
+        return { valid: false, error: 'Ingresa un nombre para el proyecto' };
+      }
+
+      if (!APP.triggerFile) {
+        return { valid: false, error: 'Selecciona una imagen trigger' };
+      }
+
+      const capasConArchivo = APP.layers.filter(layer => layer.file !== null);
+      if (capasConArchivo.length === 0) {
+        return { valid: false, error: 'Agrega al menos una capa con archivo' };
+      }
+
+      return { valid: true };
+    }
+
+    async function compileTrigger() {
+      // Crear importmap dinámicamente
+      if (!document.getElementById('mindar-importmap')) {
+        const importmap = document.createElement('script');
+        importmap.type = 'importmap';
+        importmap.id = 'mindar-importmap';
+        importmap.textContent = JSON.stringify({
+          "imports": {
+            "./controller-mGt1s8dJ.js": "https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/controller-mGt1s8dJ.js",
+            "./controller-d1-OMKPY.js": "https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/controller-d1-OMKPY.js",
+            "./ui-fBadYuor.js": "https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/ui-fBadYuor.js"
+          }
+        });
+        document.head.appendChild(importmap);
+      }
+
+      // Cargar MindAR compiler
+      const mindArModule = await import('https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image.prod.js');
+      const Compiler = mindArModule.Compiler || window.MINDAR?.IMAGE?.Compiler;
+
+      if (!Compiler) {
+        throw new Error('No se pudo cargar el compilador MindAR');
+      }
+
+      // Crear imagen para compilar
+      const img = await loadImageFromFile(APP.triggerFile);
+
+      // Compilar
+      const compiler = new Compiler();
+      await compiler.compileImageTargets([img], (progress) => {
+        updateProgress(5 + progress * 20); // 5-25% para compilación
+      });
+
+      const arrayBuffer = await compiler.exportData();
+      if (!arrayBuffer || arrayBuffer.byteLength === 0) {
+        throw new Error('La compilación no generó datos válidos');
+      }
+
+      return arrayBufferToBase64(arrayBuffer);
+    }
+
+    function loadImageFromFile(file) {
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = reject;
+        img.src = URL.createObjectURL(file);
+      });
+    }
+
+    function arrayBufferToBase64(buffer) {
+      const bytes = new Uint8Array(buffer);
+      let binary = '';
+      for (let i = 0; i < bytes.byteLength; i++) {
+        binary += String.fromCharCode(bytes[i]);
+      }
+      return btoa(binary);
+    }
+
+    function fileToBase64(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const base64 = reader.result.split(',')[1]; // Remove data:xxxx;base64, prefix
+          resolve(base64);
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    }
+
+    function getFileExtension(filename) {
+      return filename.split('.').pop().toLowerCase();
+    }
+
+    async function uploadFile(path, base64Content, description) {
+      logProgress(`Subiendo ${description}...`, 'info');
+
+      const response = await fetch(WORKER_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          path: path,
+          content: base64Content,
+          message: `ARA 4.0: upload ${path.split('/').pop()}`
+        })
+      });
+
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({ error: `HTTP ${response.status}` }));
+        throw new Error(error.error || `Error al subir ${description}`);
+      }
+
+      logProgress(`✓ ${description} subido`, 'success');
+      return response.json();
+    }
+
+    function saveProject(slug, nombre, url) {
+      const proyectos = JSON.parse(localStorage.getItem('ara-proyectos') || '[]');
+
+      // Remover proyecto existente con mismo slug
+      const filtered = proyectos.filter(p => p.slug !== slug);
+
+      // Agregar nuevo proyecto al inicio
+      filtered.unshift({
+        slug: slug,
+        nombre: nombre,
+        url: url,
+        fecha: new Date().toLocaleDateString('es-MX')
+      });
+
+      localStorage.setItem('ara-proyectos', JSON.stringify(filtered));
+    }
+
+    // ── MODAL DE PROGRESO ──
+    function showProgressModal() {
+      const modal = document.createElement('div');
+      modal.id = 'progressModal';
+      modal.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.9);
+        z-index: 10000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      `;
+
+      modal.innerHTML = `
+        <div style="
+          background: #111;
+          border: 1px solid #2a2a2a;
+          border-radius: 12px;
+          padding: 24px;
+          width: 90%;
+          max-width: 500px;
+          color: #f0f0f0;
+        ">
+          <h3 style="margin: 0 0 16px 0; font-size: 16px; color: #e63329;">Publicando proyecto...</h3>
+
+          <div style="
+            background: #0a0a0a;
+            border: 1px solid #2a2a2a;
+            border-radius: 6px;
+            padding: 3px;
+            margin-bottom: 16px;
+          ">
+            <div id="progressBar" style="
+              height: 8px;
+              background: #e63329;
+              border-radius: 4px;
+              width: 0%;
+              transition: width 0.3s ease;
+            "></div>
+          </div>
+
+          <div id="progressLog" style="
+            background: #0a0a0a;
+            border: 1px solid #2a2a2a;
+            border-radius: 6px;
+            padding: 12px;
+            height: 200px;
+            overflow-y: auto;
+            font-family: 'DM Mono', monospace;
+            font-size: 11px;
+            line-height: 1.4;
+          "></div>
+
+          <div id="progressActions" style="margin-top: 16px; display: none;">
+            <button id="closeModalBtn" style="
+              background: #e63329;
+              color: white;
+              border: none;
+              padding: 10px 20px;
+              border-radius: 6px;
+              cursor: pointer;
+              font-size: 12px;
+              font-weight: 700;
+              width: 100%;
+            ">Cerrar</button>
+          </div>
+
+          <div id="successResult" style="display: none; margin-top: 16px;">
+            <div style="
+              background: #0a0a0a;
+              border: 1px solid #2a2a2a;
+              border-radius: 6px;
+              padding: 16px;
+              text-align: center;
+            ">
+              <div id="qrContainer" style="
+                background: white;
+                display: inline-block;
+                padding: 10px;
+                border-radius: 6px;
+                margin-bottom: 12px;
+              "></div>
+              <div style="
+                background: #1a1a1a;
+                border: 1px solid #2a2a2a;
+                border-radius: 4px;
+                padding: 8px 12px;
+                font-family: 'DM Mono', monospace;
+                font-size: 10px;
+                color: #666;
+                word-break: break-all;
+              " id="viewerUrl"></div>
+            </div>
+          </div>
+        </div>
+      `;
+
+      document.body.appendChild(modal);
+
+      // Evento para cerrar modal
+      modal.addEventListener('click', (e) => {
+        if (e.target.id === 'closeModalBtn') {
+          document.body.removeChild(modal);
+        }
+      });
+    }
+
+    function logProgress(message, type = 'info') {
+      const log = document.getElementById('progressLog');
+      if (!log) return;
+
+      const colors = {
+        info: '#666',
+        success: '#4CAF50',
+        error: '#f44336'
+      };
+
+      const line = document.createElement('div');
+      line.style.color = colors[type] || colors.info;
+      line.textContent = `${new Date().toLocaleTimeString()} ${message}`;
+
+      log.appendChild(line);
+      log.scrollTop = log.scrollHeight;
+    }
+
+    function updateProgress(percent) {
+      const bar = document.getElementById('progressBar');
+      if (bar) {
+        bar.style.width = Math.min(100, Math.max(0, percent)) + '%';
+      }
+    }
+
+    function showSuccessResult(viewerUrl, projectName, slug) {
+      const successDiv = document.getElementById('successResult');
+      const actionsDiv = document.getElementById('progressActions');
+      const qrContainer = document.getElementById('qrContainer');
+      const urlDiv = document.getElementById('viewerUrl');
+
+      if (!successDiv || !actionsDiv) return;
+
+      // Mostrar QR code
+      qrContainer.innerHTML = '';
+
+      // Cargar QRCode library si no existe
+      if (typeof QRCode === 'undefined') {
+        const script = document.createElement('script');
+        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js';
+        script.onload = () => {
+          new window.QRCode(qrContainer, {
+            text: viewerUrl,
+            width: 128,
+            height: 128,
+            colorDark: '#000000',
+            colorLight: '#ffffff'
+          });
+        };
+        document.head.appendChild(script);
+      } else {
+        new window.QRCode(qrContainer, {
+          text: viewerUrl,
+          width: 128,
+          height: 128,
+          colorDark: '#000000',
+          colorLight: '#ffffff'
+        });
+      }
+
+      urlDiv.textContent = viewerUrl;
+      urlDiv.style.cursor = 'pointer';
+      urlDiv.onclick = () => {
+        navigator.clipboard.writeText(viewerUrl);
+        urlDiv.style.background = '#1a4a2e';
+        setTimeout(() => {
+          urlDiv.style.background = '#1a1a1a';
+        }, 1000);
+      };
+
+      successDiv.style.display = 'block';
+      actionsDiv.style.display = 'block';
+    }
+
+    // Inicializar botón de publicar
+    document.addEventListener('DOMContentLoaded', () => {
+      setTimeout(() => {
+        initPublishButton();
+      }, 150);
+    });
+  </script>
+</body>
+</html>

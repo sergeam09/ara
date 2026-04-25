@@ -187,7 +187,7 @@
     .mode-tab-desc { font-size: 9px; color: var(--muted); line-height: 1.5; }
     .mode-tab.active .mode-tab-desc { color: rgba(200,245,66,0.55); }
 
-    /* ── UPZONE ── */
+    /* ── UPZONE (paso 1) ── */
     .upzone {
       border: 1.5px dashed var(--border2); padding: 22px 20px; text-align: center;
       cursor: pointer; transition: all 0.2s; position: relative;
@@ -278,6 +278,176 @@
     .p1-surface-icon  { font-size: 44px; opacity: 0.35; }
     .p1-surface-title { font-size: 13px; font-weight: 800; color: var(--accent); letter-spacing: 0.04em; }
     .p1-surface-desc  { font-size: 11px; color: var(--text2); line-height: 1.8; max-width: 200px; }
+
+    /* ── PASO 2 — LAYER CARDS ── */
+    .layer-card {
+      background: var(--navy); border: 1px solid var(--border);
+      border-radius: var(--r-sm); overflow: hidden; transition: border-color 0.2s;
+    }
+    .layer-card:hover { border-color: var(--border2); }
+    .layer-header {
+      display: flex; align-items: center; gap: 8px;
+      padding: 11px 13px; cursor: pointer; user-select: none;
+    }
+    .layer-header:hover { background: rgba(255,255,255,0.02); }
+    .layer-num {
+      width: 22px; height: 22px; border-radius: 6px;
+      background: rgba(200,245,66,0.1); border: 1px solid rgba(200,245,66,0.2);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 10px; font-weight: 800; color: var(--accent); flex-shrink: 0;
+    }
+    .layer-type-icon { font-size: 12px; flex-shrink: 0; }
+    .layer-fname {
+      flex: 1; font-size: 10px; color: var(--text2);
+      font-family: var(--fm); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .layer-fname.empty { color: var(--muted); font-style: italic; }
+    .lmove {
+      background: none; border: none; color: var(--muted); cursor: pointer;
+      font-size: 11px; padding: 2px 3px; transition: color 0.15s; line-height: 1;
+    }
+    .lmove:hover { color: var(--accent); }
+    .layer-del {
+      background: none; border: none; color: var(--muted);
+      cursor: pointer; font-size: 13px; padding: 2px 4px; transition: color 0.15s;
+    }
+    .layer-del:hover { color: var(--err); }
+    .layer-chevron { font-size: 10px; color: var(--muted); transition: transform 0.2s; flex-shrink: 0; }
+    .layer-card.open .layer-chevron { transform: rotate(180deg); }
+
+    .layer-body {
+      display: none; flex-direction: column; gap: 11px;
+      padding: 12px 13px 13px;
+      border-top: 1px solid var(--border);
+    }
+    .layer-card.open .layer-body { display: flex; }
+
+    /* Type chips */
+    .tchips { display: flex; gap: 5px; flex-wrap: wrap; }
+    .tchip {
+      background: var(--navy2); border: 1px solid var(--border);
+      color: var(--muted); font-family: var(--fd); font-size: 9px; font-weight: 700;
+      letter-spacing: 0.06em; text-transform: uppercase; padding: 5px 9px;
+      cursor: pointer; border-radius: var(--r-pill); transition: all 0.15s;
+    }
+    .tchip:hover { border-color: var(--border2); color: var(--text2); }
+    .tchip.active { background: rgba(200,245,66,0.1); border-color: rgba(200,245,66,0.35); color: var(--accent); }
+
+    /* Mini upzone (dentro de layer cards) */
+    .upzone-mini {
+      border: 1.5px dashed var(--border2); padding: 13px 14px;
+      text-align: center; cursor: pointer; position: relative;
+      background: rgba(255,255,255,0.015); border-radius: var(--r-sm);
+      transition: all 0.2s;
+    }
+    .upzone-mini:hover, .upzone-mini.over {
+      border-color: var(--accent); background: rgba(200,245,66,0.03);
+    }
+    .upzone-mini input[type=file] {
+      position: absolute; inset: 0; opacity: 0; cursor: pointer;
+      width: 100%; height: 100%; border-radius: var(--r-sm);
+    }
+    .upmini-text { font-size: 10px; color: var(--text2); line-height: 1.7; }
+    .upmini-text strong { color: var(--accent); }
+    .upmini-prev { margin-top: 5px; font-size: 10px; color: var(--accent2); display: none; font-family: var(--fm); }
+
+    /* Text layer */
+    .layer-textarea {
+      width: 100%; background: var(--navy2); border: 1px solid var(--border2);
+      color: var(--text); font-family: var(--fm); font-size: 12px;
+      padding: 9px 11px; border-radius: var(--r-sm); outline: none;
+      resize: vertical; min-height: 64px; transition: border-color 0.2s;
+    }
+    .layer-textarea:focus { border-color: var(--accent); }
+    .layer-textarea::placeholder { color: var(--muted); }
+    .text-controls { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .tclabel { font-size: 9px; color: var(--muted); letter-spacing: 0.1em; text-transform: uppercase; font-weight: 700; }
+    input[type=color].tcinput {
+      width: 28px; height: 26px; border: 1px solid var(--border2);
+      border-radius: 6px; padding: 2px; cursor: pointer;
+      background: var(--navy); outline: none;
+    }
+
+    /* Range rows */
+    .lrow { display: flex; align-items: center; gap: 9px; }
+    .llabel {
+      font-size: 9px; color: var(--muted); letter-spacing: 0.1em;
+      text-transform: uppercase; width: 60px; flex-shrink: 0; font-weight: 700;
+    }
+    .lslider {
+      flex: 1; height: 3px; appearance: none; background: rgba(255,255,255,0.08);
+      outline: none; cursor: pointer; border-radius: var(--r-pill);
+    }
+    .lslider::-webkit-slider-thumb {
+      appearance: none; width: 15px; height: 15px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent), #a8d820);
+      cursor: pointer; box-shadow: 0 2px 6px rgba(200,245,66,0.3);
+    }
+    .lslider::-moz-range-thumb { width:15px;height:15px;border-radius:50%;background:var(--accent);cursor:pointer;border:none; }
+    .lval { font-size: 10px; color: var(--accent); width: 36px; text-align: right; font-family: var(--fm); flex-shrink: 0; }
+
+    /* Anim chips */
+    .achips { display: flex; gap: 5px; flex-wrap: wrap; }
+    .achip {
+      background: var(--navy2); border: 1px solid var(--border);
+      color: var(--muted); font-family: var(--fd); font-size: 9px; font-weight: 700;
+      letter-spacing: 0.06em; text-transform: uppercase; padding: 5px 9px;
+      cursor: pointer; border-radius: var(--r-pill); transition: all 0.15s;
+    }
+    .achip:hover { border-color: var(--border2); color: var(--text2); }
+    .achip.active { background: rgba(200,245,66,0.1); border-color: rgba(200,245,66,0.35); color: var(--accent); }
+
+    /* Add layer btn */
+    .btn-add-layer {
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      width: 100%; padding: 11px;
+      background: rgba(255,255,255,0.025); border: 1.5px dashed var(--border2);
+      color: var(--text2); font-family: var(--fd); font-size: 10px; font-weight: 700;
+      letter-spacing: 0.1em; text-transform: uppercase; cursor: pointer;
+      border-radius: var(--r-sm); transition: all 0.2s;
+    }
+    .btn-add-layer:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); background: rgba(200,245,66,0.04); }
+    .btn-add-layer:disabled { opacity: 0.3; cursor: not-allowed; }
+
+    /* Step2 nav */
+    .step-nav { display: flex; gap: 10px; }
+    .btn-back {
+      display: flex; align-items: center; justify-content: center;
+      padding: 13px 20px; background: transparent;
+      border: 1px solid var(--border2); color: var(--text2);
+      font-family: var(--fd); font-size: 11px; font-weight: 700;
+      letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer;
+      border-radius: var(--r-pill); transition: all 0.2s; white-space: nowrap;
+    }
+    .btn-back:hover { border-color: var(--accent); color: var(--accent); }
+
+    /* ── PASO 2 — PREVIEW (derecha) ── */
+    .p2-empty {
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: center; text-align: center;
+      min-height: 200px; padding: 28px 20px; gap: 10px;
+      border: 1.5px dashed var(--border); border-radius: var(--r-sm);
+    }
+    .p2-empty-icon { font-size: 36px; opacity: 0.1; }
+    .p2-empty p { font-size: 11px; color: var(--text2); line-height: 1.9; max-width: 200px; }
+
+    .stack-list { display: flex; flex-direction: column; gap: 6px; }
+    .stack-item {
+      display: flex; align-items: center; gap: 9px;
+      padding: 9px 11px; background: var(--navy);
+      border: 1px solid var(--border); border-radius: var(--r-sm);
+    }
+    .stack-num {
+      width: 20px; height: 20px; border-radius: 5px;
+      background: rgba(200,245,66,0.1); border: 1px solid rgba(200,245,66,0.2);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 9px; font-weight: 800; color: var(--accent); flex-shrink: 0;
+    }
+    .stack-icon { font-size: 12px; flex-shrink: 0; }
+    .stack-info { flex: 1; min-width: 0; }
+    .stack-fname { font-size: 11px; color: var(--text); font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .stack-params { font-size: 9px; color: var(--muted); margin-top: 2px; font-family: var(--fm); }
+    .stack-anim { color: rgba(200,245,66,0.65); }
 
     /* ── PROJECTS LIST ── */
     .plist-card {
@@ -382,11 +552,10 @@
         </div>
       </div>
 
-      <!-- ── PASO 1 ── -->
+      <!-- ══ PASO 1 ══ -->
       <div id="step1" class="step-panel active">
         <div class="card-title">Configura tu proyecto</div>
 
-        <!-- Nombre -->
         <div class="field">
           <div class="field-label">Nombre del proyecto</div>
           <input type="text" id="pNombre" placeholder="ej: mural-xalapa-2025"
@@ -394,7 +563,6 @@
           <div class="field-hint" id="nombreHint"></div>
         </div>
 
-        <!-- Modo AR -->
         <div class="field">
           <div class="field-label">Modo AR</div>
           <div class="mode-tabs">
@@ -411,7 +579,6 @@
           </div>
         </div>
 
-        <!-- Trigger — solo mode image -->
         <div id="triggerSection" class="field">
           <div class="field-label">Imagen trigger</div>
           <div class="upzone" id="triggerZone">
@@ -430,10 +597,25 @@
         </button>
       </div><!-- /step1 -->
 
-      <!-- ── PASO 2 (stub) ── -->
-      <div id="step2" class="step-panel"></div>
+      <!-- ══ PASO 2 ══ -->
+      <div id="step2" class="step-panel">
+        <div class="card-title">Editor de capas</div>
 
-      <!-- ── PASO 3 (stub) ── -->
+        <div id="layerList" style="display:flex;flex-direction:column;gap:8px;"></div>
+
+        <button class="btn-add-layer" id="btnAddLayer" onclick="addLayer()">
+          + Añadir capa <span id="layerCountLabel" style="opacity:0.5;font-weight:500;">( 0 / 6 )</span>
+        </button>
+
+        <div class="step-nav">
+          <button class="btn-back" onclick="goToStep(1)">← Paso 1</button>
+          <button class="btn-primary" id="btnStep2" onclick="goToStep(3)" disabled style="flex:1;">
+            Continuar — Paso 3: Publicar →
+          </button>
+        </div>
+      </div><!-- /step2 -->
+
+      <!-- ══ PASO 3 (stub) ══ -->
       <div id="step3" class="step-panel"></div>
 
     </div><!-- /wizard card -->
@@ -444,21 +626,18 @@
 
       <!-- Preview paso 1 -->
       <div id="prev1" class="prev-panel active">
-
         <div id="p1-placeholder" class="p1-placeholder">
           <div class="p1-placeholder-icon">◈</div>
           <p>Ponle nombre al proyecto, elige el modo AR y sube la imagen trigger para continuar.</p>
         </div>
-
-        <div id="p1-trigger" style="display:none; flex-direction:column; gap:12px;">
+        <div id="p1-trigger" style="display:none;flex-direction:column;gap:12px;">
           <div class="p1-img-wrap">
             <img id="p1-triggerImg" src="" alt="trigger preview">
             <div class="p1-img-badge">Trigger</div>
           </div>
           <div class="meta-rows" id="p1-meta-img"></div>
         </div>
-
-        <div id="p1-surface" style="display:none; flex-direction:column; gap:12px;">
+        <div id="p1-surface" style="display:none;flex-direction:column;gap:12px;">
           <div class="p1-surface-card">
             <div class="p1-surface-icon">⬡</div>
             <div class="p1-surface-title">Surface AR</div>
@@ -466,11 +645,16 @@
           </div>
           <div class="meta-rows" id="p1-meta-surf"></div>
         </div>
-
       </div><!-- /prev1 -->
 
       <!-- Preview paso 2 -->
-      <div id="prev2" class="prev-panel"></div>
+      <div id="prev2" class="prev-panel">
+        <div id="p2-empty" class="p2-empty">
+          <div class="p2-empty-icon">◫</div>
+          <p>Añade capas para ver el stack aquí.</p>
+        </div>
+        <div id="p2-stack" class="stack-list" style="display:none;"></div>
+      </div><!-- /prev2 -->
 
       <!-- Preview paso 3 / resultado -->
       <div id="prev3" class="prev-panel"></div>
@@ -496,18 +680,35 @@
 const BASE_URL   = 'https://sergeam09.github.io/ara';
 const WORKER_URL = 'https://ara.sergeam09.workers.dev';
 
-// ── Estado global de la app ────────────────────────────────
+// ── Estado global ──────────────────────────────────────────
 const APP = {
   step:        1,
   nombre:      '',
-  modo:        'image',   // 'image' | 'surface'
+  modo:        'image',
   triggerFile: null,
   triggerExt:  'jpg',
-  triggerUrl:  null,      // blob URL cacheado
-  layers:      [],        // se llenará en paso 2
+  triggerUrl:  null,
+  layers:      [],
 };
 
 let proyectos = JSON.parse(localStorage.getItem('ara-proyectos') || '[]');
+
+// ── Definición de tipos de capa ────────────────────────────
+const LAYER_TYPES = {
+  video: { icon: '▶', label: 'Video',  accept: 'video/mp4,video/webm',            hint: 'MP4 · WEBM' },
+  image: { icon: '◈', label: 'Imagen', accept: 'image/jpeg,image/png,image/webp', hint: 'JPG · PNG · WEBP' },
+  gif:   { icon: '⟳', label: 'GIF',   accept: 'image/gif,image/webp',            hint: 'GIF · WEBP' },
+  model: { icon: '⬡', label: '3D',    accept: '.glb,.gltf',                      hint: 'GLB · GLTF' },
+  text:  { icon: 'T', label: 'Texto',  accept: null,                              hint: null },
+};
+
+const ANIMS = [
+  { key: 'fade',       label: 'Fade'       },
+  { key: 'scale',      label: 'Scale ↑'    },
+  { key: 'slide',      label: 'Slide'      },
+  { key: 'sequential', label: 'Secuencial' },
+  { key: 'none',       label: '—'          },
+];
 
 // ── Worker status ──────────────────────────────────────────
 (async () => {
@@ -523,7 +724,7 @@ let proyectos = JSON.parse(localStorage.getItem('ara-proyectos') || '[]');
   }
 })();
 
-// ── Drag & drop genérico ───────────────────────────────────
+// ── Drag & drop genérico (upzones del paso 1) ──────────────
 document.querySelectorAll('.upzone').forEach(z => {
   z.addEventListener('dragover',  e => { e.preventDefault(); z.classList.add('over'); });
   z.addEventListener('dragleave', () => z.classList.remove('over'));
@@ -531,21 +732,16 @@ document.querySelectorAll('.upzone').forEach(z => {
     e.preventDefault(); z.classList.remove('over');
     const inp = z.querySelector('input[type="file"]');
     if (inp && e.dataTransfer.files[0]) {
-      const dt = new DataTransfer();
-      dt.items.add(e.dataTransfer.files[0]);
-      inp.files = dt.files;
-      inp.dispatchEvent(new Event('change'));
+      const dt = new DataTransfer(); dt.items.add(e.dataTransfer.files[0]);
+      inp.files = dt.files; inp.dispatchEvent(new Event('change'));
     }
   });
 });
 
-// ── Nombre ────────────────────────────────────────────────
-function onNombreInput() {
-  validarStep1();
-  updatePreview1();
-}
+// ── PASO 1 ─────────────────────────────────────────────────
 
-// ── Modo AR ───────────────────────────────────────────────
+function onNombreInput() { validarStep1(); updatePreview1(); }
+
 function setModo(m) {
   APP.modo = m;
   document.querySelectorAll('[data-mode]').forEach(b =>
@@ -555,16 +751,12 @@ function setModo(m) {
   validarStep1();
 }
 
-// ── Trigger file ──────────────────────────────────────────
 function onTriggerChange(inp) {
-  const file = inp.files[0];
-  if (!file) return;
+  const file = inp.files[0]; if (!file) return;
   APP.triggerFile = file;
   APP.triggerExt  = file.name.split('.').pop().toLowerCase();
-  // Liberar URL anterior
   if (APP.triggerUrl) URL.revokeObjectURL(APP.triggerUrl);
   APP.triggerUrl = URL.createObjectURL(file);
-  // Feedback en la zona de upload
   const pr = document.getElementById('prTrigger');
   pr.style.display = 'block';
   pr.textContent   = `✓ ${file.name} (${fmt(file.size)})`;
@@ -572,12 +764,10 @@ function onTriggerChange(inp) {
   validarStep1();
 }
 
-// ── Validación paso 1 ─────────────────────────────────────
 function validarStep1() {
   const nombre = document.getElementById('pNombre').value.trim();
   const hint   = document.getElementById('nombreHint');
   let ok = true;
-
   if (nombre.length === 0) {
     hint.textContent = ''; hint.className = 'field-hint'; ok = false;
   } else if (!/^[a-zA-Z0-9_-]+$/.test(nombre)) {
@@ -588,14 +778,11 @@ function validarStep1() {
     hint.className   = 'field-hint ok';
     APP.nombre = nombre.toLowerCase();
   }
-
   if (APP.modo === 'image' && !APP.triggerFile) ok = false;
-
   document.getElementById('btnStep1').disabled = !ok;
   return ok;
 }
 
-// ── Preview derecha — paso 1 ──────────────────────────────
 function updatePreview1() {
   const nombre      = document.getElementById('pNombre').value.trim();
   const validNombre = nombre.length > 0 && /^[a-zA-Z0-9_-]+$/.test(nombre);
@@ -603,10 +790,10 @@ function updatePreview1() {
 
   if (APP.modo === 'image') {
     document.getElementById('p1-surface').style.display     = 'none';
-    const hasTrigger = !!APP.triggerFile;
-    document.getElementById('p1-placeholder').style.display = hasTrigger ? 'none' : 'flex';
-    document.getElementById('p1-trigger').style.display     = hasTrigger ? 'flex' : 'none';
-    if (hasTrigger) {
+    const has = !!APP.triggerFile;
+    document.getElementById('p1-placeholder').style.display = has ? 'none' : 'flex';
+    document.getElementById('p1-trigger').style.display     = has ? 'flex' : 'none';
+    if (has) {
       document.getElementById('p1-triggerImg').src = APP.triggerUrl;
       renderMeta('p1-meta-img', slug, 'Image Tracking');
     }
@@ -619,8 +806,7 @@ function updatePreview1() {
 }
 
 function renderMeta(containerId, slug, modo) {
-  const modeIcon  = modo === 'Image Tracking' ? '◈' : '⬡';
-  const layerCount = APP.layers.length;
+  const modeIcon = modo === 'Image Tracking' ? '◈' : '⬡';
   document.getElementById(containerId).innerHTML = `
     <div class="meta-row">
       <span class="meta-icon">◈</span>
@@ -640,29 +826,319 @@ function renderMeta(containerId, slug, modo) {
       <span class="meta-icon">◫</span>
       <div class="meta-body">
         <div class="meta-lbl">Capas</div>
-        <div class="meta-val">${layerCount} / 6 configuradas</div>
+        <div class="meta-val">${APP.layers.length} / 6 configuradas</div>
       </div>
     </div>`;
 }
 
-// ── Navegación entre pasos ────────────────────────────────
+// ── Navegación ─────────────────────────────────────────────
+
 function goToStep(n) {
   if (n === 2 && !validarStep1()) return;
-
   APP.step = n;
   document.querySelectorAll('.step-panel').forEach(p => p.classList.remove('active'));
   document.getElementById(`step${n}`).classList.add('active');
   document.querySelectorAll('.prev-panel').forEach(p => p.classList.remove('active'));
   document.getElementById(`prev${n}`).classList.add('active');
-
-  [1, 2, 3].forEach(i => {
+  [1,2,3].forEach(i => {
     const item = document.getElementById(`snav-${i}`);
     item.classList.remove('active', 'done');
-    if (i === n)     item.classList.add('active');
-    else if (i < n)  item.classList.add('done');
+    if (i === n)    item.classList.add('active');
+    else if (i < n) item.classList.add('done');
   });
   document.getElementById('track-12').classList.toggle('done', n > 1);
   document.getElementById('track-23').classList.toggle('done', n > 2);
+}
+
+// ── PASO 2 — Capas ─────────────────────────────────────────
+
+function newLayerData() {
+  return {
+    id:        'lyr_' + Date.now() + '_' + Math.floor(Math.random() * 9999),
+    type:      'video',
+    file:      null, fileExt: null, fileName: '',
+    text:      '', textColor: '#ffffff', textSize: 24,
+    posX:      0, posY: 0, scale: 1.0, opacity: 1.0,
+    animation: 'fade',
+    loop: true, autoplay: true,
+  };
+}
+
+function addLayer() {
+  if (APP.layers.length >= 6) return;
+  const layer = newLayerData();
+  APP.layers.push(layer);
+  renderLayerCard(layer, true);
+  syncStep2State();
+  updatePreview2();
+}
+
+function removeLayer(id) {
+  APP.layers = APP.layers.filter(l => l.id !== id);
+  document.getElementById('lcard-' + id)?.remove();
+  renumberLayers();
+  syncStep2State();
+  updatePreview2();
+}
+
+function renumberLayers() {
+  APP.layers.forEach((l, i) => {
+    const el = document.querySelector(`#lcard-${l.id} .layer-num`);
+    if (el) el.textContent = i + 1;
+  });
+}
+
+function moveLayer(id, dir) {
+  const idx = APP.layers.findIndex(l => l.id === id);
+  const next = idx + dir;
+  if (next < 0 || next >= APP.layers.length) return;
+  [APP.layers[idx], APP.layers[next]] = [APP.layers[next], APP.layers[idx]];
+  const listEl = document.getElementById('layerList');
+  listEl.innerHTML = '';
+  APP.layers.forEach(l => renderLayerCard(l, false));
+  renumberLayers();
+  updatePreview2();
+}
+
+function toggleLayerCard(id) {
+  document.getElementById('lcard-' + id)?.classList.toggle('open');
+}
+
+function renderLayerCard(layer, openByDefault) {
+  const listEl = document.getElementById('layerList');
+  const idx    = APP.layers.indexOf(layer);
+  const t      = LAYER_TYPES[layer.type];
+
+  const div = document.createElement('div');
+  div.className = 'layer-card' + (openByDefault ? ' open' : '');
+  div.id = 'lcard-' + layer.id;
+
+  const typeChips = Object.entries(LAYER_TYPES).map(([k, v], i) =>
+    `<button class="tchip${layer.type === k ? ' active' : ''}"
+       onclick="setLayerType('${layer.id}','${k}')">${v.icon} ${v.label}</button>`
+  ).join('');
+
+  const animChips = ANIMS.map(a =>
+    `<button class="achip${layer.animation === a.key ? ' active' : ''}"
+       onclick="setLayerAnim('${layer.id}','${a.key}')">${a.label}</button>`
+  ).join('');
+
+  div.innerHTML = `
+    <div class="layer-header" onclick="toggleLayerCard('${layer.id}')">
+      <div class="layer-num">${idx + 1}</div>
+      <span class="layer-type-icon">${t.icon}</span>
+      <div class="layer-fname empty" id="lfname-${layer.id}">Sin archivo</div>
+      <button class="lmove" onclick="event.stopPropagation();moveLayer('${layer.id}',-1)" title="Subir">↑</button>
+      <button class="lmove" onclick="event.stopPropagation();moveLayer('${layer.id}',1)"  title="Bajar">↓</button>
+      <button class="layer-del" onclick="event.stopPropagation();removeLayer('${layer.id}')" title="Eliminar">✕</button>
+      <span class="layer-chevron">▾</span>
+    </div>
+    <div class="layer-body">
+
+      <div>
+        <div class="llabel" style="margin-bottom:6px;">Tipo</div>
+        <div class="tchips" id="tchips-${layer.id}">${typeChips}</div>
+      </div>
+
+      <div id="lupload-${layer.id}">
+        <div class="upzone-mini" id="uzone-${layer.id}">
+          <input type="file" id="lfile-${layer.id}" accept="${t.accept || ''}"
+                 onchange="onLayerFile('${layer.id}',this)">
+          <div class="upmini-text"><strong>Arrastra o selecciona</strong><br>${t.hint || ''}</div>
+          <div class="upmini-prev" id="lfprev-${layer.id}"></div>
+        </div>
+      </div>
+
+      <div id="ltext-${layer.id}" style="display:none;flex-direction:column;gap:8px;">
+        <textarea class="layer-textarea"
+          placeholder="Escribe el texto que aparecerá en AR..."
+          oninput="updateLayerField('${layer.id}','text',this.value)">${layer.text}</textarea>
+        <div class="text-controls">
+          <span class="tclabel">Color</span>
+          <input type="color" class="tcinput" value="${layer.textColor}"
+                 oninput="updateLayerField('${layer.id}','textColor',this.value)">
+          <span class="tclabel" style="margin-left:6px;">Tamaño</span>
+          <input type="range" class="lslider" style="width:80px;flex:none;"
+                 min="12" max="72" step="2" value="${layer.textSize}"
+                 oninput="updateLayerField('${layer.id}','textSize',+this.value);this.nextElementSibling.textContent=this.value+'px'">
+          <span class="lval" style="width:38px;">${layer.textSize}px</span>
+        </div>
+      </div>
+
+      <div class="lrow">
+        <div class="llabel">Pos X</div>
+        <input type="range" class="lslider" min="-1" max="1" step="0.05" value="${layer.posX}"
+               oninput="updateLayerField('${layer.id}','posX',+this.value);this.nextElementSibling.textContent=(+this.value>=0?'+':'')+Number(this.value).toFixed(2)">
+        <div class="lval">${layer.posX >= 0 ? '+' : ''}${layer.posX.toFixed(2)}</div>
+      </div>
+
+      <div class="lrow">
+        <div class="llabel">Pos Y</div>
+        <input type="range" class="lslider" min="-1" max="1" step="0.05" value="${layer.posY}"
+               oninput="updateLayerField('${layer.id}','posY',+this.value);this.nextElementSibling.textContent=(+this.value>=0?'+':'')+Number(this.value).toFixed(2)">
+        <div class="lval">${layer.posY >= 0 ? '+' : ''}${layer.posY.toFixed(2)}</div>
+      </div>
+
+      <div class="lrow">
+        <div class="llabel">Escala</div>
+        <input type="range" class="lslider" min="0.1" max="3" step="0.05" value="${layer.scale}"
+               oninput="updateLayerField('${layer.id}','scale',+this.value);this.nextElementSibling.textContent=Number(this.value).toFixed(2)">
+        <div class="lval">${layer.scale.toFixed(2)}</div>
+      </div>
+
+      <div class="lrow">
+        <div class="llabel">Opacidad</div>
+        <input type="range" class="lslider" min="0" max="1" step="0.05" value="${layer.opacity}"
+               oninput="updateLayerField('${layer.id}','opacity',+this.value);this.nextElementSibling.textContent=Math.round(+this.value*100)+'%'">
+        <div class="lval">${Math.round(layer.opacity * 100)}%</div>
+      </div>
+
+      <div>
+        <div class="llabel" style="margin-bottom:6px;">Animación de entrada</div>
+        <div class="achips" id="achips-${layer.id}">${animChips}</div>
+      </div>
+
+    </div>`;
+
+  // Drag & drop en la mini upzone de esta capa
+  const uz = div.querySelector('.upzone-mini');
+  uz.addEventListener('dragover',  e => { e.preventDefault(); uz.classList.add('over'); });
+  uz.addEventListener('dragleave', () => uz.classList.remove('over'));
+  uz.addEventListener('drop', e => {
+    e.preventDefault(); uz.classList.remove('over');
+    const inp = uz.querySelector('input[type="file"]');
+    if (inp && e.dataTransfer.files[0]) {
+      const dt = new DataTransfer(); dt.items.add(e.dataTransfer.files[0]);
+      inp.files = dt.files; inp.dispatchEvent(new Event('change'));
+    }
+  });
+
+  listEl.appendChild(div);
+  syncLayerSections(layer.id, layer.type);
+}
+
+function setLayerType(id, type) {
+  const layer = APP.layers.find(l => l.id === id); if (!layer) return;
+  // Si cambia el tipo, limpiar archivo previo
+  if (layer.type !== type) {
+    layer.file = null; layer.fileExt = null; layer.fileName = '';
+    const inp = document.getElementById('lfile-' + id); if (inp) inp.value = '';
+    const pr  = document.getElementById('lfprev-' + id);
+    if (pr) { pr.style.display = 'none'; pr.textContent = ''; }
+    const fn  = document.getElementById('lfname-' + id);
+    if (fn) { fn.textContent = 'Sin archivo'; fn.classList.add('empty'); }
+  }
+  layer.type = type;
+
+  // Actualizar chips de tipo (por índice para evitar falsos matches de texto)
+  document.querySelectorAll(`#tchips-${id} .tchip`).forEach((b, i) =>
+    b.classList.toggle('active', Object.keys(LAYER_TYPES)[i] === type));
+
+  // Actualizar file input accept y hint
+  const t   = LAYER_TYPES[type];
+  const inp = document.getElementById('lfile-' + id); if (inp) inp.accept = t.accept || '';
+  const uzTxt = document.querySelector(`#uzone-${id} .upmini-text`);
+  if (uzTxt) uzTxt.innerHTML = t.hint
+    ? `<strong>Arrastra o selecciona</strong><br>${t.hint}`
+    : '';
+
+  // Actualizar icono en el header
+  const iconEl = document.querySelector(`#lcard-${id} .layer-type-icon`);
+  if (iconEl) iconEl.textContent = t.icon;
+
+  syncLayerSections(id, type);
+  syncStep2State();
+  updatePreview2();
+}
+
+function syncLayerSections(id, type) {
+  const upDiv   = document.getElementById('lupload-' + id);
+  const textDiv = document.getElementById('ltext-'   + id);
+  if (upDiv)   upDiv.style.display   = type === 'text' ? 'none'  : 'block';
+  if (textDiv) textDiv.style.display = type === 'text' ? 'flex'  : 'none';
+}
+
+function onLayerFile(id, inp) {
+  const file = inp.files[0]; if (!file) return;
+  const layer = APP.layers.find(l => l.id === id); if (!layer) return;
+  layer.file     = file;
+  layer.fileExt  = file.name.split('.').pop().toLowerCase();
+  layer.fileName = file.name;
+  const fn = document.getElementById('lfname-' + id);
+  if (fn) { fn.textContent = file.name; fn.classList.remove('empty'); }
+  const pr = document.getElementById('lfprev-' + id);
+  if (pr) { pr.style.display = 'block'; pr.textContent = `✓ ${file.name} (${fmt(file.size)})`; }
+  syncStep2State();
+  updatePreview2();
+}
+
+function updateLayerField(id, field, value) {
+  const layer = APP.layers.find(l => l.id === id);
+  if (layer) { layer[field] = value; updatePreview2(); }
+}
+
+function setLayerAnim(id, anim) {
+  const layer = APP.layers.find(l => l.id === id); if (!layer) return;
+  layer.animation = anim;
+  document.querySelectorAll(`#achips-${id} .achip`).forEach((b, i) =>
+    b.classList.toggle('active', ANIMS[i].key === anim));
+  updatePreview2();
+}
+
+function syncStep2State() {
+  const count    = APP.layers.length;
+  const label    = document.getElementById('layerCountLabel');
+  if (label) label.textContent = `( ${count} / 6 )`;
+  const addBtn   = document.getElementById('btnAddLayer');
+  if (addBtn) addBtn.disabled = count >= 6;
+  const hasContent = APP.layers.some(l =>
+    l.type === 'text' ? l.text.trim().length > 0 : l.file !== null);
+  const cont = document.getElementById('btnStep2');
+  if (cont) cont.disabled = !hasContent;
+  // Actualizar contador en preview paso 1
+  ['p1-meta-img', 'p1-meta-surf'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      const capasEl = el.querySelector('.meta-val:last-of-type');
+      if (capasEl && el.children.length >= 3) {
+        const rows = el.querySelectorAll('.meta-val');
+        if (rows[2]) rows[2].textContent = `${count} / 6 configuradas`;
+      }
+    }
+  });
+}
+
+const ANIM_LABELS = { fade:'Fade', scale:'Scale ↑', slide:'Slide', sequential:'Secuencial', none:'—' };
+
+function updatePreview2() {
+  const stack   = document.getElementById('p2-stack');
+  const empty   = document.getElementById('p2-empty');
+  if (!stack || !empty) return;
+
+  if (!APP.layers.length) {
+    empty.style.display = 'flex'; stack.style.display = 'none'; return;
+  }
+  empty.style.display = 'none'; stack.style.display = 'flex';
+
+  stack.innerHTML = APP.layers.map((l, i) => {
+    const type  = LAYER_TYPES[l.type];
+    const fname = l.type === 'text'
+      ? (l.text.trim().slice(0, 30) || 'Sin texto') + (l.text.length > 30 ? '…' : '')
+      : (l.fileName || 'Sin archivo');
+    const posStr = `X:${l.posX >= 0 ? '+' : ''}${l.posX.toFixed(1)} Y:${l.posY >= 0 ? '+' : ''}${l.posY.toFixed(1)}`;
+    const params = `${posStr} · ×${l.scale.toFixed(1)} · ${Math.round(l.opacity * 100)}%`;
+    return `
+      <div class="stack-item">
+        <div class="stack-num">${i + 1}</div>
+        <span class="stack-icon">${type.icon}</span>
+        <div class="stack-info">
+          <div class="stack-fname">${fname}</div>
+          <div class="stack-params">${params} <span class="stack-anim">· ${ANIM_LABELS[l.animation] || ''}</span></div>
+        </div>
+      </div>`;
+  }).join('');
+
+  syncStep2State();
 }
 
 // ── Projects list ─────────────────────────────────────────
@@ -671,8 +1147,7 @@ function renderProyectos() {
   document.getElementById('pCount').textContent =
     `${proyectos.length} proyecto${proyectos.length !== 1 ? 's' : ''}`;
   if (!proyectos.length) {
-    el.innerHTML = '<div class="plist-empty">Aún no hay proyectos publicados.</div>';
-    return;
+    el.innerHTML = '<div class="plist-empty">Aún no hay proyectos publicados.</div>'; return;
   }
   el.innerHTML = proyectos.map(p => `
     <div class="pitem" onclick="cargarProyecto('${p.slug}')">
@@ -689,15 +1164,13 @@ function renderProyectos() {
 
 function cargarProyecto(slug) {
   const p = proyectos.find(x => x.slug === slug);
-  if (p) toast(`"${p.nombre}" — abre el link o QR para editar`);
+  if (p) toast(`"${p.nombre}" — usa el link o QR para editar`);
 }
-
 function confirmarEliminar(slug) {
   const p = proyectos.find(x => x.slug === slug);
   if (!p || !confirm(`¿Eliminar "${p.nombre}" de GitHub y de la lista?`)) return;
   eliminarProyecto(slug);
 }
-
 async function eliminarProyecto(slug) {
   proyectos = proyectos.filter(p => p.slug !== slug);
   localStorage.setItem('ara-proyectos', JSON.stringify(proyectos));

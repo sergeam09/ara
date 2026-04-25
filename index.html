@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ARA 3.0 — Augmented Reality Atelier</title>
+  <title>ARA 4.0 — Augmented Reality Atelier</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>◈</text></svg>">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
@@ -12,7 +12,6 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <style>
     :root {
-      /* Paleta navy + lima */
       --navy:    #0d1117;
       --navy2:   #161b26;
       --navy3:   #1e2535;
@@ -26,9 +25,9 @@
       --muted:   #4a5370;
       --ok:      #42f58d;
       --err:     #ff4d4d;
-      --shadow:  0 8px 32px rgba(0,0,0,0.45);
+      --shadow:    0 8px 32px rgba(0,0,0,0.45);
       --shadow-sm: 0 4px 16px rgba(0,0,0,0.3);
-      --r:       16px;   /* border-radius base */
+      --r:       16px;
       --r-sm:    10px;
       --r-pill:  999px;
       --fd: 'Montserrat', sans-serif;
@@ -37,33 +36,21 @@
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     html, body { height: 100%; }
     body {
-      background: var(--navy);
-      color: var(--text);
-      font-family: var(--fd);
-      font-size: 13px;
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
+      background: var(--navy); color: var(--text);
+      font-family: var(--fd); font-size: 13px;
+      min-height: 100vh; display: flex; flex-direction: column;
     }
-
-    /* ── FONDO DECORATIVO ── */
     body::before {
-      content: '';
-      position: fixed;
-      top: -200px; right: -200px;
+      content: ''; position: fixed; top: -200px; right: -200px;
       width: 600px; height: 600px;
       background: radial-gradient(circle, rgba(200,245,66,0.06) 0%, transparent 70%);
-      pointer-events: none;
-      z-index: 0;
+      pointer-events: none; z-index: 0;
     }
     body::after {
-      content: '';
-      position: fixed;
-      bottom: -150px; left: -150px;
+      content: ''; position: fixed; bottom: -150px; left: -150px;
       width: 500px; height: 500px;
       background: radial-gradient(circle, rgba(245,166,35,0.05) 0%, transparent 70%);
-      pointer-events: none;
-      z-index: 0;
+      pointer-events: none; z-index: 0;
     }
 
     /* ── HEADER ── */
@@ -96,36 +83,24 @@
     .token-dot.err { background: var(--err); }
     .hd-status { font-size: 10px; color: var(--text2); font-family: var(--fm); }
 
-    /* ── MAIN LAYOUT — SOLUCIÓN DEFINITIVA ── */
+    /* ── LAYOUT ── */
     .wrap {
       max-width: 1280px; margin: 0 auto; padding: 28px 36px;
       flex: 1; width: 100%; position: relative; z-index: 1;
     }
     .cols {
       display: grid;
-      /* Columnas de ancho FIJO — nunca crecen sin importar el contenido */
-      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-      gap: 24px;
-      align-items: start;
-      /* El grid mismo nunca crece más allá del wrap */
-      width: 100%;
-      overflow: hidden;
+      grid-template-columns: minmax(0,1fr) minmax(0,1fr);
+      gap: 24px; align-items: start; width: 100%;
     }
-    /* CADA columna tiene ancho máximo absoluto y nunca puede expandirse */
-    .cols > * {
-      min-width: 0;
-      max-width: 100%;
-      overflow: hidden;
-      box-sizing: border-box;
-    }
-    .col-result { align-self: start; }
+    .cols > * { min-width: 0; max-width: 100%; overflow: hidden; box-sizing: border-box; }
+
+    /* ── CARD ── */
     .card {
       background: linear-gradient(145deg, var(--navy2) 0%, var(--navy3) 100%);
-      border: 1px solid var(--border);
-      border-radius: var(--r);
-      box-shadow: var(--shadow);
-      padding: 24px;
-      display: flex; flex-direction: column; gap: 18px;
+      border: 1px solid var(--border); border-radius: var(--r);
+      box-shadow: var(--shadow); padding: 24px;
+      display: flex; flex-direction: column; gap: 20px;
     }
     .card-title {
       font-size: 11px; font-weight: 700; letter-spacing: 0.18em;
@@ -134,29 +109,59 @@
     }
     .card-title::after { content: ''; flex: 1; height: 1px; background: var(--border); }
 
-    /* ── STEP HEADER ── */
-    .step-header { display: flex; align-items: center; gap: 10px; }
-    .step-num {
-      width: 24px; height: 24px; border-radius: 50%;
-      background: linear-gradient(135deg, var(--accent) 0%, #a8d820 100%);
-      color: var(--navy); font-size: 11px; font-weight: 800;
-      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
-      box-shadow: 0 2px 8px rgba(200,245,66,0.3);
+    /* ── STEP NAVIGATOR ── */
+    .steps-nav {
+      display: flex; align-items: flex-start;
+      padding-bottom: 20px; border-bottom: 1px solid var(--border);
     }
-    .step-title { font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text); }
-    .step-hint  { font-size: 10px; color: var(--muted); margin-left: auto; }
+    .snav-item {
+      display: flex; flex-direction: column; align-items: center; gap: 6px;
+      flex: 0 0 auto;
+    }
+    .snav-dot {
+      width: 30px; height: 30px; border-radius: 50%;
+      background: var(--navy); border: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px; font-weight: 800; color: var(--muted);
+      transition: all 0.3s;
+    }
+    .snav-item.active .snav-dot {
+      background: linear-gradient(135deg, var(--accent), #a8d820);
+      color: var(--navy); border-color: transparent;
+      box-shadow: 0 2px 10px rgba(200,245,66,0.35);
+    }
+    .snav-item.done .snav-dot {
+      background: rgba(200,245,66,0.1); color: var(--accent);
+      border-color: rgba(200,245,66,0.25);
+    }
+    .snav-label {
+      font-size: 9px; font-weight: 700; letter-spacing: 0.14em;
+      text-transform: uppercase; color: var(--muted);
+      transition: color 0.3s; white-space: nowrap;
+    }
+    .snav-item.active .snav-label { color: var(--accent); }
+    .snav-item.done  .snav-label  { color: var(--text2); }
+    .snav-track {
+      flex: 1; height: 1px; background: var(--border);
+      margin: 14px 10px 0; transition: background 0.4s;
+    }
+    .snav-track.done { background: rgba(200,245,66,0.3); }
+
+    /* ── STEP PANELS ── */
+    .step-panel { display: none; flex-direction: column; gap: 18px; }
+    .step-panel.active { display: flex; }
 
     /* ── FIELD ── */
     .field { display: flex; flex-direction: column; gap: 7px; }
     .field-label { font-size: 10px; color: var(--text2); letter-spacing: 0.12em; text-transform: uppercase; font-weight: 700; }
+    .field-hint  { font-size: 10px; color: var(--muted); font-family: var(--fm); }
+    .field-hint.ok  { color: var(--ok); }
+    .field-hint.err { color: var(--err); }
     .field input[type=text] {
-      width: 100%;
-      background: var(--navy);
-      border: 1px solid var(--border2);
-      color: var(--text);
+      width: 100%; background: var(--navy);
+      border: 1px solid var(--border2); color: var(--text);
       font-family: var(--fm); font-size: 13px;
-      padding: 12px 16px;
-      border-radius: var(--r-sm);
+      padding: 12px 16px; border-radius: var(--r-sm);
       outline: none; transition: all 0.2s;
     }
     .field input[type=text]:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(200,245,66,0.1); }
@@ -165,90 +170,43 @@
     /* ── MODE TABS ── */
     .mode-tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
     .mode-tab {
-      padding: 12px 8px; border: 1px solid var(--border);
+      padding: 14px 10px; border: 1px solid var(--border);
       background: var(--navy); color: var(--text2);
-      font-family: var(--fd); font-size: 10px; font-weight: 700;
-      letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer;
+      font-family: var(--fd); cursor: pointer;
       display: flex; flex-direction: column; align-items: center; gap: 5px;
-      border-radius: var(--r-sm); transition: all 0.2s;
+      border-radius: var(--r-sm); transition: all 0.2s; text-align: center;
     }
-    .mode-tab-icon { font-size: 16px; }
-    .mode-tab:hover { border-color: var(--border2); color: var(--text); background: var(--navy3); }
+    .mode-tab:hover { border-color: var(--border2); background: var(--navy3); }
     .mode-tab.active {
-      background: linear-gradient(135deg, rgba(200,245,66,0.15) 0%, rgba(200,245,66,0.05) 100%);
-      border-color: rgba(200,245,66,0.4);
-      color: var(--accent);
-      box-shadow: 0 0 12px rgba(200,245,66,0.1);
+      background: linear-gradient(135deg, rgba(200,245,66,0.12), rgba(200,245,66,0.04));
+      border-color: rgba(200,245,66,0.4); color: var(--accent);
+      box-shadow: 0 0 12px rgba(200,245,66,0.08);
     }
-
-    /* ── TYPE CHIPS ── */
-    .type-grid { display: grid; gap: 8px; }
-    .type-grid.cols-4 { grid-template-columns: repeat(4,1fr); }
-    .tbtn {
-      background: var(--navy); border: 1px solid var(--border);
-      color: var(--text2); font-family: var(--fd); font-size: 10px; font-weight: 600;
-      letter-spacing: 0.06em; text-transform: uppercase;
-      padding: 10px 4px; cursor: pointer; text-align: center;
-      border-radius: var(--r-sm); transition: all 0.2s;
-    }
-    .tbtn:hover { border-color: var(--border2); color: var(--text); background: var(--navy3); }
-    .tbtn.active {
-      background: linear-gradient(135deg, rgba(200,245,66,0.15) 0%, rgba(200,245,66,0.05) 100%);
-      border-color: rgba(200,245,66,0.35);
-      color: var(--accent);
-    }
-    .tbtn-icon { display: block; font-size: 15px; margin-bottom: 3px; }
+    .mode-tab-icon { font-size: 20px; }
+    .mode-tab-name { font-size: 11px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; }
+    .mode-tab-desc { font-size: 9px; color: var(--muted); line-height: 1.5; }
+    .mode-tab.active .mode-tab-desc { color: rgba(200,245,66,0.55); }
 
     /* ── UPZONE ── */
     .upzone {
-      border: 1.5px dashed var(--border2); padding: 20px; text-align: center;
+      border: 1.5px dashed var(--border2); padding: 22px 20px; text-align: center;
       cursor: pointer; transition: all 0.2s; position: relative;
       background: rgba(255,255,255,0.02); border-radius: var(--r-sm);
     }
     .upzone:hover, .upzone.over {
       border-color: var(--accent); background: rgba(200,245,66,0.04);
-      box-shadow: 0 0 16px rgba(200,245,66,0.08);
+      box-shadow: 0 0 16px rgba(200,245,66,0.06);
     }
-    .upzone input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; border-radius: var(--r-sm); }
-    .upicon { font-size: 20px; margin-bottom: 6px; display: block; }
-    .uptext { color: var(--text2); font-size: 11px; line-height: 1.7; }
+    .upzone input[type=file] {
+      position: absolute; inset: 0; opacity: 0; cursor: pointer;
+      width: 100%; height: 100%; border-radius: var(--r-sm);
+    }
+    .upicon  { font-size: 22px; margin-bottom: 7px; display: block; }
+    .uptext  { color: var(--text2); font-size: 11px; line-height: 1.8; }
     .uptext strong { color: var(--accent); font-weight: 600; }
-    .uppreview { margin-top: 8px; font-size: 11px; color: var(--accent2); display: none; font-family: var(--fm); }
+    .uppreview { margin-top: 9px; font-size: 11px; color: var(--accent2); display: none; font-family: var(--fm); }
 
-    /* ── DIM BOX ── */
-    .dim-box {
-      background: rgba(200,245,66,0.03);
-      border: 1px solid rgba(200,245,66,0.12);
-      border-radius: var(--r-sm); padding: 14px;
-    }
-    .dim-title { font-size: 9px; color: var(--muted); letter-spacing: 0.18em; text-transform: uppercase; margin-bottom: 10px; font-weight: 700; }
-    .dim-presets { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
-    .dim-preset {
-      background: var(--navy); border: 1px solid var(--border2); color: var(--text2);
-      font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase;
-      padding: 5px 12px; cursor: pointer; font-family: var(--fd); font-weight: 700;
-      border-radius: var(--r-pill); transition: all 0.2s;
-    }
-    .dim-preset:hover, .dim-preset.active { border-color: var(--accent); color: var(--accent); background: rgba(200,245,66,0.08); }
-    .dim-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
-    .dim-label { font-size: 10px; color: var(--text2); letter-spacing: 0.06em; text-transform: uppercase; width: 80px; flex-shrink: 0; font-weight: 600; }
-    .dim-input {
-      background: var(--navy); border: 1px solid var(--border2); color: var(--text);
-      font-family: var(--fm); font-size: 12px; padding: 7px 10px; width: 80px;
-      border-radius: var(--r-sm); outline: none; transition: border-color 0.2s;
-    }
-    .dim-input:focus { border-color: var(--accent); }
-    .dim-unit { font-size: 10px; color: var(--muted); }
-    .dim-note  { font-size: 9px; color: var(--muted); margin-top: 8px; line-height: 1.7; font-style: italic; }
-
-    /* ── INFO BOX ── */
-    .info-box {
-      background: rgba(200,245,66,0.05); border: 1px solid rgba(200,245,66,0.15);
-      border-radius: var(--r-sm); padding: 12px 14px; font-size: 11px;
-      color: var(--text2); line-height: 1.8;
-    }
-
-    /* ── BUTTONS ── */
+    /* ── BTN PRIMARY ── */
     .btn-primary {
       display: flex; align-items: center; justify-content: center; gap: 8px;
       width: 100%; padding: 14px 24px;
@@ -256,123 +214,76 @@
       color: var(--navy); font-family: var(--fd); font-size: 12px; font-weight: 800;
       letter-spacing: 0.1em; text-transform: uppercase;
       border: none; border-radius: var(--r-pill); cursor: pointer;
-      box-shadow: 0 4px 20px rgba(200,245,66,0.3);
-      transition: all 0.2s;
+      box-shadow: 0 4px 20px rgba(200,245,66,0.3); transition: all 0.2s;
     }
-    .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 24px rgba(200,245,66,0.4); }
-    .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+    .btn-primary:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 6px 24px rgba(200,245,66,0.4); }
+    .btn-primary:disabled { opacity: 0.35; cursor: not-allowed; transform: none; box-shadow: none; }
 
-    /* ── OUTPUT CARD — NUNCA SALE DE SU COLUMNA ── */
+    /* ── RIGHT / PREVIEW CARD ── */
     .out-card {
       background: linear-gradient(145deg, var(--navy2) 0%, var(--navy3) 100%);
-      border: 1px solid var(--border);
-      border-radius: var(--r);
-      box-shadow: var(--shadow);
-      padding: 24px;
-      display: flex; flex-direction: column; gap: 14px;
-      min-height: 320px;
-      align-self: start;
-      /* Estas tres líneas son las que resuelven el problema de forma permanente */
-      width: 100%;
-      min-width: 0;
-      overflow: hidden;
+      border: 1px solid var(--border); border-radius: var(--r);
+      box-shadow: var(--shadow); padding: 24px;
+      display: flex; flex-direction: column; gap: 16px;
+      width: 100%; min-width: 0; overflow: hidden; align-self: start;
     }
-    /* Todo hijo del out-card también respeta el ancho */
-    .out-card * {
-      max-width: 100%;
-      box-sizing: border-box;
-    }
-    /* Los textos largos se cortan con ellipsis, nunca empujan el ancho */
-    .out-card .linkdisplay,
-    .out-card .step-line,
-    .out-card .prog-msg {
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-    .out-card .step-line {
-      white-space: nowrap;
-    }
-    .out-empty {
-      padding: 48px 24px;
-      display: flex; flex-direction: column;
-      align-items: center; justify-content: center;
-      text-align: center; color: var(--muted); gap: 14px;
-    }
-    .out-empty-icon { font-size: 40px; opacity: 0.15; }
-    .out-empty p { font-size: 11px; line-height: 1.9; max-width: 220px; color: var(--text2); }
-    .out-content { display: none; flex-direction: column; gap: 14px; }
-    .out-content.visible { display: flex; }
+    .out-card * { max-width: 100%; box-sizing: border-box; }
 
-    /* ── PROGRESS ── */
-    .prog-wrap {
-      background: var(--navy); border: 1px solid var(--border);
-      border-radius: var(--r-sm); padding: 14px;
-    }
-    .prog-label { display: flex; justify-content: space-between; font-size: 10px; color: var(--text2); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 10px; font-weight: 700; }
-    .prog-bar { height: 3px; background: var(--border); border-radius: var(--r-pill); overflow: hidden; }
-    .prog-fill { height: 100%; background: linear-gradient(90deg, var(--accent), #a8d820); transition: width 0.35s; width: 0%; border-radius: var(--r-pill); }
-    .prog-msg { margin-top: 10px; font-size: 11px; color: var(--text2); font-family: var(--fm); }
-    .prog-msg.ok  { color: var(--ok); }
-    .prog-msg.err { color: var(--err); }
+    /* ── PREV PANELS ── */
+    .prev-panel { display: none; flex-direction: column; gap: 14px; }
+    .prev-panel.active { display: flex; }
 
-    .steps-log {
-      background: var(--navy); border: 1px solid var(--border);
-      border-radius: var(--r-sm); padding: 12px; font-size: 11px;
-      line-height: 2.1; display: none; max-height: 120px; overflow-y: auto;
-      font-family: var(--fm); overflow-x: hidden; word-break: break-all;
+    /* ── PASO 1 — PREVIEW ── */
+    .p1-placeholder {
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: center; text-align: center;
+      min-height: 240px; padding: 32px 24px; gap: 12px;
+      border: 1.5px dashed var(--border); border-radius: var(--r-sm);
     }
-    .steps-log.visible { display: block; }
-    .step-line { color: var(--muted); }
-    .step-line.ok  { color: var(--ok); }
-    .step-line.err { color: var(--err); }
-    .step-line.act { color: var(--accent2); }
+    .p1-placeholder-icon { font-size: 40px; opacity: 0.1; }
+    .p1-placeholder p { font-size: 11px; color: var(--text2); line-height: 1.9; max-width: 210px; }
 
-    /* ── QR + LINKS ── */
-    .result-grid { display: grid; grid-template-columns: 180px 1fr; gap: 14px; align-items: start; }
-    .qr-wrap {
-      background: #fff; padding: 10px;
-      border-radius: var(--r-sm);
-      display: flex; justify-content: center; align-items: center;
-      box-shadow: var(--shadow-sm); flex-shrink: 0;
+    .p1-img-wrap {
+      border-radius: var(--r-sm); overflow: hidden;
+      background: var(--navy); box-shadow: var(--shadow-sm); position: relative;
     }
-    .result-links { display: flex; flex-direction: column; gap: 10px; }
-    .link-section { display: flex; flex-direction: column; gap: 5px; }
-    .link-label { font-size: 9px; color: var(--muted); letter-spacing: 0.16em; text-transform: uppercase; font-weight: 700; }
-    .linkbox {
-      display: flex; background: var(--navy);
-      border: 1px solid var(--border); border-radius: var(--r-sm); overflow: hidden;
+    .p1-img-wrap img { width: 100%; display: block; object-fit: contain; max-height: 260px; }
+    .p1-img-badge {
+      position: absolute; top: 10px; left: 10px;
+      background: rgba(13,17,23,0.82); border: 1px solid var(--border);
+      border-radius: var(--r-pill); padding: 4px 10px;
+      font-size: 9px; font-weight: 700; letter-spacing: 0.12em;
+      text-transform: uppercase; color: var(--accent);
+      backdrop-filter: blur(4px);
     }
-    .linkdisplay {
-      flex: 1; padding: 9px 12px; font-size: 10px; color: var(--accent);
-      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-      font-family: var(--fm);
-    }
-    .linkdisplay.editor { color: var(--accent2); }
-    .btn-copy {
-      background: var(--navy3); border: none; color: var(--text2); font-family: var(--fd);
-      font-size: 10px; font-weight: 700; padding: 9px 12px; cursor: pointer;
-      transition: all 0.15s; white-space: nowrap; letter-spacing: 0.06em;
-      border-left: 1px solid var(--border);
-    }
-    .btn-copy:hover { color: var(--accent); background: rgba(200,245,66,0.08); }
 
-    /* ── ACTION ROW ── */
-    .action-row { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; }
-    .btn-act {
-      background: var(--navy); border: 1px solid var(--border); color: var(--text2);
-      font-family: var(--fd); font-size: 10px; font-weight: 700; letter-spacing: 0.06em;
-      text-transform: uppercase; padding: 10px 4px; cursor: pointer;
-      border-radius: var(--r-pill); transition: all 0.2s; text-align: center;
+    .meta-rows { display: flex; flex-direction: column; gap: 6px; }
+    .meta-row {
+      display: flex; align-items: center; gap: 10px;
+      padding: 9px 12px; background: var(--navy);
+      border: 1px solid var(--border); border-radius: var(--r-sm);
     }
-    .btn-act:hover { border-color: var(--accent); color: var(--accent); background: rgba(200,245,66,0.06); }
+    .meta-icon { font-size: 13px; flex-shrink: 0; width: 20px; text-align: center; }
+    .meta-body { flex: 1; min-width: 0; }
+    .meta-lbl { font-size: 9px; color: var(--muted); letter-spacing: 0.14em; text-transform: uppercase; font-weight: 700; }
+    .meta-val { font-size: 12px; color: var(--text); font-weight: 600; margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .meta-val.accent { color: var(--accent); font-family: var(--fm); }
+
+    .p1-surface-card {
+      display: flex; flex-direction: column; align-items: center;
+      text-align: center; padding: 36px 24px; gap: 10px;
+      border: 1px solid rgba(200,245,66,0.12); border-radius: var(--r-sm);
+      background: rgba(200,245,66,0.03);
+    }
+    .p1-surface-icon  { font-size: 44px; opacity: 0.35; }
+    .p1-surface-title { font-size: 13px; font-weight: 800; color: var(--accent); letter-spacing: 0.04em; }
+    .p1-surface-desc  { font-size: 11px; color: var(--text2); line-height: 1.8; max-width: 200px; }
 
     /* ── PROJECTS LIST ── */
     .plist-card {
-      background: linear-gradient(145deg, var(--navy2) 0%, var(--navy3) 100%);
+      background: linear-gradient(145deg, var(--navy2), var(--navy3));
       border: 1px solid var(--border); border-radius: var(--r);
-      box-shadow: var(--shadow-sm);
-      margin-top: 24px; overflow: hidden;
+      box-shadow: var(--shadow-sm); margin-top: 24px; overflow: hidden;
     }
     .plist-head {
       padding: 14px 24px; border-bottom: 1px solid var(--border);
@@ -389,11 +300,12 @@
     }
     .pitem:hover { border-color: var(--border2); background: var(--navy3); box-shadow: var(--shadow-sm); }
     .pdot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); flex-shrink: 0; }
-    .pdot.video         { background: #5b8def; box-shadow: 0 0 6px rgba(91,141,239,0.4); }
-    .pdot.gif           { background: var(--accent2); box-shadow: 0 0 6px rgba(245,166,35,0.4); }
-    .pdot.model         { background: #c471ed; box-shadow: 0 0 6px rgba(196,113,237,0.4); }
-    .pdot.audio         { background: #12c2e9; box-shadow: 0 0 6px rgba(18,194,233,0.4); }
-    .pdot.surface-model { background: #ed7148; box-shadow: 0 0 6px rgba(237,113,72,0.4); }
+    .pdot.video         { background: #5b8def; }
+    .pdot.gif           { background: var(--accent2); }
+    .pdot.model         { background: #c471ed; }
+    .pdot.audio         { background: #12c2e9; }
+    .pdot.surface-model { background: #ed7148; }
+    .pdot.layers        { background: var(--accent); box-shadow: 0 0 6px rgba(200,245,66,0.4); }
     .pname  { flex: 1; font-size: 12px; font-weight: 600; }
     .ptype  { font-size: 10px; color: var(--muted); letter-spacing: 0.1em; text-transform: uppercase; font-weight: 600; }
     .pdate  { font-size: 10px; color: var(--muted); font-family: var(--fm); }
@@ -407,7 +319,7 @@
     /* ── TOAST ── */
     .toast {
       position: fixed; bottom: 28px; right: 28px;
-      background: linear-gradient(135deg, var(--accent) 0%, #a8d820 100%);
+      background: linear-gradient(135deg, var(--accent), #a8d820);
       color: var(--navy); padding: 11px 20px; font-size: 11px; font-weight: 800;
       letter-spacing: 0.08em; border-radius: var(--r-pill);
       box-shadow: 0 4px 20px rgba(200,245,66,0.35);
@@ -416,12 +328,6 @@
     }
     .toast.show { transform: translateY(0); opacity: 1; }
 
-    /* ── VISIBILITY ── */
-    .mode-panel { display: none; }
-    .mode-panel.active { display: flex; flex-direction: column; gap: 16px; }
-    .cpanel { display: none; }
-    .cpanel.active { display: flex; flex-direction: column; gap: 10px; }
-
     /* ── SCROLLBAR ── */
     ::-webkit-scrollbar { width: 4px; }
     ::-webkit-scrollbar-track { background: var(--navy); }
@@ -429,9 +335,8 @@
 
     @media (max-width: 860px) {
       .wrap { padding: 20px; }
-      .cols { grid-template-columns: 1fr; gap: 16px; }
-      .type-grid.cols-4 { grid-template-columns: repeat(2,1fr); }
-      .result-grid { grid-template-columns: 1fr; }
+      .cols { grid-template-columns: 1fr; }
+      header { padding: 14px 20px; }
     }
   </style>
 </head>
@@ -442,7 +347,7 @@
     <div class="logo-mark">◈</div>
     <div>
       <div class="logo-text">ARA</div>
-      <div class="logo-sub">Augmented Reality Atelier</div>
+      <div class="logo-sub">Augmented Reality Atelier 4.0</div>
     </div>
   </div>
   <div class="hd-right">
@@ -456,190 +361,121 @@
 <div class="wrap">
   <div class="cols">
 
-    <!-- ══ FORM CARD ══ -->
+    <!-- ══ WIZARD CARD ══ -->
     <div class="card">
-      <div class="card-title">Nuevo proyecto AR</div>
 
-      <!-- Nombre -->
-      <div class="field">
-        <div class="field-label">Nombre del proyecto</div>
-        <input type="text" id="pNombre" placeholder="ej. mural-xalapa-2025">
-      </div>
-
-      <!-- Modo AR — 2 opciones -->
-      <div class="field">
-        <div class="field-label">Modo AR</div>
-        <div class="mode-tabs">
-          <button class="mode-tab active" data-mode="image" onclick="setModo('image')">
-            <span class="mode-tab-icon">◈</span>Image<br>Tracking
-          </button>
-          <button class="mode-tab" data-mode="surface" onclick="setModo('surface')">
-            <span class="mode-tab-icon">⬡</span>Surface<br>AR
-          </button>
+      <!-- Step navigator -->
+      <div class="steps-nav">
+        <div class="snav-item active" id="snav-1">
+          <div class="snav-dot">1</div>
+          <div class="snav-label">Proyecto</div>
+        </div>
+        <div class="snav-track" id="track-12"></div>
+        <div class="snav-item" id="snav-2">
+          <div class="snav-dot">2</div>
+          <div class="snav-label">Capas</div>
+        </div>
+        <div class="snav-track" id="track-23"></div>
+        <div class="snav-item" id="snav-3">
+          <div class="snav-dot">3</div>
+          <div class="snav-label">Publicar</div>
         </div>
       </div>
 
-      <!-- ══ IMAGE TRACKING ══ -->
-      <div id="mode-image" class="mode-panel active">
-        <div>
-          <div class="step-header">
-            <div class="step-num">1</div>
-            <div class="step-title">Imagen Trigger</div>
-            <div class="step-hint">La obra que activa el AR</div>
+      <!-- ── PASO 1 ── -->
+      <div id="step1" class="step-panel active">
+        <div class="card-title">Configura tu proyecto</div>
+
+        <!-- Nombre -->
+        <div class="field">
+          <div class="field-label">Nombre del proyecto</div>
+          <input type="text" id="pNombre" placeholder="ej: mural-xalapa-2025"
+                 autocomplete="off" spellcheck="false" oninput="onNombreInput()">
+          <div class="field-hint" id="nombreHint"></div>
+        </div>
+
+        <!-- Modo AR -->
+        <div class="field">
+          <div class="field-label">Modo AR</div>
+          <div class="mode-tabs">
+            <button class="mode-tab active" data-mode="image" onclick="setModo('image')">
+              <span class="mode-tab-icon">◈</span>
+              <span class="mode-tab-name">Image Tracking</span>
+              <span class="mode-tab-desc">Activa AR al apuntar a una imagen trigger</span>
+            </button>
+            <button class="mode-tab" data-mode="surface" onclick="setModo('surface')">
+              <span class="mode-tab-icon">⬡</span>
+              <span class="mode-tab-name">Surface AR</span>
+              <span class="mode-tab-desc">Ancla las capas al suelo o pared</span>
+            </button>
           </div>
-          <div class="upzone" style="margin-top:12px;">
-            <input type="file" id="fTrigger" accept="image/*">
+        </div>
+
+        <!-- Trigger — solo mode image -->
+        <div id="triggerSection" class="field">
+          <div class="field-label">Imagen trigger</div>
+          <div class="upzone" id="triggerZone">
+            <input type="file" id="fTrigger" accept="image/*" onchange="onTriggerChange(this)">
             <span class="upicon">◈</span>
-            <div class="uptext"><strong>Selecciona o arrastra la imagen trigger</strong><br>JPG · PNG · WEBP — mín. 300px</div>
+            <div class="uptext">
+              <strong>Arrastra o selecciona la imagen trigger</strong><br>
+              JPG · PNG · WEBP — mínimo 300 &times; 300 px
+            </div>
             <div class="uppreview" id="prTrigger"></div>
           </div>
         </div>
-        <div>
-          <div class="step-header">
-            <div class="step-num">2</div>
-            <div class="step-title">Contenido AR</div>
-            <div class="step-hint">Lo que aparece al escanear</div>
-          </div>
-          <div class="type-grid cols-4" style="margin-top:12px;">
-            <button class="tbtn active" data-type="video" onclick="setTipo('video')"><span class="tbtn-icon">▶</span>Video</button>
-            <button class="tbtn" data-type="gif" onclick="setTipo('gif')"><span class="tbtn-icon">◈</span>GIF</button>
-            <button class="tbtn" data-type="model" onclick="setTipo('model')"><span class="tbtn-icon">⬡</span>3D</button>
-            <button class="tbtn" data-type="audio" onclick="setTipo('audio')"><span class="tbtn-icon">♪</span>Audio</button>
-          </div>
-          <div style="margin-top:12px;">
-            <div id="cp-video" class="cpanel active">
-              <div class="upzone"><input type="file" id="fVideo" accept="video/*"><span class="upicon">▶</span><div class="uptext"><strong>Video MP4 o WEBM</strong><br>Recomendado &lt; 30 MB</div><div class="uppreview" id="prVideo"></div></div>
-              <div class="dim-box">
-                <div class="dim-title">Proporción</div>
-                <div class="dim-presets" id="videoPropPresets">
-                  <button class="dim-preset active" onclick="setProp('video',16,9)">16:9</button>
-                  <button class="dim-preset" onclick="setProp('video',1,1)">1:1</button>
-                  <button class="dim-preset" onclick="setProp('video',4,3)">4:3</button>
-                  <button class="dim-preset" onclick="setProp('video',9,16)">9:16</button>
-                </div>
-                <div class="dim-row"><span class="dim-label">Ancho obra</span><input type="number" class="dim-input" id="dimVideoW" placeholder="80" min="1" step="1"><span class="dim-unit">cm</span></div>
-                <div class="dim-row"><span class="dim-label">Alto obra</span><input type="number" class="dim-input" id="dimVideoH" placeholder="60" min="1" step="1"><span class="dim-unit">cm</span></div>
-              </div>
-            </div>
-            <div id="cp-gif" class="cpanel">
-              <div class="upzone"><input type="file" id="fGif" accept="image/gif,image/webp"><span class="upicon">◈</span><div class="uptext"><strong>GIF animado o WEBP</strong><br>Recomendado &lt; 10 MB</div><div class="uppreview" id="prGif"></div></div>
-              <div class="dim-box">
-                <div class="dim-title">Proporción</div>
-                <div class="dim-presets" id="gifPropPresets">
-                  <button class="dim-preset active" onclick="setProp('gif',1,1)">1:1</button>
-                  <button class="dim-preset" onclick="setProp('gif',16,9)">16:9</button>
-                  <button class="dim-preset" onclick="setProp('gif',4,3)">4:3</button>
-                  <button class="dim-preset" onclick="setProp('gif',9,16)">9:16</button>
-                </div>
-                <div class="dim-row"><span class="dim-label">Ancho obra</span><input type="number" class="dim-input" id="dimGifW" placeholder="50" min="1" step="1"><span class="dim-unit">cm</span></div>
-                <div class="dim-row"><span class="dim-label">Alto obra</span><input type="number" class="dim-input" id="dimGifH" placeholder="50" min="1" step="1"><span class="dim-unit">cm</span></div>
-              </div>
-            </div>
-            <div id="cp-model" class="cpanel">
-              <div class="upzone"><input type="file" id="fModel" accept=".glb,.gltf"><span class="upicon">⬡</span><div class="uptext"><strong>Modelo 3D — GLB o GLTF</strong><br>Anclado encima del trigger · &lt; 20 MB</div><div class="uppreview" id="prModel"></div></div>
-              <div class="dim-box">
-                <div class="dim-title">Escala inicial</div>
-                <div class="dim-presets" id="modelScalePresets">
-                  <button class="dim-preset" onclick="setModelScale('pequeno')">Pequeño</button>
-                  <button class="dim-preset active" onclick="setModelScale('mediano')">Mediano</button>
-                  <button class="dim-preset" onclick="setModelScale('grande')">Grande</button>
-                  <button class="dim-preset" onclick="setModelScale('real')">Real</button>
-                </div>
-                <div class="dim-row" id="modelRealDims" style="display:none;"><span class="dim-label">Alto máx</span><input type="number" class="dim-input" id="dimModelH" placeholder="30" min="1" step="1"><span class="dim-unit">cm</span></div>
-                <div class="dim-note">El modelo sigue al trigger en todo momento.</div>
-              </div>
-            </div>
-            <div id="cp-audio" class="cpanel">
-              <div class="upzone"><input type="file" id="fAudio" accept="audio/*"><span class="upicon">♪</span><div class="uptext"><strong>Audio MP3, WAV u OGG</strong></div><div class="uppreview" id="prAudio"></div></div>
-              <div class="field" style="margin-top:8px;"><div class="field-label">Imagen decorativa (opcional)</div><div class="upzone"><input type="file" id="fAudioImg" accept="image/*"><span class="upicon">🖼</span><div class="uptext"><strong>JPG o PNG</strong><br>Aparece al detectar el trigger</div></div></div>
-            </div>
-          </div>
-        </div>
-      </div><!-- /mode-image -->
 
-      <!-- ══ SURFACE AR ══ -->
-      <div id="mode-surface" class="mode-panel">
-        <div class="info-box">
-          <strong style="color:var(--accent)">Surface AR — modelos 3D</strong><br>
-          Sin trigger. El espectador apunta al suelo o pared y toca para anclar el modelo mediante ARKit / ARCore.
-        </div>
-        <div>
-          <div class="step-header">
-            <div class="step-num">1</div>
-            <div class="step-title">Modelo 3D</div>
-            <div class="step-hint">GLB o GLTF</div>
-          </div>
-          <div id="cp-surface-model" class="cpanel active" style="margin-top:12px;">
-            <div class="upzone"><input type="file" id="fSurfModel" accept=".glb,.gltf"><span class="upicon">⬡</span><div class="uptext"><strong>Modelo 3D — GLB o GLTF</strong><br>Se ancla a cualquier superficie plana · &lt; 20 MB</div><div class="uppreview" id="prSurfModel"></div></div>
-            <div class="dim-box">
-              <div class="dim-title">Escala del modelo</div>
-              <div class="dim-presets" id="surfModelPresets">
-                <button class="dim-preset" onclick="setSurfScale(0.1)">Mini</button>
-                <button class="dim-preset" onclick="setSurfScale(0.25)">Pequeño</button>
-                <button class="dim-preset active" onclick="setSurfScale(0.5)">Mediano</button>
-                <button class="dim-preset" onclick="setSurfScale(1)">Grande</button>
-                <button class="dim-preset" onclick="setSurfScale(2)">XL</button>
-              </div>
-              <div class="dim-row"><span class="dim-label">Escala exacta</span><input type="number" class="dim-input" id="dimSurfScale" value="0.5" min="0.01" max="5" step="0.05"><span class="dim-unit">× original</span></div>
-              <div class="dim-row"><span class="dim-label">Alto real</span><input type="number" class="dim-input" id="dimSurfH" placeholder="30" min="1" step="1"><span class="dim-unit">cm</span></div>
-            </div>
-          </div>
-        </div>
-      </div><!-- /mode-surface -->
+        <button class="btn-primary" id="btnStep1" onclick="goToStep(2)" disabled>
+          Continuar — Paso 2: Capas →
+        </button>
+      </div><!-- /step1 -->
 
-      <button class="btn-primary" id="btnGenerar" onclick="generarProyecto()">◈ Compilar y publicar</button>
-    </div><!-- /form card -->
+      <!-- ── PASO 2 (stub) ── -->
+      <div id="step2" class="step-panel"></div>
 
-    <!-- ══ OUTPUT CARD ══ -->
-    <div class="out-card col-result" id="outCard">
-      <div class="card-title">Resultado</div>
-      <div class="out-empty" id="outEmpty">
-        <div class="out-empty-icon">◈</div>
-        <p>Completa el formulario y ARA compilará y publicará todo automáticamente.</p>
-      </div>
-      <div class="out-content" id="outContent">
-        <div class="prog-wrap">
-          <div class="prog-label"><span id="progLabel">Procesando</span><span id="progPct">0%</span></div>
-          <div class="prog-bar"><div class="prog-fill" id="progFill"></div></div>
-          <div class="prog-msg" id="progMsg">Iniciando...</div>
-        </div>
-        <div class="steps-log" id="stepsLog"></div>
+      <!-- ── PASO 3 (stub) ── -->
+      <div id="step3" class="step-panel"></div>
 
-        <!-- QR público + QR editor lado a lado -->
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-          <div>
-            <div class="link-label" style="margin-bottom:6px;">QR Espectador</div>
-            <div class="qr-wrap"><div id="qrcode"></div></div>
-          </div>
-          <div>
-            <div class="link-label" style="margin-bottom:6px;">QR Editor</div>
-            <div class="qr-wrap"><div id="qrcode-editor"></div></div>
-          </div>
+    </div><!-- /wizard card -->
+
+    <!-- ══ PREVIEW CARD ══ -->
+    <div class="out-card">
+      <div class="card-title">Vista previa</div>
+
+      <!-- Preview paso 1 -->
+      <div id="prev1" class="prev-panel active">
+
+        <div id="p1-placeholder" class="p1-placeholder">
+          <div class="p1-placeholder-icon">◈</div>
+          <p>Ponle nombre al proyecto, elige el modo AR y sube la imagen trigger para continuar.</p>
         </div>
 
-        <!-- Links — texto corto + botón copiar -->
-        <div class="link-section">
-          <div class="link-label">Link del espectador</div>
-          <div class="linkbox">
-            <div class="linkdisplay" id="linkDisplay">—</div>
-            <button class="btn-copy" onclick="copiarLinkFull('espectador')">Copiar</button>
+        <div id="p1-trigger" style="display:none; flex-direction:column; gap:12px;">
+          <div class="p1-img-wrap">
+            <img id="p1-triggerImg" src="" alt="trigger preview">
+            <div class="p1-img-badge">Trigger</div>
           </div>
-        </div>
-        <div class="link-section">
-          <div class="link-label">Link de edición — solo para ti</div>
-          <div class="linkbox">
-            <div class="linkdisplay editor" id="linkEditor">—</div>
-            <button class="btn-copy" onclick="copiarLinkFull('editor')">Copiar</button>
-          </div>
+          <div class="meta-rows" id="p1-meta-img"></div>
         </div>
 
-        <div class="action-row">
-          <button class="btn-act" onclick="abrirViewer()">↗ Abrir</button>
-          <button class="btn-act" onclick="descargarQR('publico')">↓ QR Público</button>
-          <button class="btn-act" onclick="descargarQR('editor')">↓ QR Editor</button>
+        <div id="p1-surface" style="display:none; flex-direction:column; gap:12px;">
+          <div class="p1-surface-card">
+            <div class="p1-surface-icon">⬡</div>
+            <div class="p1-surface-title">Surface AR</div>
+            <div class="p1-surface-desc">Sin imagen trigger. Las capas se anclan al suelo o pared mediante ARKit / ARCore.</div>
+          </div>
+          <div class="meta-rows" id="p1-meta-surf"></div>
         </div>
-      </div>
-  </div><!-- /out-card -->
+
+      </div><!-- /prev1 -->
+
+      <!-- Preview paso 2 -->
+      <div id="prev2" class="prev-panel"></div>
+
+      <!-- Preview paso 3 / resultado -->
+      <div id="prev3" class="prev-panel"></div>
+
+    </div><!-- /out-card -->
 
   </div><!-- /cols -->
 
@@ -651,7 +487,8 @@
     </div>
     <div class="plist-body" id="pList"></div>
   </div>
-</div>
+
+</div><!-- /wrap -->
 
 <div class="toast" id="toast"></div>
 
@@ -659,19 +496,26 @@
 const BASE_URL   = 'https://sergeam09.github.io/ara';
 const WORKER_URL = 'https://ara.sergeam09.workers.dev';
 
-let tipoActual   = 'video';
-let modoActual   = 'image';
-let viewerUrlActual = null;
-let proyectos    = JSON.parse(localStorage.getItem('ara-proyectos') || '[]');
-let dimConfig    = { prop:'16:9', width:1, height:0.5625, scale:0.5 };
+// ── Estado global de la app ────────────────────────────────
+const APP = {
+  step:        1,
+  nombre:      '',
+  modo:        'image',   // 'image' | 'surface'
+  triggerFile: null,
+  triggerExt:  'jpg',
+  triggerUrl:  null,      // blob URL cacheado
+  layers:      [],        // se llenará en paso 2
+};
 
-// Worker status
+let proyectos = JSON.parse(localStorage.getItem('ara-proyectos') || '[]');
+
+// ── Worker status ──────────────────────────────────────────
 (async () => {
   try {
-    const r = await fetch(WORKER_URL, { method:'GET' });
+    const r = await fetch(WORKER_URL, { method: 'GET' });
     const dot = document.getElementById('tokenDot');
     const st  = document.getElementById('tokenStatus');
-    if (r.ok) { dot.classList.add('ok'); st.textContent = 'Worker conectado'; }
+    if (r.ok) { dot.classList.add('ok');  st.textContent = 'Worker conectado'; }
     else       { dot.classList.add('err'); st.textContent = 'Error ' + r.status; }
   } catch(e) {
     document.getElementById('tokenDot').classList.add('err');
@@ -679,277 +523,210 @@ let dimConfig    = { prop:'16:9', width:1, height:0.5625, scale:0.5 };
   }
 })();
 
-// Proporciones
-function setProp(tipo, w, h) {
-  const m=Math.max(w,h); dimConfig.width=parseFloat((w/m).toFixed(3)); dimConfig.height=parseFloat((h/m).toFixed(3)); dimConfig.prop=`${w}:${h}`;
-  const ids={video:'videoPropPresets',gif:'gifPropPresets'};
-  const pid=ids[tipo]; if(pid) document.getElementById(pid)?.querySelectorAll('.dim-preset').forEach(b=>b.classList.toggle('active',b.textContent===`${w}:${h}`));
-}
-function setModelScale(sz) {
-  const map={pequeno:0.2,mediano:0.5,grande:1,real:1}; dimConfig.scale=map[sz]||0.5;
-  document.getElementById('modelRealDims').style.display=sz==='real'?'flex':'none';
-  document.querySelectorAll('#modelScalePresets .dim-preset').forEach(b=>b.classList.toggle('active',b.onclick?.toString().includes(`'${sz}'`)));
-}
-function setSurfScale(val) {
-  dimConfig.scale=val; const inp=document.getElementById('dimSurfScale'); if(inp) inp.value=val;
-  document.querySelectorAll('#surfModelPresets .dim-preset').forEach(b=>b.classList.toggle('active',b.onclick?.toString().includes(`(${val})`)));
-}
-function getDimensions() {
-  const t=tipoActual; let width=dimConfig.width||1,height=dimConfig.height||1,scale=dimConfig.scale||0.5;
-  if(t==='video'){const cw=parseFloat(document.getElementById('dimVideoW')?.value),ch=parseFloat(document.getElementById('dimVideoH')?.value);if(cw>0&&ch>0){width=+(cw/100).toFixed(3);height=+(ch/100).toFixed(3);}}
-  else if(t==='gif'){const cw=parseFloat(document.getElementById('dimGifW')?.value),ch=parseFloat(document.getElementById('dimGifH')?.value);if(cw>0&&ch>0){width=+(cw/100).toFixed(3);height=+(ch/100).toFixed(3);}}
-  else if(t==='model'){const ch=parseFloat(document.getElementById('dimModelH')?.value);if(ch>0) scale=+(ch/100).toFixed(3);}
-  else if(t==='surface-model'){const ch=parseFloat(document.getElementById('dimSurfH')?.value);if(ch>0){scale=+(ch/100).toFixed(3);}else{const sc=parseFloat(document.getElementById('dimSurfScale')?.value);if(sc>0) scale=sc;}}
-  return {width,height,scale};
-}
-
-function setModo(m) {
-  modoActual=m;
-  document.querySelectorAll('[data-mode]').forEach(b=>b.classList.remove('active'));
-  document.querySelector(`[data-mode="${m}"]`).classList.add('active');
-  document.querySelectorAll('.mode-panel').forEach(p=>p.classList.remove('active'));
-  document.getElementById(`mode-${m}`).classList.add('active');
-  if(m==='image') setTipo('video');
-  else            setTipo('surface-model');
-}
-
-function setTipo(t) {
-  tipoActual=t;
-  document.querySelectorAll('[data-type],[data-stype]').forEach(b=>b.classList.remove('active'));
-  const btn=document.querySelector(`[data-type="${t}"]`)||document.querySelector(`[data-stype="${t}"]`);
-  if(btn) btn.classList.add('active');
-  document.querySelectorAll('.cpanel').forEach(p=>p.classList.remove('active'));
-  const panel=document.getElementById(`cp-${t}`); if(panel) panel.classList.add('active');
-}
-
-// Drag & drop + preview
-document.querySelectorAll('.upzone').forEach(z=>{
-  z.addEventListener('dragover',e=>{e.preventDefault();z.classList.add('over');});
-  z.addEventListener('dragleave',()=>z.classList.remove('over'));
-  z.addEventListener('drop',e=>{e.preventDefault();z.classList.remove('over');const inp=z.querySelector('input[type="file"]');if(inp&&e.dataTransfer.files[0]){const dt=new DataTransfer();dt.items.add(e.dataTransfer.files[0]);inp.files=dt.files;inp.dispatchEvent(new Event('change'));}});
-});
-[
-  ['fTrigger','prTrigger'],['fVideo','prVideo'],['fGif','prGif'],['fModel','prModel'],
-  ['fAudio','prAudio'],['fSurfModel','prSurfModel']
-].forEach(([id,pid])=>{
-  const el=document.getElementById(id); if(!el) return;
-  el.addEventListener('change',function(){const p=document.getElementById(pid);if(p&&this.files[0]){p.style.display='block';p.textContent=`✓ ${this.files[0].name} (${fmt(this.files[0].size)})`;} });
-});
-document.addEventListener('DOMContentLoaded',()=>{
-  const sc=document.getElementById('dimSurfScale');
-  if(sc) sc.addEventListener('input',function(){const v=parseFloat(this.value);if(v>0){dimConfig.scale=v;document.querySelectorAll('#surfModelPresets .dim-preset').forEach(b=>b.classList.remove('active'));}});
-});
-function fmt(b){if(b<1024)return b+'B';if(b<1048576)return(b/1024).toFixed(1)+'KB';return(b/1048576).toFixed(1)+'MB';}
-
-function logStep(msg,tipo=''){const log=document.getElementById('stepsLog');log.classList.add('visible');const l=document.createElement('div');l.className=`step-line ${tipo}`;l.textContent=msg;log.appendChild(l);log.scrollTop=log.scrollHeight;}
-function clearLog(){const log=document.getElementById('stepsLog');log.innerHTML='';log.classList.remove('visible');}
-function setProgress(pct,label,msg,status=''){document.getElementById('progFill').style.width=pct+'%';document.getElementById('progPct').textContent=pct+'%';document.getElementById('progLabel').textContent=label;const m=document.getElementById('progMsg');m.textContent=msg;m.className='prog-msg'+(status?' '+status:'');}
-
-async function githubUpload(path,content,msg){
-  const res=await fetch(WORKER_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({path,content,message:msg})});
-  if(!res.ok){let err;try{err=await res.json();}catch(e){err={};}throw new Error(err.error||`Error ${res.status}`);}
-  return res.json();
-}
-async function fileToBase64(file){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result.split(',')[1]);r.onerror=rej;r.readAsDataURL(file);});}
-function arrayBufferToBase64(buffer){const bytes=new Uint8Array(buffer);let bin='';for(let i=0;i<bytes.byteLength;i++)bin+=String.fromCharCode(bytes[i]);return btoa(bin);}
-
-async function waitForMINDAR(){
-  return new Promise(resolve=>{
-    if(window.MINDAR&&window.MINDAR.IMAGE&&window.MINDAR.IMAGE.Compiler){resolve();return;}
-    const check=setInterval(()=>{if(window.MINDAR&&window.MINDAR.IMAGE&&window.MINDAR.IMAGE.Compiler){clearInterval(check);resolve();}},100);
-    setTimeout(()=>{clearInterval(check);resolve();},12000);
-  });
-}
-async function compilarMind(imagenFile){
-  return new Promise((resolve,reject)=>{
-    const img=new Image();const url=URL.createObjectURL(imagenFile);
-    img.onload=async()=>{
-      try{URL.revokeObjectURL(url);const compiler=new MINDAR.IMAGE.Compiler();const canvas=document.createElement('canvas');canvas.width=img.width;canvas.height=img.height;canvas.getContext('2d').drawImage(img,0,0);
-      await compiler.compileImageTargets([canvas],p=>{setProgress(20+Math.round(p*0.4),'Compilando tracking',`Analizando imagen... ${Math.round(p)}%`);});
-      resolve(compiler.exportData());}catch(e){reject(e);}
-    };
-    img.onerror=()=>reject(new Error('No se pudo cargar la imagen trigger'));
-    img.src=url;
-  });
-}
-
-async function generarProyecto(){
-  const nombre=document.getElementById('pNombre').value.trim();
-  if(!nombre){toast('Ponle nombre al proyecto');return;}
-  if(!/^[a-zA-Z0-9_-]+$/.test(nombre)){toast('Solo letras, números y guiones');return;}
-
-  const isSurface=modoActual==='surface';
-
-  const fTrig=document.getElementById('fTrigger')?.files[0];
-  const fMap={video:'fVideo',gif:'fGif',model:'fModel',audio:'fAudio','surface-model':'fSurfModel'};
-  const fCont=document.getElementById(fMap[tipoActual])?.files[0];
-  const fAImg=document.getElementById('fAudioImg')?.files[0];
-
-  if(modoActual==='image'&&!fTrig){toast('Falta la imagen trigger (Paso 1)');return;}
-  if(!fCont){toast('Falta el archivo de contenido');return;}
-
-  const slug=nombre.toLowerCase();
-  const contentExt=fCont.name.split('.').pop().toLowerCase();
-  const triggerExt=fTrig?fTrig.name.split('.').pop().toLowerCase():'jpg';
-  const btn=document.getElementById('btnGenerar');
-  btn.disabled=true;btn.textContent='Procesando...';
-  // Mostrar progreso en el card de resultado
-  document.getElementById('outEmpty').style.display='none';
-  document.getElementById('outContent').classList.add('visible');
-  clearLog();
-
-  try{
-    const dims=getDimensions();
-
-    if(isSurface){
-      setProgress(50,'Subiendo',`Subiendo contenido.${contentExt}...`);
-      logStep(`◈ Subiendo contenido.${contentExt}...`,'act');
-      await githubUpload(`proyectos/${slug}/contenido.${contentExt}`,await fileToBase64(fCont),`ARA: contenido ${slug}`);
-      logStep('✓ contenido subido','ok');
-    } else {
-      logStep('◈ Cargando motor de tracking...','act');
-      setProgress(5,'Iniciando','Cargando MindAR...');
-      await waitForMINDAR();
-      logStep('◈ Compilando imagen trigger...','act');
-      setProgress(10,'Compilando tracking','Analizando imagen...');
-      const mindBuffer=await compilarMind(fTrig);
-      logStep('✓ Archivo .mind generado','ok');
-      setProgress(60,'Subiendo','Subiendo trigger...');
-      logStep('◈ Subiendo trigger...','act');
-      await githubUpload(`proyectos/${slug}/trigger.${triggerExt}`,await fileToBase64(fTrig),`ARA: trigger ${slug}`);
-      logStep('✓ trigger subido','ok');
-      setProgress(75,'Subiendo',`Subiendo contenido...`);
-      logStep(`◈ Subiendo contenido.${contentExt}...`,'act');
-      await githubUpload(`proyectos/${slug}/contenido.${contentExt}`,await fileToBase64(fCont),`ARA: contenido ${slug}`);
-      logStep('✓ contenido subido','ok');
-      setProgress(88,'Subiendo','Subiendo targets.mind...');
-      logStep('◈ Subiendo targets.mind...','act');
-      await githubUpload(`proyectos/${slug}/targets.mind`,arrayBufferToBase64(mindBuffer),`ARA: targets ${slug}`);
-      logStep('✓ targets.mind subido','ok');
+// ── Drag & drop genérico ───────────────────────────────────
+document.querySelectorAll('.upzone').forEach(z => {
+  z.addEventListener('dragover',  e => { e.preventDefault(); z.classList.add('over'); });
+  z.addEventListener('dragleave', () => z.classList.remove('over'));
+  z.addEventListener('drop', e => {
+    e.preventDefault(); z.classList.remove('over');
+    const inp = z.querySelector('input[type="file"]');
+    if (inp && e.dataTransfer.files[0]) {
+      const dt = new DataTransfer();
+      dt.items.add(e.dataTransfer.files[0]);
+      inp.files = dt.files;
+      inp.dispatchEvent(new Event('change'));
     }
+  });
+});
 
-    if(fAImg){logStep('◈ Subiendo imagen audio...','act');await githubUpload(`proyectos/${slug}/audio-img.jpg`,await fileToBase64(fAImg),`ARA: audio-img ${slug}`);logStep('✓ imagen audio subida','ok');}
+// ── Nombre ────────────────────────────────────────────────
+function onNombreInput() {
+  validarStep1();
+  updatePreview1();
+}
 
-    const initConfig={posX:0,posY:0,posZ:0.01,rotX:0,rotY:0,rotZ:0,preset:'vertical',scale:dims.scale,width:dims.width,height:dims.height,loop:true,autoplay:true,fade:false,animate:true};
-    try{await githubUpload(`proyectos/${slug}/config.json`,btoa(JSON.stringify(initConfig,null,2)),`ARA: config ${slug}`);logStep('✓ Configuración guardada','ok');}
-    catch(e){logStep('⚠ Config no guardada','');}
+// ── Modo AR ───────────────────────────────────────────────
+function setModo(m) {
+  APP.modo = m;
+  document.querySelectorAll('[data-mode]').forEach(b =>
+    b.classList.toggle('active', b.dataset.mode === m));
+  document.getElementById('triggerSection').style.display = m === 'image' ? 'flex' : 'none';
+  updatePreview1();
+  validarStep1();
+}
 
-    setProgress(100,'Publicado','✓ Experiencia AR disponible','ok');
-    logStep('✓ ¡Publicado en GitHub Pages!','ok');
+// ── Trigger file ──────────────────────────────────────────
+function onTriggerChange(inp) {
+  const file = inp.files[0];
+  if (!file) return;
+  APP.triggerFile = file;
+  APP.triggerExt  = file.name.split('.').pop().toLowerCase();
+  // Liberar URL anterior
+  if (APP.triggerUrl) URL.revokeObjectURL(APP.triggerUrl);
+  APP.triggerUrl = URL.createObjectURL(file);
+  // Feedback en la zona de upload
+  const pr = document.getElementById('prTrigger');
+  pr.style.display = 'block';
+  pr.textContent   = `✓ ${file.name} (${fmt(file.size)})`;
+  updatePreview1();
+  validarStep1();
+}
 
-    const viewerUrl=`${BASE_URL}/viewer.html?p=${slug}&t=${tipoActual}&ce=${contentExt}&te=${triggerExt}&w=${dims.width}&h=${dims.height}&sc=${dims.scale}`;
-    viewerUrlActual=viewerUrl;
+// ── Validación paso 1 ─────────────────────────────────────
+function validarStep1() {
+  const nombre = document.getElementById('pNombre').value.trim();
+  const hint   = document.getElementById('nombreHint');
+  let ok = true;
 
-    const proyecto={slug,nombre,tipo:tipoActual,contentExt,triggerExt,url:viewerUrl,creado:new Date().toLocaleDateString('es-MX')};
-    proyectos=proyectos.filter(p=>p.slug!==slug);proyectos.unshift(proyecto);
-    localStorage.setItem('ara-proyectos',JSON.stringify(proyectos));
-    mostrarOutput(viewerUrl);renderProyectos();toast('¡Publicado ✓');
-    const pN=document.getElementById('pNombre');pN.style.borderColor='var(--ok)';setTimeout(()=>{pN.style.borderColor='';},3000);
+  if (nombre.length === 0) {
+    hint.textContent = ''; hint.className = 'field-hint'; ok = false;
+  } else if (!/^[a-zA-Z0-9_-]+$/.test(nombre)) {
+    hint.textContent = 'Solo letras, números, guiones ( - ) y guiones bajos ( _ )';
+    hint.className   = 'field-hint err'; ok = false;
+  } else {
+    hint.textContent = `proyectos/${nombre.toLowerCase()}/`;
+    hint.className   = 'field-hint ok';
+    APP.nombre = nombre.toLowerCase();
+  }
 
-  }catch(e){
-    setProgress(0,'Error',e.message,'err');logStep(`✕ Error: ${e.message}`,'err');toast('Error: '+e.message);
-  }finally{
-    btn.disabled=false;btn.textContent='◈ Compilar y publicar';
+  if (APP.modo === 'image' && !APP.triggerFile) ok = false;
+
+  document.getElementById('btnStep1').disabled = !ok;
+  return ok;
+}
+
+// ── Preview derecha — paso 1 ──────────────────────────────
+function updatePreview1() {
+  const nombre      = document.getElementById('pNombre').value.trim();
+  const validNombre = nombre.length > 0 && /^[a-zA-Z0-9_-]+$/.test(nombre);
+  const slug        = validNombre ? nombre.toLowerCase() : '—';
+
+  if (APP.modo === 'image') {
+    document.getElementById('p1-surface').style.display     = 'none';
+    const hasTrigger = !!APP.triggerFile;
+    document.getElementById('p1-placeholder').style.display = hasTrigger ? 'none' : 'flex';
+    document.getElementById('p1-trigger').style.display     = hasTrigger ? 'flex' : 'none';
+    if (hasTrigger) {
+      document.getElementById('p1-triggerImg').src = APP.triggerUrl;
+      renderMeta('p1-meta-img', slug, 'Image Tracking');
+    }
+  } else {
+    document.getElementById('p1-placeholder').style.display = 'none';
+    document.getElementById('p1-trigger').style.display     = 'none';
+    document.getElementById('p1-surface').style.display     = 'flex';
+    renderMeta('p1-meta-surf', slug, 'Surface AR');
   }
 }
 
-// URLs completas guardadas para QR (nunca usar las acortadas en QR)
-let fullUrlEspectador = '';
-let fullUrlEditor = '';
+function renderMeta(containerId, slug, modo) {
+  const modeIcon  = modo === 'Image Tracking' ? '◈' : '⬡';
+  const layerCount = APP.layers.length;
+  document.getElementById(containerId).innerHTML = `
+    <div class="meta-row">
+      <span class="meta-icon">◈</span>
+      <div class="meta-body">
+        <div class="meta-lbl">Proyecto</div>
+        <div class="meta-val accent">${slug}</div>
+      </div>
+    </div>
+    <div class="meta-row">
+      <span class="meta-icon">${modeIcon}</span>
+      <div class="meta-body">
+        <div class="meta-lbl">Modo AR</div>
+        <div class="meta-val">${modo}</div>
+      </div>
+    </div>
+    <div class="meta-row">
+      <span class="meta-icon">◫</span>
+      <div class="meta-body">
+        <div class="meta-lbl">Capas</div>
+        <div class="meta-val">${layerCount} / 6 configuradas</div>
+      </div>
+    </div>`;
+}
 
-async function mostrarOutput(url){
-  const urlE = url.replace('&edit=1','');
-  const urlEd = urlE + '&edit=1';
-  fullUrlEspectador = urlE;
-  fullUrlEditor     = urlEd;
+// ── Navegación entre pasos ────────────────────────────────
+function goToStep(n) {
+  if (n === 2 && !validarStep1()) return;
 
-  document.getElementById('outEmpty').style.display='none';
-  document.getElementById('outContent').classList.add('visible');
+  APP.step = n;
+  document.querySelectorAll('.step-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById(`step${n}`).classList.add('active');
+  document.querySelectorAll('.prev-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById(`prev${n}`).classList.add('active');
 
-  // Mostrar URL completa mientras se acorta
-  document.getElementById('linkDisplay').textContent = urlE;
-  document.getElementById('linkEditor').textContent  = urlEd;
+  [1, 2, 3].forEach(i => {
+    const item = document.getElementById(`snav-${i}`);
+    item.classList.remove('active', 'done');
+    if (i === n)     item.classList.add('active');
+    else if (i < n)  item.classList.add('done');
+  });
+  document.getElementById('track-12').classList.toggle('done', n > 1);
+  document.getElementById('track-23').classList.toggle('done', n > 2);
+}
 
-  // Generar ambos QR con URL completa
-  document.getElementById('qrcode').innerHTML = '';
-  new QRCode(document.getElementById('qrcode'),{text:urlE,width:130,height:130,colorDark:'#0d1117',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.H});
-  document.getElementById('qrcode-editor').innerHTML = '';
-  new QRCode(document.getElementById('qrcode-editor'),{text:urlEd,width:130,height:130,colorDark:'#0d1117',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.H});
-
-  viewerUrlActual = urlE;
-
-  // Acortar via Worker (is.gd servidor a servidor — sin CORS)
-  async function acortarViaWorker(u) {
-    try {
-      const r = await fetch(WORKER_URL, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: u })
-      });
-      if (r.ok) {
-        const d = await r.json();
-        if (d.short && d.short.startsWith('http')) return d.short;
-      }
-    } catch(e) {}
-    return u; // fallback: URL original
+// ── Projects list ─────────────────────────────────────────
+function renderProyectos() {
+  const el = document.getElementById('pList');
+  document.getElementById('pCount').textContent =
+    `${proyectos.length} proyecto${proyectos.length !== 1 ? 's' : ''}`;
+  if (!proyectos.length) {
+    el.innerHTML = '<div class="plist-empty">Aún no hay proyectos publicados.</div>';
+    return;
   }
-
-  acortarViaWorker(urlE).then(s  => { document.getElementById('linkDisplay').textContent = s; });
-  acortarViaWorker(urlEd).then(s => { document.getElementById('linkEditor').textContent  = s; });
-}
-
-// Copiar siempre la URL completa, no la acortada
-function copiarLinkFull(tipo) {
-  const url = tipo === 'editor' ? fullUrlEditor : fullUrlEspectador;
-  if (!url) return;
-  navigator.clipboard.writeText(url);
-  toast('Link copiado ✓');
-}
-function copiarLink(id){navigator.clipboard.writeText(document.getElementById(id)?.textContent||'');toast('Link copiado ✓');}
-function abrirViewer(){if(viewerUrlActual)window.open(viewerUrlActual,'_blank');}
-function descargarQR(tipo){
-  const url = tipo==='editor' ? fullUrlEditor : fullUrlEspectador;
-  if(!url)return;
-  const tmp=document.createElement('div');tmp.style.cssText='position:fixed;left:-9999px;top:-9999px;background:#fff;padding:16px;';
-  document.body.appendChild(tmp);
-  new QRCode(tmp,{text:url,width:256,height:256,colorDark:'#0d1117',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.H});
-  setTimeout(()=>{const c=tmp.querySelector('canvas');if(c){const a=document.createElement('a');a.download=`ara-qr-${tipo}.png`;a.href=c.toDataURL();a.click();}tmp.remove();toast(`QR ${tipo} descargado ✓`);},300);
-}
-
-function renderProyectos(){
-  const el=document.getElementById('pList');
-  document.getElementById('pCount').textContent=`${proyectos.length} proyecto${proyectos.length!==1?'s':''}`;
-  if(!proyectos.length){el.innerHTML='<div class="plist-empty">Aún no hay proyectos publicados.</div>';return;}
-  el.innerHTML=proyectos.map(p=>`
+  el.innerHTML = proyectos.map(p => `
     <div class="pitem" onclick="cargarProyecto('${p.slug}')">
-      <div class="pdot ${p.tipo}"></div>
+      <div class="pdot ${p.tipo || 'layers'}"></div>
       <div class="pname">${p.nombre}</div>
-      <div class="ptype">${p.tipo}</div>
-      <div class="pdate">${p.creado||''}</div>
+      <div class="ptype">${p.tipo || 'capas'}</div>
+      <div class="pdate">${p.creado || ''}</div>
       <div class="pactions">
         <button class="pact" onclick="event.stopPropagation();navigator.clipboard.writeText('${p.url}');toast('Copiado ✓')" title="Copiar">⎘</button>
         <button class="pact del" onclick="event.stopPropagation();confirmarEliminar('${p.slug}')" title="Eliminar">✕</button>
       </div>
     </div>`).join('');
 }
-function cargarProyecto(slug){
-  const p=proyectos.find(x=>x.slug===slug);
-  if(p){
-    viewerUrlActual=p.url;
-    mostrarOutput(p.url);
-  }
+
+function cargarProyecto(slug) {
+  const p = proyectos.find(x => x.slug === slug);
+  if (p) toast(`"${p.nombre}" — abre el link o QR para editar`);
 }
-function confirmarEliminar(slug){const p=proyectos.find(x=>x.slug===slug);if(!p)return;if(!confirm(`¿Eliminar "${p.nombre}" de GitHub y de la lista?`))return;eliminarProyecto(slug);}
-async function eliminarProyecto(slug){
-  proyectos=proyectos.filter(p=>p.slug!==slug);localStorage.setItem('ara-proyectos',JSON.stringify(proyectos));renderProyectos();toast('Eliminando de GitHub...');
-  try{
-    const res=await fetch(WORKER_URL,{method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({slug})});
-    if(!res.ok){const err=await res.json();throw new Error(err.error||`Error ${res.status}`);}
-    const data=await res.json();const n=data.deleted?.length||0;
-    toast(n>0?`✓ "${slug}" eliminado (${n} archivos)`:`"${slug}" eliminado de la lista`);
-  }catch(e){toast(`Eliminado de lista — error: ${e.message}`);}
+
+function confirmarEliminar(slug) {
+  const p = proyectos.find(x => x.slug === slug);
+  if (!p || !confirm(`¿Eliminar "${p.nombre}" de GitHub y de la lista?`)) return;
+  eliminarProyecto(slug);
 }
-function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500);}
+
+async function eliminarProyecto(slug) {
+  proyectos = proyectos.filter(p => p.slug !== slug);
+  localStorage.setItem('ara-proyectos', JSON.stringify(proyectos));
+  renderProyectos(); toast('Eliminando de GitHub...');
+  try {
+    const res = await fetch(WORKER_URL, {
+      method: 'DELETE', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ slug })
+    });
+    if (!res.ok) { const err = await res.json(); throw new Error(err.error || `Error ${res.status}`); }
+    const data = await res.json();
+    const n = data.deleted?.length || 0;
+    toast(n > 0 ? `✓ "${slug}" eliminado (${n} archivos)` : `"${slug}" eliminado de la lista`);
+  } catch(e) { toast(`Eliminado de lista — ${e.message}`); }
+}
+
+// ── Utils ─────────────────────────────────────────────────
+function fmt(b) {
+  if (b < 1024) return b + ' B';
+  if (b < 1048576) return (b / 1024).toFixed(1) + ' KB';
+  return (b / 1048576).toFixed(1) + ' MB';
+}
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// ── Init ──────────────────────────────────────────────────
 renderProyectos();
 </script>
 </body>

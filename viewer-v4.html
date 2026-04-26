@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ARA 4.0 — AR Viewer</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>◈</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+  <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
+
+  <style>
+    :root {
+      --bg: #0a0a0a;
+      --accent: #e63329;
+      --accent2: #ff5a4d;
+      --text: #ffffff;
+      --fd: 'Montserrat', sans-serif;
+    }
+
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: var(--fd);
+      background: var(--bg);
+      color: var(--text);
+      overflow: hidden;
+    }
+
+    /* ── START SCREEN ── */
+    #startScreen {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: var(--bg);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      transition: opacity 0.5s ease;
+    }
+
+    #startScreen.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .logo-section {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .logo-mark {
+      width: 48px;
+      height: 48px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      font-weight: 900;
+      box-shadow: 0 4px 20px rgba(230, 51, 41, 0.4);
+    }
+
+    .logo-text {
+      font-size: 28px;
+      font-weight: 900;
+      letter-spacing: -0.02em;
+    }
+
+    .project-name {
+      font-size: 20px;
+      margin-bottom: 48px;
+      opacity: 0.8;
+      text-align: center;
+      max-width: 300px;
+      line-height: 1.4;
+    }
+
+    .btn-start {
+      background: var(--accent);
+      color: white;
+      border: none;
+      padding: 18px 36px;
+      border-radius: 12px;
+      font-family: var(--fd);
+      font-size: 16px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      cursor: pointer;
+      transition: all 0.3s;
+      box-shadow: 0 4px 20px rgba(230, 51, 41, 0.3);
+    }
+
+    .btn-start:hover {
+      background: var(--accent2);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 24px rgba(230, 51, 41, 0.4);
+    }
+
+    .loading {
+      margin-top: 24px;
+      font-size: 14px;
+      opacity: 0.6;
+      display: none;
+    }
+
+    /* ── AR SCENE ── */
+    #arScene {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: none;
+    }
+
+    /* ── ERROR SCREEN ── */
+    .error-screen {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: var(--bg);
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      padding: 24px;
+      text-align: center;
+    }
+
+    .error-icon {
+      font-size: 48px;
+      margin-bottom: 16px;
+      opacity: 0.6;
+    }
+
+    .error-title {
+      font-size: 20px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .error-message {
+      font-size: 14px;
+      opacity: 0.7;
+      line-height: 1.5;
+      max-width: 400px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ── START SCREEN ── -->
+  <div id="startScreen">
+    <div class="logo-section">
+      <div class="logo-mark">◈</div>
+      <div class="logo-text">ARA</div>
+    </div>
+    <div class="project-name" id="projectName">Cargando proyecto...</div>
+    <button class="btn-start" id="btnStart" onclick="startAR()">◈ Iniciar AR</button>
+    <div class="loading" id="loadingText">Cargando configuración...</div>
+  </div>
+
+  <!-- ── ERROR SCREEN ── -->
+  <div class="error-screen" id="errorScreen">
+    <div class="error-icon">⚠</div>
+    <div class="error-title">Error al cargar proyecto</div>
+    <div class="error-message" id="errorMessage">No se pudo encontrar el proyecto solicitado.</div>
+  </div>
+
+  <!-- ── AR SCENE ── -->
+  <a-scene
+    id="arScene"
+    mindar-image="imageTargetSrc: ; filterMinCF: 0.0001; filterBeta: 0.001;"
+    color-space="sRGB"
+    renderer="colorManagement: true, physicallyCorrectLights: true"
+    vr-mode-ui="enabled: false"
+    device-orientation-permission-ui="enabled: false">
+
+    <a-assets id="assets">
+      <!-- Dynamic assets will be loaded here -->
+    </a-assets>
+
+    <a-camera
+      position="0 0 0"
+      look-controls="enabled: false"
+      cursor="fuse: false; rayOrigin: mouse;"
+      raycaster="far: 10000; objects: .clickable">
+    </a-camera>
+
+    <a-entity id="arTarget" mindar-image-target="targetIndex: 0">
+      <!-- Dynamic layer entities will be added here -->
+    </a-entity>
+
+  </a-scene>
+
+  <script>
+    // ── CONSTANTS ──
+    const BASE_URL = 'https://sergeam09.github.io/ara';
+    const WORKER_URL = 'https://ara.sergeam09.workers.dev';
+
+    // ── GLOBAL STATE ──
+    let projectSlug = null;
+    let config = null;
+    let arStarted = false;
+
+    // ── INITIALIZATION ──
+    document.addEventListener('DOMContentLoaded', init);
+
+    async function init() {
+      try {
+        // Get project slug from URL
+        const urlParams = new URLSearchParams(window.location.search);
+        projectSlug = urlParams.get('p');
+
+        if (!projectSlug) {
+          showError('Proyecto no especificado', 'Usa el enlace completo del proyecto.');
+          return;
+        }
+
+        // Load project config
+        await loadProjectConfig();
+
+        // Update project name in UI
+        document.getElementById('projectName').textContent = projectSlug.replace(/-/g, ' ').toUpperCase();
+
+      } catch (error) {
+        console.error('Error en inicialización:', error);
+        showError('Error de carga', error.message);
+      }
+    }
+
+    async function loadProjectConfig() {
+      try {
+        const response = await fetch(`${WORKER_URL}?config=${projectSlug}&v=${Date.now()}`);
+
+        if (!response.ok) {
+          throw new Error(`Proyecto no encontrado (${response.status})`);
+        }
+
+        config = await response.json();
+
+        if (!config || !config.capas || config.capas.length === 0) {
+          throw new Error('Configuración del proyecto inválida');
+        }
+
+      } catch (error) {
+        throw new Error(`No se pudo cargar la configuración: ${error.message}`);
+      }
+    }
+
+    async function startAR() {
+      if (arStarted || !config) return;
+
+      try {
+        arStarted = true;
+
+        // Show loading
+        document.getElementById('btnStart').style.display = 'none';
+        document.getElementById('loadingText').style.display = 'block';
+
+        // Setup A-Frame scene
+        await setupARScene();
+
+        // Hide start screen and show AR
+        document.getElementById('startScreen').classList.add('hidden');
+        setTimeout(() => {
+          document.getElementById('startScreen').style.display = 'none';
+          document.getElementById('arScene').style.display = 'block';
+        }, 500);
+
+      } catch (error) {
+        console.error('Error al iniciar AR:', error);
+        showError('Error de AR', `No se pudo iniciar la experiencia AR: ${error.message}`);
+        arStarted = false;
+        document.getElementById('btnStart').style.display = 'block';
+        document.getElementById('loadingText').style.display = 'none';
+      }
+    }
+
+    async function setupARScene() {
+      const scene = document.getElementById('arScene');
+      const assets = document.getElementById('assets');
+      const target = document.getElementById('arTarget');
+
+      // Set MindAR target file
+      const mindUrl = `${BASE_URL}/proyectos/${projectSlug}/${config.mind}`;
+      scene.setAttribute('mindar-image', `imageTargetSrc: ${mindUrl}; filterMinCF: 0.0001; filterBeta: 0.001;`);
+
+      // Load assets and create entities for each layer
+      for (let i = 0; i < config.capas.length; i++) {
+        const capa = config.capas[i];
+        await createLayerEntity(capa, i, assets, target);
+      }
+    }
+
+    async function createLayerEntity(capa, index, assets, target) {
+      const entity = document.createElement('a-entity');
+      entity.id = `layer-${index}`;
+
+      // Calculate position with smoothing offset
+      const posX = (capa.posX || 0) * 0.1; // Scale down for AR space
+      const posY = (capa.posY || 0) * 0.1;
+      const posZ = (capa.posZ || 0.01) + (index * 0.001); // Prevent z-fighting
+
+      switch (capa.tipo) {
+        case 'video':
+          await setupVideoEntity(entity, capa, assets);
+          break;
+
+        case 'image':
+        case 'gif':
+          await setupImageEntity(entity, capa, assets);
+          break;
+
+        case 'texto':
+          setupTextEntity(entity, capa);
+          break;
+
+        case 'glb':
+          await setupGLBEntity(entity, capa, assets);
+          break;
+
+        default:
+          setupDefaultEntity(entity, capa);
+      }
+
+      // Set common properties
+      entity.setAttribute('position', `${posX} ${posY} ${posZ}`);
+      entity.setAttribute('scale', `${capa.escala || 1} ${capa.escala || 1} ${capa.escala || 1}`);
+
+      // Apply opacity
+      if (capa.opacidad !== undefined && capa.opacidad < 1) {
+        entity.setAttribute('material', `transparent: true; opacity: ${capa.opacidad}`);
+      }
+
+      // Setup entrance animation
+      setupEntranceAnimation(entity, capa, index);
+
+      // Add position smoothing
+      entity.setAttribute('animation-mixer', 'loop: repeat');
+
+      target.appendChild(entity);
+    }
+
+    async function setupVideoEntity(entity, capa, assets) {
+      const videoId = `video-${capa.id}`;
+      const videoUrl = `${BASE_URL}/proyectos/${projectSlug}/${capa.archivo}`;
+
+      // Create video asset
+      const videoAsset = document.createElement('video');
+      videoAsset.id = videoId;
+      videoAsset.src = videoUrl;
+      videoAsset.setAttribute('playsinline', '');
+      videoAsset.setAttribute('webkit-playsinline', '');
+      videoAsset.loop = capa.loop !== false;
+      videoAsset.muted = true;
+      assets.appendChild(videoAsset);
+
+      // Create plane geometry with video material
+      entity.setAttribute('geometry', 'primitive: plane; width: 1; height: 0.75');
+      entity.setAttribute('material', `src: #${videoId}; transparent: true`);
+
+      // Auto-play when visible
+      entity.addEventListener('targetFound', () => {
+        videoAsset.play();
+      });
+
+      entity.addEventListener('targetLost', () => {
+        videoAsset.pause();
+      });
+    }
+
+    async function setupImageEntity(entity, capa, assets) {
+      const imageUrl = `${BASE_URL}/proyectos/${projectSlug}/${capa.archivo}`;
+
+      entity.setAttribute('geometry', 'primitive: plane; width: 1; height: 0.75');
+      entity.setAttribute('material', `src: ${imageUrl}; transparent: true`);
+    }
+
+    function setupTextEntity(entity, capa) {
+      entity.setAttribute('text', {
+        value: capa.texto || 'Texto AR',
+        color: capa.colorTexto || '#ffffff',
+        align: 'center',
+        width: 2,
+        font: 'roboto'
+      });
+
+      entity.setAttribute('position', `${entity.getAttribute('position')} 0 0.01`);
+    }
+
+    async function setupGLBEntity(entity, capa, assets) {
+      const modelUrl = `${BASE_URL}/proyectos/${projectSlug}/${capa.archivo}`;
+      entity.setAttribute('gltf-model', modelUrl);
+    }
+
+    function setupDefaultEntity(entity, capa) {
+      // Fallback: create a simple colored plane
+      entity.setAttribute('geometry', 'primitive: plane; width: 0.5; height: 0.5');
+      entity.setAttribute('material', 'color: #ff6b6b; transparent: true; opacity: 0.8');
+    }
+
+    function setupEntranceAnimation(entity, capa, index) {
+      const delay = (capa.delay || 0) + (index * 200); // Stagger animations
+
+      switch (capa.entrada) {
+        case 'fade':
+          entity.setAttribute('material', 'transparent: true; opacity: 0');
+          entity.setAttribute('animation__fadein', {
+            property: 'material.opacity',
+            from: 0,
+            to: capa.opacidad || 1,
+            dur: 1000,
+            delay: delay,
+            easing: 'easeOutCubic'
+          });
+          break;
+
+        case 'scale':
+          entity.setAttribute('scale', '0 0 0');
+          entity.setAttribute('animation__scalein', {
+            property: 'scale',
+            from: '0 0 0',
+            to: `${capa.escala || 1} ${capa.escala || 1} ${capa.escala || 1}`,
+            dur: 800,
+            delay: delay,
+            easing: 'easeOutBack'
+          });
+          break;
+
+        case 'slide':
+          const currentPos = entity.getAttribute('position');
+          const startY = (currentPos.y || 0) - 0.2;
+          entity.setAttribute('position', `${currentPos.x} ${startY} ${currentPos.z}`);
+          entity.setAttribute('animation__slidein', {
+            property: 'position',
+            from: `${currentPos.x} ${startY} ${currentPos.z}`,
+            to: `${currentPos.x} ${currentPos.y} ${currentPos.z}`,
+            dur: 800,
+            delay: delay,
+            easing: 'easeOutCubic'
+          });
+          break;
+
+        case 'none':
+        default:
+          // No animation
+          break;
+      }
+    }
+
+    function showError(title, message) {
+      document.getElementById('startScreen').style.display = 'none';
+      document.getElementById('errorScreen').style.display = 'flex';
+      document.querySelector('.error-title').textContent = title;
+      document.getElementById('errorMessage').textContent = message;
+    }
+
+    // ── A-FRAME COMPONENTS ──
+    AFRAME.registerComponent('smooth-position', {
+      schema: {
+        factor: { type: 'number', default: 0.4 }
+      },
+
+      init: function() {
+        this.targetPosition = new THREE.Vector3();
+        this.currentPosition = new THREE.Vector3();
+      },
+
+      tick: function() {
+        const el = this.el;
+        const data = this.data;
+
+        this.targetPosition.copy(el.getAttribute('position'));
+        this.currentPosition.lerp(this.targetPosition, data.factor);
+        el.object3D.position.copy(this.currentPosition);
+      }
+    });
+
+  </script>
+</body>
+</html>

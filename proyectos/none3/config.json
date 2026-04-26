@@ -1,0 +1,36 @@
+{
+  "modo": "image",
+  "trigger": "trigger.jpg",
+  "mind": "trigger.mind",
+  "anchoReal": 21,
+  "altoReal": 19.3,
+  "unidad": "cm",
+  "capas": [
+    {
+      "id": 0,
+      "tipo": "image",
+      "archivo": "layer-0.mp4",
+      "posX": 0,
+      "posY": 0,
+      "posZ": 0.01,
+      "escala": 1,
+      "opacidad": 1,
+      "entrada": "fade",
+      "delay": 0,
+      "loop": true
+    },
+    {
+      "id": 1,
+      "tipo": "image",
+      "archivo": "layer-1.webm",
+      "posX": 0,
+      "posY": 0,
+      "posZ": 0.01,
+      "escala": 1,
+      "opacidad": 1,
+      "entrada": "fade",
+      "delay": 0,
+      "loop": true
+    }
+  ]
+}

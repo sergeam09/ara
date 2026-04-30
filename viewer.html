@@ -405,7 +405,10 @@
         (saved.modo === 'image' ? 'Image Tracking' : 'Surface AR') +
         ' · ' + CAPAS.length + ' capa' + (CAPAS.length !== 1 ? 's' : '');
     }
+    // Preservar anchoReal/altoReal del config.json 4.0
     CFG = { ...defaultConfig, ...saved };
+    if (saved.anchoReal) CFG.anchoReal = saved.anchoReal;
+    if (saved.altoReal)  CFG.altoReal  = saved.altoReal;
   }
 
   // Start screen
@@ -662,43 +665,82 @@
 
   function buildLayeredScene() {
     const BP = `${BASE}/proyectos/${PROJECT}/`;
+    // Ratio real del trigger para proporciones correctas
+    const triggerW = CFG.anchoReal || 1;
+    const triggerH = CFG.altoReal  || 1;
+    const triggerRatio = triggerW / triggerH;
+
+    // Assets HTML para videos (necesitan preload en a-assets)
+    let assetsHTML = '<a-assets>';
+    CAPAS.forEach((capa, i) => {
+      if (!capa.archivo) return;
+      const ext = capa.archivo.split('.').pop().toLowerCase();
+      const src = `${BP}${capa.archivo}`;
+      if (['mp4','webm'].includes(ext)) {
+        const loop = capa.loop !== false ? 'loop' : '';
+        assetsHTML += `<video id="vid-${i}" src="${src}" playsinline webkit-playsinline muted crossorigin="anonymous" preload="auto" ${loop}></video>`;
+      }
+    });
+    assetsHTML += '</a-assets>';
+
     const entities = CAPAS.map((capa, i) => {
-      if (!capa.archivo && capa.tipo !== 'text') return '';
-      const posX = capa.posX ?? 0, posY = capa.posY ?? 0, posZ = (capa.posZ ?? 0.01) + i * 0.001;
+      if (!capa.archivo && capa.tipo !== 'texto' && capa.tipo !== 'text') return '';
+      // posZ directo desde config — sin offset fijo
+      const posX = capa.posX ?? 0;
+      const posY = capa.posY ?? 0;
+      const posZ = capa.posZ ?? 0.01;
       const pos  = `${posX} ${posY} ${posZ}`;
       const s    = capa.escala   ?? 1;
       const op   = capa.opacidad ?? 1;
       const loop = capa.loop !== false;
       const src  = capa.archivo ? `${BP}${capa.archivo}` : '';
       const ext  = capa.archivo ? capa.archivo.split('.').pop().toLowerCase() : '';
+      // Dimensiones con ratio real del trigger
+      const planeW = 1;
+      const planeH = (1 / triggerRatio).toFixed(4);
       let anim = '';
-      if      (capa.entrada === 'fade')  anim = `animation__in="property:material.opacity;from:0;to:${op};dur:800"`;
-      else if (capa.entrada === 'scale') anim = `animation__in="property:scale;from:0 0 0;to:${s} ${s} ${s};dur:600"`;
-      else if (capa.entrada === 'slide') anim = `animation__in="property:position;from:${posX} ${(posY-0.3).toFixed(3)} ${posZ};to:${pos};dur:600"`;
-      const matOp = `material="opacity:${op}"`;
-      const scl   = `${s} ${s} ${s}`;
+      if      (capa.entrada === 'fade')  anim = `animation__in="property:material.opacity;from:0;to:${op};dur:800;startEvents:targetFound"`;
+      else if (capa.entrada === 'scale') anim = `animation__in="property:scale;from:0 0 0;to:${s} ${s} ${s};dur:600;startEvents:targetFound"`;
+      else if (capa.entrada === 'slide') anim = `animation__in="property:position;from:${posX} ${(posY-0.3).toFixed(3)} ${posZ};to:${pos};dur:600;startEvents:targetFound"`;
+      const scl = `${s} ${s} ${s}`;
+
       switch (capa.tipo) {
         case 'video': {
-          const mat = ext === 'webm'
-            ? `material="transparent:true;opacity:1;alphaTest:0;"` : matOp;
-          return `<a-video id="arc-${i}" src="${src}" width="1" height="0.5625"
-            position="${pos}" scale="${scl}" loop="${loop}" autoplay="true"
-            playsinline="true" webkit-playsinline="true" ${mat} ${anim}></a-video>`;
+          // Video con audio (no muted si tiene audio)
+          const hasAudio = capa.audio === true;
+          const mutedAttr = hasAudio ? '' : 'muted';
+          if (['mp4','webm'].includes(ext)) {
+            const transparent = ext === 'webm' ? 'transparent:true;alphaTest:0.01;' : '';
+            const mat = `material="src:#vid-${i};${transparent}opacity:${op}"`;
+            return `<a-plane id="arc-${i}" width="${planeW}" height="${planeH}"
+              position="${pos}" scale="${scl}" ${mat} ${anim}
+              class="clickable" onclick="toggleVideo(${i})"></a-plane>`;
+          }
+          return '';
         }
         case 'image':
+          return `<a-image id="arc-${i}" src="${src}" width="${planeW}" height="${planeH}"
+            position="${pos}" scale="${scl}" material="opacity:${op}" ${anim}></a-image>`;
         case 'gif':
-          return `<a-image id="arc-${i}" src="${src}" width="1" height="1"
-            position="${pos}" scale="${scl}" ${matOp} ${anim}></a-image>`;
+          // GIF animado — usar a-image con src directo
+          return `<a-image id="arc-${i}" src="${src}" width="${planeW}" height="${planeH}"
+            position="${pos}" scale="${scl}" material="opacity:${op}" ${anim}></a-image>`;
+        case 'glb':
+        case 'gltf':
         case 'model':
           return `<a-gltf-model id="arc-${i}" src="${src}"
             position="${pos}" scale="${scl}" ${anim}></a-gltf-model>`;
+        case 'svg':
+          return `<a-image id="arc-${i}" src="${src}" width="${planeW}" height="${planeH}"
+            position="${pos}" scale="${scl}" material="opacity:${op};transparent:true" ${anim}></a-image>`;
+        case 'texto':
         case 'text': {
           const txt   = (capa.texto || '').replace(/"/g, '&quot;');
           const color = capa.colorTexto || '#ffffff';
           const fw    = Math.max(0.4, s * (capa.tamanoTexto || 24) / 48);
           return `<a-text id="arc-${i}" value="${txt}" color="${color}"
             position="${pos}" scale="${scl}" width="${fw}" align="center"
-            ${matOp} ${anim}></a-text>`;
+            material="opacity:${op}" ${anim}></a-text>`;
         }
         default: return '';
       }
@@ -710,6 +752,7 @@
         color-space="sRGB" embedded renderer="colorManagement:true;physicallyCorrectLights:true"
         vr-mode-ui="enabled:false" device-orientation-permission-ui="enabled:false"
         style="width:100vw;height:100vh;">
+        ${assetsHTML}
         <a-light type="ambient" intensity="1.2"></a-light>
         <a-light type="directional" intensity="0.8" position="1 3 2"></a-light>
         <a-camera position="0 0 0" look-controls="enabled:false"></a-camera>
@@ -734,14 +777,26 @@
       scene.addEventListener('arError', () => showErr('No se pudo acceder a la cámara.<br>Verifica los permisos.'));
       const target = scene.querySelector('[mindar-image-target]');
       if (target) {
+        // Autoplay videos al encontrar target
         target.addEventListener('targetFound', () => {
           document.getElementById('scan').classList.remove('show');
           const pg = document.getElementById('ping'); pg.classList.add('go'); setTimeout(()=>pg.classList.remove('go'),700);
+          scene.querySelectorAll('video').forEach(v => { try { v.play(); } catch(e){} });
         });
-        target.addEventListener('targetLost', () => document.getElementById('scan').classList.add('show'));
+        target.addEventListener('targetLost', () => {
+          document.getElementById('scan').classList.add('show');
+          scene.querySelectorAll('video').forEach(v => { try { v.pause(); } catch(e){} });
+        });
       }
       setTimeout(() => hideSplash(), 10000);
     }, 600);
+  }
+
+  // Toggle video play/pause al tocar
+  function toggleVideo(i) {
+    const v = document.getElementById(`vid-${i}`);
+    if (!v) return;
+    v.paused ? v.play() : v.pause();
   }
 
   // CERRAR

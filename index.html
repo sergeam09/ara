@@ -689,36 +689,9 @@
     }
 
     function createDimensionLines() {
-      // Width dimension (along X axis)
-      const widthLineGeometry = new THREE.BufferGeometry();
-      const widthPoints = [
-        new THREE.Vector3(-75, 5, 50),
-        new THREE.Vector3(-75, 5, 55),
-        new THREE.Vector3(75, 5, 55),
-        new THREE.Vector3(75, 5, 50)
-      ];
-      widthLineGeometry.setFromPoints(widthPoints);
-      const lineMaterial = new THREE.LineBasicMaterial({ color: 0xe63329, opacity: 0.8, transparent: true });
-      const widthLine = new THREE.Line(widthLineGeometry, lineMaterial);
-      scene.add(widthLine);
-
-      // Height dimension (along Z axis)
-      const heightLineGeometry = new THREE.BufferGeometry();
-      const heightPoints = [
-        new THREE.Vector3(-80, 5, -50),
-        new THREE.Vector3(-85, 5, -50),
-        new THREE.Vector3(-85, 5, 50),
-        new THREE.Vector3(-80, 5, 50)
-      ];
-      heightLineGeometry.setFromPoints(heightPoints);
-      const heightLine = new THREE.Line(heightLineGeometry, lineMaterial);
-      scene.add(heightLine);
-
-      // Width label
-      createTextSprite('W: -- cm', new THREE.Vector3(0, 8, 58), 0xe63329);
-
-      // Height label
-      createTextSprite('H: -- cm', new THREE.Vector3(-88, 8, 0), 0xe63329);
+      // Las líneas y labels se crean dinámicamente en updateDimensionLabels()
+      // Esta función solo inicializa con valores por defecto
+      updateDimensionLabels();
     }
 
     function createTextSprite(text, position, color = 0xffffff) {
@@ -1215,20 +1188,19 @@
     }
 
     function updateDimensionLabels() {
-      const width = parseFloat(document.getElementById('inputWidth').value) || 0;
-      const height = parseFloat(document.getElementById('inputHeight').value) || 0;
-      const wLabel = width > 0 ? width + ' cm' : '--';
-      const hLabel = height > 0 ? height + ' cm' : '--';
+      const width  = parseFloat(document.getElementById('inputWidth').value)  || 21;
+      const height = parseFloat(document.getElementById('inputHeight').value) || 29.7;
+      const wLabel = width  + ' cm';
+      const hLabel = height + ' cm';
 
       if (!scene) return;
 
-      // Calcular escala del plano en Three.js basado en el ratio real
-      // El plano siempre tiene ancho=150 unidades, alto se adapta al ratio
-      const ratio = (width > 0 && height > 0) ? width / height : 150 / 100;
+      // Ratio real → plano siempre ancho=150, alto adaptado
+      const ratio  = width / height;
       const planeW = 150;
       const planeH = planeW / ratio;
 
-      // Actualizar geometría del triggerPlane con el ratio correcto
+      // Actualizar geometría del triggerPlane
       if (triggerPlane) {
         const newGeom = new THREE.PlaneGeometry(planeW, planeH);
         newGeom.rotateX(-Math.PI / 2);
@@ -1236,7 +1208,7 @@
         triggerPlane.geometry = newGeom;
       }
 
-      // Remover labels y líneas viejas
+      // Remover todo lo anterior (labels y líneas)
       const toRemove = [];
       scene.traverse((child) => {
         if (child.userData.isDimensionLabel || child.userData.isDimensionLine) {
@@ -1245,38 +1217,40 @@
       });
       toRemove.forEach(obj => scene.remove(obj));
 
-      // Crear líneas de acotación adaptadas al ratio
-      const hw = planeW / 2; // half width
-      const hh = planeH / 2; // half height
-      const lineMat = new THREE.LineBasicMaterial({ color: 0xe63329, opacity: 0.8, transparent: true });
+      const hw = planeW / 2;
+      const hh = planeH / 2;
+      const lineMat = new THREE.LineBasicMaterial({ color: 0xe63329, opacity: 0.9, transparent: true });
 
-      // Línea ancho (frente del plano)
-      const wGeo = new THREE.BufferGeometry().setFromPoints([
-        new THREE.Vector3(-hw, 5, hh),
-        new THREE.Vector3(-hw, 5, hh + 5),
-        new THREE.Vector3(hw,  5, hh + 5),
-        new THREE.Vector3(hw,  5, hh)
-      ]);
-      const wLine = new THREE.Line(wGeo, lineMat);
+      // Línea W — frente del plano
+      const wLine = new THREE.Line(
+        new THREE.BufferGeometry().setFromPoints([
+          new THREE.Vector3(-hw, 5, hh),
+          new THREE.Vector3(-hw, 5, hh + 6),
+          new THREE.Vector3(hw,  5, hh + 6),
+          new THREE.Vector3(hw,  5, hh)
+        ]), lineMat
+      );
       wLine.userData.isDimensionLine = true;
       scene.add(wLine);
 
-      // Línea alto (lateral izquierdo)
-      const hGeo = new THREE.BufferGeometry().setFromPoints([
-        new THREE.Vector3(-hw - 5, 5, -hh),
-        new THREE.Vector3(-hw - 10, 5, -hh),
-        new THREE.Vector3(-hw - 10, 5, hh),
-        new THREE.Vector3(-hw - 5, 5, hh)
-      ]);
-      const hLine = new THREE.Line(hGeo, lineMat);
+      // Línea H — lateral izquierdo
+      const hLine = new THREE.Line(
+        new THREE.BufferGeometry().setFromPoints([
+          new THREE.Vector3(-hw - 6,  5, -hh),
+          new THREE.Vector3(-hw - 12, 5, -hh),
+          new THREE.Vector3(-hw - 12, 5,  hh),
+          new THREE.Vector3(-hw - 6,  5,  hh)
+        ]), lineMat
+      );
       hLine.userData.isDimensionLine = true;
       scene.add(hLine);
 
-      // Labels centrados en las líneas
-      const ws = createTextSprite(`W: ${wLabel}`, new THREE.Vector3(0, 8, hh + 8), 0xe63329);
+      // Label W centrado en la línea frontal
+      const ws = createTextSprite(`W: ${wLabel}`, new THREE.Vector3(0, 8, hh + 10), 0xe63329);
       ws.userData.isDimensionLabel = true;
 
-      const hs = createTextSprite(`H: ${hLabel}`, new THREE.Vector3(-hw - 18, 8, 0), 0xe63329);
+      // Label H centrado en la línea lateral
+      const hs = createTextSprite(`H: ${hLabel}`, new THREE.Vector3(-hw - 22, 8, 0), 0xe63329);
       hs.userData.isDimensionLabel = true;
     }
 

@@ -585,7 +585,7 @@
           <div class="prop-row">
             <div class="prop-label">Profundidad Z</div>
             <div class="prop-control">
-              <input type="range" class="prop-slider" id="propPosZ" min="0.01" max="0.5" step="0.01" value="0.01">
+              <input type="range" class="prop-slider" id="propPosZ" min="0" max="20" step="0.5" value="0">
               <div class="prop-value" id="propPosZValue">0.01</div>
             </div>
           </div>
@@ -970,7 +970,7 @@
         file: null,
         posX: 0,
         posY: 0,
-        posZ: 0.01,
+        posZ: 0,
         scale: 1,
         opacity: 1,
         animation: 'fade'
@@ -1107,8 +1107,8 @@
       document.getElementById('propPosY').value = activeLayer.posY;
       document.getElementById('propPosYValue').textContent = activeLayer.posY.toFixed(2);
 
-      document.getElementById('propPosZ').value = activeLayer.posZ || 0.01;
-      document.getElementById('propPosZValue').textContent = (activeLayer.posZ || 0.01).toFixed(2);
+      document.getElementById('propPosZ').value = activeLayer.posZ || 0;
+      document.getElementById('propPosZValue').textContent = (activeLayer.posZ || 0).toFixed(1) + ' cm';
     }
 
     function initLayerProps() {
@@ -1172,7 +1172,7 @@
         const layer = APP.layers.find(l => l.id === APP.activeLayerId);
         if (layer) {
           layer.posZ = parseFloat(e.target.value);
-          posZValue.textContent = layer.posZ.toFixed(2);
+          posZValue.textContent = layer.posZ.toFixed(1) + ' cm';
           updateCanvas();
         }
       });
@@ -1291,7 +1291,7 @@
           mesh.position.x = layer.posX * 30;
           // posZ del layer se mapea a Y en Three.js (elevación sobre el trigger)
           // 0.01 → 0 unidades, 0.5 → 100 unidades de altura visual
-          mesh.position.y = ((layer.posZ || 0.01) - 0.01) * 200;
+          mesh.position.y = (layer.posZ || 0) * 10; // 1cm = 10 unidades Three.js
           mesh.position.z = layer.posY * 20;
           mesh.scale.setScalar(layer.scale);
           mesh.material.opacity = layer.opacity;
@@ -1377,7 +1377,7 @@
               archivo: `layer-${i}.${layerExt}`,
               posX: layer.posX,
               posY: layer.posY,
-              posZ: layer.posZ || 0.01,
+              posZ: layer.posZ || 0,
               escala: layer.scale,
               opacidad: layer.opacity,
               entrada: layer.animation,

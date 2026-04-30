@@ -685,11 +685,13 @@
 
     const entities = CAPAS.map((capa, i) => {
       if (!capa.archivo && capa.tipo !== 'texto' && capa.tipo !== 'text') return '';
-      // posZ directo desde config — sin offset fijo
+      // posZ en cm reales → convertir a unidades MindAR (1 unidad = anchoReal cm)
+      // Ej: posZ=5cm, anchoReal=21cm → posZ_ar = 5/21 = 0.238 unidades
       const posX = capa.posX ?? 0;
       const posY = capa.posY ?? 0;
-      const posZ = capa.posZ ?? 0.01;
-      const pos  = `${posX} ${posY} ${posZ}`;
+      const posZcm = capa.posZ ?? 0;
+      const posZ = triggerW > 0 ? (posZcm / triggerW) : posZcm;
+      const pos  = `${posX} ${posY} ${posZ.toFixed(4)}`;
       const s    = capa.escala   ?? 1;
       const op   = capa.opacidad ?? 1;
       const loop = capa.loop !== false;

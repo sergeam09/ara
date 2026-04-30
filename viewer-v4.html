@@ -185,10 +185,13 @@
     <div class="error-message" id="errorMessage">No se pudo encontrar el proyecto solicitado.</div>
   </div>
 
-  <!-- ── AR SCENE ── -->
+  <!-- ── AR SCENE ──
+       FIX #1: filterMinCF 0.0001→0.001 y filterBeta 0.001→0.01
+       Valores más altos = tracking más responsivo, menos lag/inestabilidad
+  -->
   <a-scene
     id="arScene"
-    mindar-image="imageTargetSrc: ; filterMinCF: 0.0001; filterBeta: 0.001;"
+    mindar-image="imageTargetSrc: ; filterMinCF: 0.001; filterBeta: 0.01;"
     color-space="sRGB"
     renderer="colorManagement: true, physicallyCorrectLights: true"
     vr-mode-ui="enabled: false"
@@ -226,7 +229,6 @@
 
     async function init() {
       try {
-        // Get project slug from URL
         const urlParams = new URLSearchParams(window.location.search);
         projectSlug = urlParams.get('p');
 
@@ -235,10 +237,8 @@
           return;
         }
 
-        // Load project config
         await loadProjectConfig();
 
-        // Update project name in UI
         document.getElementById('projectName').textContent = projectSlug.replace(/-/g, ' ').toUpperCase();
 
       } catch (error) {
@@ -272,14 +272,11 @@
       try {
         arStarted = true;
 
-        // Show loading
         document.getElementById('btnStart').style.display = 'none';
         document.getElementById('loadingText').style.display = 'block';
 
-        // Setup A-Frame scene
         await setupARScene();
 
-        // Hide start screen and show AR
         document.getElementById('startScreen').classList.add('hidden');
         setTimeout(() => {
           document.getElementById('startScreen').style.display = 'none';
@@ -300,62 +297,61 @@
       const assets = document.getElementById('assets');
       const target = document.getElementById('arTarget');
 
-      // Set MindAR target file
       const mindUrl = `${BASE_URL}/proyectos/${projectSlug}/${config.mind}`;
-      scene.setAttribute('mindar-image', `imageTargetSrc: ${mindUrl}; filterMinCF: 0.0001; filterBeta: 0.001;`);
 
-      // Load assets and create entities for each layer
+      // FIX #1 también aquí — mismo filtro corregido en el setAttribute dinámico
+      scene.setAttribute('mindar-image', `imageTargetSrc: ${mindUrl}; filterMinCF: 0.001; filterBeta: 0.01;`);
+
       for (let i = 0; i < config.capas.length; i++) {
         const capa = config.capas[i];
         await createLayerEntity(capa, i, assets, target);
       }
     }
 
+    // FIX #2: calcula ratio real del trigger desde config.anchoReal / config.altoReal
+    // Si no existen, fallback a 4/3
+    function getTriggerRatio() {
+      if (config && config.anchoReal && config.altoReal && config.altoReal > 0) {
+        return config.anchoReal / config.altoReal;
+      }
+      return 4 / 3;
+    }
+
     async function createLayerEntity(capa, index, assets, target) {
       const entity = document.createElement('a-entity');
       entity.id = `layer-${index}`;
 
-      // Calculate position with smoothing offset
-      const posX = (capa.posX || 0) * 0.1; // Scale down for AR space
-      const posY = (capa.posY || 0) * 0.1;
-      const posZ = (capa.posZ || 0.01) + (index * 0.001); // Prevent z-fighting
+      // FIX #3: posición directa desde config sin escalar — los valores ya vienen normalizados
+      const posX = capa.posX || 0;
+      const posY = capa.posY || 0;
+      const posZ = (capa.posZ || 0.01) + (index * 0.001);
 
       switch (capa.tipo) {
         case 'video':
           await setupVideoEntity(entity, capa, assets);
           break;
-
         case 'image':
         case 'gif':
           await setupImageEntity(entity, capa, assets);
           break;
-
         case 'texto':
           setupTextEntity(entity, capa);
           break;
-
         case 'glb':
           await setupGLBEntity(entity, capa, assets);
           break;
-
         default:
           setupDefaultEntity(entity, capa);
       }
 
-      // Set common properties
       entity.setAttribute('position', `${posX} ${posY} ${posZ}`);
       entity.setAttribute('scale', `${capa.escala || 1} ${capa.escala || 1} ${capa.escala || 1}`);
 
-      // Apply opacity
       if (capa.opacidad !== undefined && capa.opacidad < 1) {
         entity.setAttribute('material', `transparent: true; opacity: ${capa.opacidad}`);
       }
 
-      // Setup entrance animation
       setupEntranceAnimation(entity, capa, index);
-
-      // Add position smoothing
-      entity.setAttribute('animation-mixer', 'loop: repeat');
 
       target.appendChild(entity);
     }
@@ -364,7 +360,6 @@
       const videoId = `video-${capa.id}`;
       const videoUrl = `${BASE_URL}/proyectos/${projectSlug}/${capa.archivo}`;
 
-      // Create video asset
       const videoAsset = document.createElement('video');
       videoAsset.id = videoId;
       videoAsset.src = videoUrl;
@@ -374,11 +369,11 @@
       videoAsset.muted = true;
       assets.appendChild(videoAsset);
 
-      // Create plane geometry with video material
-      entity.setAttribute('geometry', 'primitive: plane; width: 1; height: 0.75');
+      // FIX #2: proporciones reales del trigger en lugar de 1:0.75 fijo
+      const ratio = getTriggerRatio();
+      entity.setAttribute('geometry', `primitive: plane; width: 1; height: ${(1 / ratio).toFixed(4)}`);
       entity.setAttribute('material', `src: #${videoId}; transparent: true`);
 
-      // Auto-play when visible
       entity.addEventListener('targetFound', () => {
         videoAsset.play();
       });
@@ -391,7 +386,9 @@
     async function setupImageEntity(entity, capa, assets) {
       const imageUrl = `${BASE_URL}/proyectos/${projectSlug}/${capa.archivo}`;
 
-      entity.setAttribute('geometry', 'primitive: plane; width: 1; height: 0.75');
+      // FIX #2: mismas proporciones reales para imágenes
+      const ratio = getTriggerRatio();
+      entity.setAttribute('geometry', `primitive: plane; width: 1; height: ${(1 / ratio).toFixed(4)}`);
       entity.setAttribute('material', `src: ${imageUrl}; transparent: true`);
     }
 
@@ -403,8 +400,6 @@
         width: 2,
         font: 'roboto'
       });
-
-      entity.setAttribute('position', `${entity.getAttribute('position')} 0 0.01`);
     }
 
     async function setupGLBEntity(entity, capa, assets) {
@@ -413,13 +408,12 @@
     }
 
     function setupDefaultEntity(entity, capa) {
-      // Fallback: create a simple colored plane
       entity.setAttribute('geometry', 'primitive: plane; width: 0.5; height: 0.5');
       entity.setAttribute('material', 'color: #ff6b6b; transparent: true; opacity: 0.8');
     }
 
     function setupEntranceAnimation(entity, capa, index) {
-      const delay = (capa.delay || 0) + (index * 200); // Stagger animations
+      const delay = (capa.delay || 0) + (index * 200);
 
       switch (capa.entrada) {
         case 'fade':
@@ -448,12 +442,14 @@
 
         case 'slide':
           const currentPos = entity.getAttribute('position');
-          const startY = (currentPos.y || 0) - 0.2;
-          entity.setAttribute('position', `${currentPos.x} ${startY} ${currentPos.z}`);
+          const startY = (currentPos ? currentPos.y : 0) - 0.2;
+          const px = currentPos ? currentPos.x : 0;
+          const pz = currentPos ? currentPos.z : 0.01;
+          entity.setAttribute('position', `${px} ${startY} ${pz}`);
           entity.setAttribute('animation__slidein', {
             property: 'position',
-            from: `${currentPos.x} ${startY} ${currentPos.z}`,
-            to: `${currentPos.x} ${currentPos.y} ${currentPos.z}`,
+            from: `${px} ${startY} ${pz}`,
+            to: `${px} ${(currentPos ? currentPos.y : 0)} ${pz}`,
             dur: 800,
             delay: delay,
             easing: 'easeOutCubic'
@@ -462,7 +458,6 @@
 
         case 'none':
         default:
-          // No animation
           break;
       }
     }
@@ -473,27 +468,6 @@
       document.querySelector('.error-title').textContent = title;
       document.getElementById('errorMessage').textContent = message;
     }
-
-    // ── A-FRAME COMPONENTS ──
-    AFRAME.registerComponent('smooth-position', {
-      schema: {
-        factor: { type: 'number', default: 0.4 }
-      },
-
-      init: function() {
-        this.targetPosition = new THREE.Vector3();
-        this.currentPosition = new THREE.Vector3();
-      },
-
-      tick: function() {
-        const el = this.el;
-        const data = this.data;
-
-        this.targetPosition.copy(el.getAttribute('position'));
-        this.currentPosition.lerp(this.targetPosition, data.factor);
-        el.object3D.position.copy(this.currentPosition);
-      }
-    });
 
   </script>
 </body>

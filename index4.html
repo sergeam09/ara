@@ -582,6 +582,14 @@
             </div>
           </div>
 
+          <div class="prop-row">
+            <div class="prop-label">Profundidad Z</div>
+            <div class="prop-control">
+              <input type="range" class="prop-slider" id="propPosZ" min="0.01" max="0.5" step="0.01" value="0.01">
+              <div class="prop-value" id="propPosZValue">0.01</div>
+            </div>
+          </div>
+
         </div>
       </div>
 
@@ -989,6 +997,7 @@
         file: null,
         posX: 0,
         posY: 0,
+        posZ: 0.01,
         scale: 1,
         opacity: 1,
         animation: 'fade'
@@ -1124,6 +1133,9 @@
 
       document.getElementById('propPosY').value = activeLayer.posY;
       document.getElementById('propPosYValue').textContent = activeLayer.posY.toFixed(2);
+
+      document.getElementById('propPosZ').value = activeLayer.posZ || 0.01;
+      document.getElementById('propPosZValue').textContent = (activeLayer.posZ || 0.01).toFixed(2);
     }
 
     function initLayerProps() {
@@ -1175,6 +1187,19 @@
         if (layer) {
           layer.posY = parseFloat(e.target.value);
           posYValue.textContent = layer.posY.toFixed(2);
+          updateCanvas();
+        }
+      });
+
+      // PosZ slider
+      const posZSlider = document.getElementById('propPosZ');
+      const posZValue = document.getElementById('propPosZValue');
+
+      posZSlider.addEventListener('input', (e) => {
+        const layer = APP.layers.find(l => l.id === APP.activeLayerId);
+        if (layer) {
+          layer.posZ = parseFloat(e.target.value);
+          posZValue.textContent = layer.posZ.toFixed(2);
           updateCanvas();
         }
       });
@@ -1236,7 +1261,7 @@
     }
 
     function openProyecto(slug) {
-      window.open(`viewer.html?p=${slug}`, '_blank');
+      window.open(`viewer-v4.html?p=${slug}`, '_blank');
     }
 
     // ── Update Canvas Override ──
@@ -1244,12 +1269,13 @@
     function updateCanvas() {
       if (!scene || APP.layers.length === 0) return;
 
-      // Update layer positions, scales, and opacity in Three.js
       layers.forEach((mesh, index) => {
         const layer = APP.layers.find(l => l.id === mesh.userData.id);
         if (layer) {
-          mesh.position.x = layer.posX * 30; // Scale for better visibility
-          mesh.position.y = index * 0.05;    // Height based on index
+          mesh.position.x = layer.posX * 30;
+          // posZ del layer se mapea a Y en Three.js (elevación sobre el trigger)
+          // 0.01 → 0 unidades, 0.5 → 100 unidades de altura visual
+          mesh.position.y = ((layer.posZ || 0.01) - 0.01) * 200;
           mesh.position.z = layer.posY * 20;
           mesh.scale.setScalar(layer.scale);
           mesh.material.opacity = layer.opacity;
@@ -1335,7 +1361,7 @@
               archivo: `layer-${i}.${layerExt}`,
               posX: layer.posX,
               posY: layer.posY,
-              posZ: 0.01,
+              posZ: layer.posZ || 0.01,
               escala: layer.scale,
               opacidad: layer.opacity,
               entrada: layer.animation,

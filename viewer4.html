@@ -321,10 +321,10 @@
       const entity = document.createElement('a-entity');
       entity.id = `layer-${index}`;
 
-      // FIX #3: posición directa desde config sin escalar — los valores ya vienen normalizados
+      // posX/posY son desplazamiento horizontal, posZ es elevación sobre el trigger
       const posX = capa.posX || 0;
       const posY = capa.posY || 0;
-      const posZ = (capa.posZ || 0.01) + (index * 0.001);
+      const posZ = capa.posZ || 0.01;
 
       switch (capa.tipo) {
         case 'video':

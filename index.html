@@ -291,6 +291,22 @@
       background: var(--bg);
     }
 
+    .layer-delete {
+      margin-left: auto;
+      background: none;
+      border: none;
+      color: rgba(255,255,255,0.3);
+      font-size: 12px;
+      cursor: pointer;
+      padding: 2px 6px;
+      border-radius: 4px;
+      transition: all 0.2s;
+      flex-shrink: 0;
+    }
+    .layer-delete:hover {
+      color: #e63329;
+      background: rgba(230,51,41,0.15);
+    }
     .layer-item.active {
       background: rgba(230, 51, 41, 0.1);
       border-color: var(--accent);
@@ -1057,8 +1073,24 @@
           <div class="layer-num">${index + 1}</div>
           <div class="layer-type">${getLayerIcon(layer.type)}</div>
           <div class="layer-name">${layer.file ? layer.file.name : 'Sin archivo'}</div>
+          <button class="layer-delete" onclick="event.stopPropagation();deleteLayer('${layer.id}')" title="Eliminar capa">✕</button>
         </div>
       `).join('');
+    }
+
+    function deleteLayer(layerId) {
+      const idx = APP.layers.findIndex(l => l.id === layerId);
+      if (idx === -1) return;
+      APP.layers.splice(idx, 1);
+      // Remover mesh del canvas
+      const mesh = layers.find(m => m.userData.id === layerId);
+      if (mesh) { scene.remove(mesh); layers.splice(layers.indexOf(mesh), 1); }
+      // Si era la activa, seleccionar la anterior
+      if (APP.activeLayerId === layerId) {
+        APP.activeLayerId = APP.layers.length > 0 ? APP.layers[Math.max(0, idx-1)].id : null;
+      }
+      updateLayersList();
+      updateLayerProps();
     }
 
     function getLayerIcon(type) {

@@ -685,13 +685,13 @@
 
     const entities = CAPAS.map((capa, i) => {
       if (!capa.archivo && capa.tipo !== 'texto' && capa.tipo !== 'text') return '';
-      // posZ en cm reales → convertir a unidades MindAR (1 unidad = anchoReal cm)
-      // Ej: posZ=5cm, anchoReal=21cm → posZ_ar = 5/21 = 0.238 unidades
-      const posX = capa.posX ?? 0;
-      const posY = capa.posY ?? 0;
+      // En MindAR: Y es la altura sobre el trigger (perpendicular)
+      // posZ del editor (cm) → Y en AR = posZcm / anchoReal
+      const posX  = capa.posX ?? 0;
+      const posYh = capa.posY ?? 0;   // desplazamiento horizontal
       const posZcm = capa.posZ ?? 0;
-      const posZ = triggerW > 0 ? (posZcm / triggerW) : posZcm;
-      const pos  = `${posX} ${posY} ${posZ.toFixed(4)}`;
+      const posYar = triggerW > 0 ? (posZcm / triggerW) : 0; // altura real sobre trigger
+      const pos  = `${posX} ${posYar.toFixed(4)} ${posYh}`;
       const s    = capa.escala   ?? 1;
       const op   = capa.opacidad ?? 1;
       const loop = capa.loop !== false;
@@ -703,7 +703,7 @@
       let anim = '';
       if      (capa.entrada === 'fade')  anim = `animation__in="property:material.opacity;from:0;to:${op};dur:800;startEvents:targetFound"`;
       else if (capa.entrada === 'scale') anim = `animation__in="property:scale;from:0 0 0;to:${s} ${s} ${s};dur:600;startEvents:targetFound"`;
-      else if (capa.entrada === 'slide') anim = `animation__in="property:position;from:${posX} ${(posY-0.3).toFixed(3)} ${posZ};to:${pos};dur:600;startEvents:targetFound"`;
+      else if (capa.entrada === 'slide') anim = `animation__in="property:position;from:${posX} ${(posYar-0.3).toFixed(3)} ${posYh};to:${pos};dur:600;startEvents:targetFound"`;
       const scl = `${s} ${s} ${s}`;
 
       switch (capa.tipo) {

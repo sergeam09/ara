@@ -1,0 +1,9 @@
+{
+  "modo": "image",
+  "trigger": "trigger.png",
+  "mind": "trigger.mind",
+  "anchoReal": 21,
+  "altoReal": 21,
+  "unidad": "cm",
+  "capas": []
+}

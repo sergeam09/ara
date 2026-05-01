@@ -570,6 +570,42 @@
     buildAFrameScene();
   }
 
+  // PARALLAX REAL — lee posición de cámara cada frame y desplaza la capa
+  // depth: valor 0-1 donde 0=pegado al trigger, 1=máximo parallax
+  AFRAME.registerComponent('parallax-layer', {
+    schema: { depth: { type: 'number', default: 0 } },
+    init() {
+      this._baseX = this.el.object3D.position.x;
+      this._baseY = this.el.object3D.position.y;
+      this._baseZ = this.el.object3D.position.z;
+      this._cam   = null;
+    },
+    tick() {
+      if (!this._cam) {
+        const camEl = this.el.sceneEl && this.el.sceneEl.camera;
+        if (!camEl) return;
+        this._cam = camEl;
+      }
+      const depth  = this.data.depth;
+      if (depth === 0) return;
+
+      // Vector de la cámara relativo al target
+      const target = this.el.parentEl.object3D;
+      const camPos = new THREE.Vector3();
+      this._cam.getWorldPosition(camPos);
+      target.worldToLocal(camPos);
+
+      // Desplazar la capa inversamente proporcional a su profundidad
+      // Capas con más depth se mueven MÁS → ilusión de estar más cerca
+      const parallaxX = -camPos.x * depth * 0.3;
+      const parallaxY = -camPos.y * depth * 0.3;
+
+      this.el.object3D.position.x = this._baseX + parallaxX;
+      this.el.object3D.position.y = this._baseY + parallaxY;
+      this.el.object3D.position.z = this._baseZ;
+    }
+  });
+
   AFRAME.registerComponent('ar-smooth', {
     schema: { factor: { default: 0.25 } },
     init() {
@@ -716,28 +752,28 @@
             const alphaTest = ext === 'webm' ? 'alphaTest:0.01;' : 'alphaTest:0;';
             const mat = `material="src:#vid-${i};transparent:true;${alphaTest}opacity:${op}"`;
             return `<a-plane id="arc-${i}" width="${planeW.toFixed(4)}" height="${planeH.toFixed(4)}"
-              position="${pos}" scale="${scl}" ${mat} ${anim}
+              position="${pos}" scale="${scl}" ${mat} ${anim} ${parallaxAttr}
               class="clickable" onclick="toggleVideo(${i})"></a-plane>`;
           }
           return '';
         }
         case 'image':
-          return `<a-image id="arc-${i}" src="${src}" width="${planeW}" height="${planeH}"
+          return `<a-image id="arc-${i}" src="${src}" width="${planeW.toFixed(4)}" height="${planeH.toFixed(4)}"
             position="${pos}" scale="${scl}"
-            material="${matBase}" ${anim}></a-image>`;
+            material="${matBase}" ${anim} ${parallaxAttr}></a-image>`;
         case 'gif':
-          return `<a-image id="arc-${i}" src="${src}" width="${planeW}" height="${planeH}"
+          return `<a-image id="arc-${i}" src="${src}" width="${planeW.toFixed(4)}" height="${planeH.toFixed(4)}"
             position="${pos}" scale="${scl}"
-            material="${matBase}" ${anim}></a-image>`;
+            material="${matBase}" ${anim} ${parallaxAttr}></a-image>`;
         case 'glb':
         case 'gltf':
         case 'model':
           return `<a-gltf-model id="arc-${i}" src="${src}"
-            position="${pos}" scale="${scl}" ${anim}></a-gltf-model>`;
+            position="${pos}" scale="${scl}" ${anim} ${parallaxAttr}></a-gltf-model>`;
         case 'svg':
-          return `<a-image id="arc-${i}" src="${src}" width="${planeW}" height="${planeH}"
+          return `<a-image id="arc-${i}" src="${src}" width="${planeW.toFixed(4)}" height="${planeH.toFixed(4)}"
             position="${pos}" scale="${scl}"
-            material="${matBase}" ${anim}></a-image>`;
+            material="${matBase}" ${anim} ${parallaxAttr}></a-image>`;
         case 'texto':
         case 'text': {
           const txt   = (capa.texto || '').replace(/"/g, '&quot;');

@@ -1036,23 +1036,27 @@
         posZ: 0,
         scale: 1,
         opacity: 1,
-        animation: 'fade'
+        animation: 'fade',
+        texto: '',
+        colorTexto: '#ffffff',
+        tamanoTexto: 0.1,
+        alignTexto: 'center',
+        texto3d: false,
+        audio: false
       };
 
       APP.layers.push(layer);
       APP.activeLayerId = layer.id;
 
-      // Add to Three.js canvas
       const color = getLayerColor(layer.type);
       addLayerToCanvas(layer.id, color);
 
       updateLayersList();
       updateLayerProps();
-
-      // Show file picker immediately
-      showLayerFilePicker(layer.id);
-
       updateCanvas();
+
+      // Abrir file picker solo si no es texto
+      if (layer.type !== 'texto') showLayerFilePicker(layer.id);
     }
 
     function showLayerFilePicker(layerId) {
@@ -1265,7 +1269,10 @@
             layer.file = null;
             updateLayersList();
             toggleTextoFields(layer.type);
-            if (layer.type !== 'texto') showLayerFilePicker(layer.id);
+            // Abrir file picker solo si no es texto
+            if (layer.type !== 'texto' && layer.type !== 'text') {
+              showLayerFilePicker(layer.id);
+            }
           }
         });
       }

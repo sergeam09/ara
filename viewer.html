@@ -687,17 +687,17 @@
       if (!capa.archivo && capa.tipo !== 'texto' && capa.tipo !== 'text') return '';
       // En MindAR: Y es la altura sobre el trigger (perpendicular)
       // posZ del editor (cm) → Y en AR = posZcm / anchoReal
-      const posX  = capa.posX ?? 0;
-      const posYh = capa.posY ?? 0;   // desplazamiento horizontal
+      const posX   = capa.posX ?? 0;
+      const posYh  = capa.posY ?? 0;
       const posZcm = capa.posZ ?? 0;
-      const posYar = triggerW > 0 ? (posZcm / triggerW) : 0; // altura real sobre trigger
-      const pos  = `${posX} ${posYar.toFixed(4)} ${posYh}`;
-      const s    = capa.escala   ?? 1;
-      const op   = capa.opacidad ?? 1;
-      const loop = capa.loop !== false;
-      const src  = capa.archivo ? `${BP}${capa.archivo}` : '';
-      const ext  = capa.archivo ? capa.archivo.split('.').pop().toLowerCase() : '';
-      // Dimensiones con ratio real del trigger
+      // Y en MindAR = altura sobre trigger. posZcm/anchoReal + offset mínimo por índice
+      const posYar = (triggerW > 0 ? (posZcm / triggerW) : 0) + (i * 0.002);
+      const pos    = `${posX} ${posYar.toFixed(4)} ${posYh}`;
+      const s      = capa.escala   ?? 1;
+      const op     = capa.opacidad ?? 1;
+      const loop   = capa.loop !== false;
+      const src    = capa.archivo ? `${BP}${capa.archivo}` : '';
+      const ext    = capa.archivo ? capa.archivo.split('.').pop().toLowerCase() : '';
       const planeW = 1;
       const planeH = (1 / triggerRatio).toFixed(4);
       let anim = '';
@@ -705,15 +705,14 @@
       else if (capa.entrada === 'scale') anim = `animation__in="property:scale;from:0 0 0;to:${s} ${s} ${s};dur:600;startEvents:targetFound"`;
       else if (capa.entrada === 'slide') anim = `animation__in="property:position;from:${posX} ${(posYar-0.3).toFixed(3)} ${posYh};to:${pos};dur:600;startEvents:targetFound"`;
       const scl = `${s} ${s} ${s}`;
+      // Material base con transparent+alphaTest para TODOS los tipos — evita z-fighting y mezcla de píxeles
+      const matBase = `transparent:true;alphaTest:0.1;opacity:${op};depthWrite:false`;
 
       switch (capa.tipo) {
         case 'video': {
-          // Video con audio (no muted si tiene audio)
-          const hasAudio = capa.audio === true;
-          const mutedAttr = hasAudio ? '' : 'muted';
           if (['mp4','webm'].includes(ext)) {
-            const transparent = ext === 'webm' ? 'transparent:true;alphaTest:0.01;' : '';
-            const mat = `material="src:#vid-${i};${transparent}opacity:${op}"`;
+            const alphaTest = ext === 'webm' ? 'alphaTest:0.01;' : 'alphaTest:0;';
+            const mat = `material="src:#vid-${i};transparent:true;${alphaTest}opacity:${op};depthWrite:false"`;
             return `<a-plane id="arc-${i}" width="${planeW}" height="${planeH}"
               position="${pos}" scale="${scl}" ${mat} ${anim}
               class="clickable" onclick="toggleVideo(${i})"></a-plane>`;
@@ -722,11 +721,12 @@
         }
         case 'image':
           return `<a-image id="arc-${i}" src="${src}" width="${planeW}" height="${planeH}"
-            position="${pos}" scale="${scl}" material="opacity:${op}" ${anim}></a-image>`;
+            position="${pos}" scale="${scl}"
+            material="${matBase}" ${anim}></a-image>`;
         case 'gif':
-          // GIF animado — usar a-image con src directo
           return `<a-image id="arc-${i}" src="${src}" width="${planeW}" height="${planeH}"
-            position="${pos}" scale="${scl}" material="opacity:${op}" ${anim}></a-image>`;
+            position="${pos}" scale="${scl}"
+            material="${matBase}" ${anim}></a-image>`;
         case 'glb':
         case 'gltf':
         case 'model':
@@ -734,7 +734,8 @@
             position="${pos}" scale="${scl}" ${anim}></a-gltf-model>`;
         case 'svg':
           return `<a-image id="arc-${i}" src="${src}" width="${planeW}" height="${planeH}"
-            position="${pos}" scale="${scl}" material="opacity:${op};transparent:true" ${anim}></a-image>`;
+            position="${pos}" scale="${scl}"
+            material="${matBase}" ${anim}></a-image>`;
         case 'texto':
         case 'text': {
           const txt   = (capa.texto || '').replace(/"/g, '&quot;');
@@ -742,7 +743,7 @@
           const fw    = Math.max(0.4, s * (capa.tamanoTexto || 24) / 48);
           return `<a-text id="arc-${i}" value="${txt}" color="${color}"
             position="${pos}" scale="${scl}" width="${fw}" align="center"
-            material="opacity:${op}" ${anim}></a-text>`;
+            material="opacity:${op};transparent:true;depthWrite:false" ${anim}></a-text>`;
         }
         default: return '';
       }

@@ -652,7 +652,7 @@
         color-space="sRGB" embedded renderer="colorManagement:true;physicallyCorrectLights:true"
         vr-mode-ui="enabled:false" device-orientation-permission-ui="enabled:false"
         style="width:100vw;height:100vh;">
-        <a-light type="ambient" intensity="1.0" color="#ffffff"></a-light>
+<a-light type="ambient" intensity="1.0" color="#ffffff"></a-light>
         <a-light type="directional" intensity="0.6" position="1 2 1"></a-light>
         <a-camera position="0 0 0" look-controls="enabled:false"></a-camera>
         <a-entity id="target" mindar-image-target="targetIndex:0;" ar-smooth>
@@ -708,11 +708,7 @@
       const src = `${BP}${capa.archivo}`;
       if (['mp4','webm'].includes(ext)) {
         const loop = capa.loop !== false ? 'loop' : '';
-        const muted = capa.audio ? '' : 'muted';
-        assetsHTML += `<video id="vid-${i}" src="${src}" playsinline webkit-playsinline ${muted} crossorigin="anonymous" preload="auto" ${loop}></video>`;
-      }
-      if (['png','jpg','jpeg','gif','svg','webp'].includes(ext)) {
-        assetsHTML += `<img id="img-${i}" src="${src}" crossorigin="anonymous">`;
+        assetsHTML += `<video id="vid-${i}" src="${src}" playsinline webkit-playsinline muted crossorigin="anonymous" preload="auto" ${loop}></video>`;
       }
     });
     assetsHTML += '</a-assets>';
@@ -747,72 +743,67 @@
       const parallaxAttr = `parallax-layer="depth: ${depth}"`;
 
       switch (capa.tipo) {
-
-        // ── VIDEO mp4/webm ──
         case 'video': {
           if (!['mp4','webm'].includes(ext)) return '';
-          const alphaTest = ext === 'webm' ? 'alphaTest:0.01;' : 'alphaTest:0;';
-          const mat = `material="src:#vid-${i};transparent:true;${alphaTest}opacity:${op}"`;
-          return `<a-plane id="arc-${i}" width="${planeW.toFixed(4)}" height="${planeH.toFixed(4)}"
+          const isWebm = ext === 'webm';
+          // WebM con alpha: shader:flat + alphaTest muy bajo
+          // MP4: opaco sin transparencia
+          const mat = isWebm
+            ? `material="src:#vid-${i};shader:flat;transparent:true;alphaTest:0.001;opacity:${op};depthWrite:false"`
+            : `material="src:#vid-${i};shader:flat;opacity:${op}"`;
+          // Proporciones reales del video — no deformar al ratio del trigger
+          const vidEl = document.getElementById(`vid-${i}`);
+          const vidRatio = (vidEl && vidEl.videoWidth && vidEl.videoHeight)
+            ? vidEl.videoWidth / vidEl.videoHeight
+            : (capa.videoRatio || triggerRatio);
+          const vH = (1 / vidRatio).toFixed(4);
+          return `<a-plane id="arc-${i}" width="1" height="${vH}"
             position="${pos}" scale="${scl}" ${mat} ${anim} ${parallaxAttr}
             class="clickable" onclick="toggleVideo(${i})"></a-plane>`;
         }
-
-        // ── IMAGEN png/jpg/jpeg/webp ──
         case 'image': {
-          const useAsset = ['png','jpg','jpeg','webp','gif'].includes(ext);
-          const imgSrc = useAsset ? `#img-${i}` : src;
-          const at = ['png','webp'].includes(ext) ? 'alphaTest:0.05;transparent:true' : 'transparent:false';
-          return `<a-image id="arc-${i}" src="${imgSrc}" width="${planeW.toFixed(4)}" height="${planeH.toFixed(4)}"
+          const imgSrc = ['png','jpg','jpeg','webp','gif'].includes(ext) ? `#img-${i}` : src;
+          const imgMat = ['png','webp'].includes(ext)
+            ? `transparent:true;alphaTest:0.05;opacity:${op};depthWrite:false`
+            : `transparent:false;opacity:${op}`;
+          // width=1, A-Frame calcula height automáticamente según el asset
+          return `<a-image id="arc-${i}" src="${imgSrc}" width="1"
             position="${pos}" scale="${scl}"
-            material="${at};opacity:${op}" ${anim} ${parallaxAttr}></a-image>`;
+            material="${imgMat}" ${anim} ${parallaxAttr}></a-image>`;
         }
-
-        // ── GIF ANIMADO ──
         case 'gif':
-          return `<a-image id="arc-${i}" src="#img-${i}" width="${planeW.toFixed(4)}" height="${planeH.toFixed(4)}"
+          return `<a-image id="arc-${i}" src="#img-${i}" width="1"
             position="${pos}" scale="${scl}"
             material="${matBase}" ${anim} ${parallaxAttr}></a-image>`;
-
-        // ── SVG ──
-        case 'svg':
-          return `<a-image id="arc-${i}" src="#img-${i}" width="${planeW.toFixed(4)}" height="${planeH.toFixed(4)}"
-            position="${pos}" scale="${scl}"
-            material="transparent:true;alphaTest:0.01;opacity:${op}" ${anim} ${parallaxAttr}></a-image>`;
-
-        // ── GLB / GLTF ──
         case 'glb':
         case 'gltf':
         case 'model':
           return `<a-gltf-model id="arc-${i}" src="${src}"
             position="${pos}" scale="${scl}" ${anim} ${parallaxAttr}></a-gltf-model>`;
-
-        // ── SECUENCIA PNG/JPG ──
-        // El archivo debe nombrarse como: seq-001.png, seq-002.png, etc.
-        // En config: tipo:"secuencia", archivo:"seq-001.png", frames:30, fps:24
-        case 'secuencia': {
-          // Se maneja como video usando canvas animation — fallback a imagen estática
-          return `<a-image id="arc-${i}" src="${src}" width="${planeW.toFixed(4)}" height="${planeH.toFixed(4)}"
+        case 'svg':
+          return `<a-image id="arc-${i}" src="#img-${i}" width="1"
             position="${pos}" scale="${scl}"
-            material="${matBase}" ${anim} ${parallaxAttr}></a-image>`;
-        }
-
-        // ── TEXTO ──
+            material="transparent:true;alphaTest:0.01;opacity:${op};depthWrite:false" ${anim} ${parallaxAttr}></a-image>`;
         case 'texto':
         case 'text': {
-          const txt    = (capa.texto || 'Texto AR').replace(/"/g, '&quot;');
-          const color  = capa.colorTexto  || '#ffffff';
-          const bgColor= capa.bgTexto     || 'none';
-          const align  = capa.alignTexto  || 'center';
-          const size   = capa.tamanoTexto || 24;
-          const fw     = Math.max(0.3, (size / 24) * s);
+          const txt   = (capa.texto || 'Texto AR').replace(/"/g, '&quot;');
+          const color = capa.colorTexto || '#ffffff';
+          const align = capa.alignTexto  || 'center';
+          const size  = parseFloat(capa.tamanoTexto) || 0.2;
+          const is3d  = capa.texto3d === true;
+          const fw    = Math.max(0.3, size * 5);
+          if (is3d) {
+            return `<a-entity id="arc-${i}" position="${pos}" ${parallaxAttr} ${anim}>
+              <a-text value="${txt}" color="${color}" align="${align}"
+                width="${fw}" scale="1 1 0.2"
+                material="opacity:${op};transparent:true"></a-text>
+            </a-entity>`;
+          }
           return `<a-text id="arc-${i}" value="${txt}" color="${color}"
-            background-color="${bgColor}"
-            align="${align}"
-            position="${pos}" scale="${scl}" width="${fw}"
+            align="${align}" width="${fw}"
+            position="${pos}" scale="${scl}"
             material="opacity:${op};transparent:true" ${anim} ${parallaxAttr}></a-text>`;
         }
-
         default: return '';
       }
     }).join('\n          ');
@@ -824,7 +815,7 @@
         vr-mode-ui="enabled:false" device-orientation-permission-ui="enabled:false"
         style="width:100vw;height:100vh;">
         ${assetsHTML}
-        <a-light type="ambient" intensity="1.0" color="#ffffff"></a-light>
+<a-light type="ambient" intensity="1.0" color="#ffffff"></a-light>
         <a-light type="directional" intensity="0.6" position="1 2 1"></a-light>
         <a-camera position="0 0 0" look-controls="enabled:false"></a-camera>
         <a-entity id="target" mindar-image-target="targetIndex:0;" ar-smooth>
@@ -852,16 +843,7 @@
         target.addEventListener('targetFound', () => {
           document.getElementById('scan').classList.remove('show');
           const pg = document.getElementById('ping'); pg.classList.add('go'); setTimeout(()=>pg.classList.remove('go'),700);
-          scene.querySelectorAll('video').forEach(vid => {
-            try {
-              const playP = vid.play();
-              if (playP) playP.catch(() => {
-                // iOS requiere interacción — mostrar botón play si falla
-                vid.muted = true;
-                vid.play().catch(()=>{});
-              });
-            } catch(e){}
-          });
+          scene.querySelectorAll('video').forEach(v => { try { v.play(); } catch(e){} });
         });
         target.addEventListener('targetLost', () => {
           document.getElementById('scan').classList.add('show');

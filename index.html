@@ -567,6 +567,53 @@
         <div class="layer-props">
 
           <div class="prop-row">
+            <div class="prop-label">Tipo</div>
+            <div class="prop-control">
+              <select class="prop-slider" id="propTipo" style="background:#1a1a1a;color:#fff;border:1px solid #333;border-radius:6px;padding:4px 8px;font-size:11px;width:100%;">
+                <option value="image">Imagen PNG/JPG/WEBP</option>
+                <option value="video">Video MP4/WebM</option>
+                <option value="gif">GIF Animado</option>
+                <option value="svg">SVG</option>
+                <option value="glb">Modelo 3D GLB/GLTF</option>
+                <option value="texto">Texto</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Campos de texto -->
+          <div id="textoFields" style="display:none;">
+            <div class="prop-row">
+              <div class="prop-label">Texto</div>
+              <div class="prop-control">
+                <textarea id="propTexto" rows="3"
+                  style="width:100%;background:#1a1a1a;color:#fff;border:1px solid #333;border-radius:6px;padding:6px 8px;font-size:11px;resize:vertical;font-family:inherit;"
+                  placeholder="Escribe tu texto aquí..."></textarea>
+              </div>
+            </div>
+            <div class="prop-row">
+              <div class="prop-label">Color</div>
+              <div class="prop-control" style="display:flex;gap:8px;align-items:center;">
+                <input type="color" id="propColorTexto" value="#ffffff" style="width:36px;height:28px;border:none;border-radius:4px;cursor:pointer;">
+                <span id="propColorTextoVal" style="font-size:10px;color:#666;">#ffffff</span>
+              </div>
+            </div>
+            <div class="prop-row">
+              <div class="prop-label">Tamaño</div>
+              <div class="prop-control">
+                <input type="range" class="prop-slider" id="propTamTexto" min="0.05" max="0.5" step="0.01" value="0.1">
+                <div class="prop-value" id="propTamTextoVal">0.10</div>
+              </div>
+            </div>
+            <div class="prop-row">
+              <div class="prop-label">3D</div>
+              <div class="prop-control" style="display:flex;align-items:center;gap:8px;">
+                <input type="checkbox" id="propTexto3d" style="width:16px;height:16px;accent-color:#e63329;">
+                <span style="font-size:10px;color:#666;">Extrusión 3D</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="prop-row">
             <div class="prop-label">Escala</div>
             <div class="prop-control">
               <input type="range" class="prop-slider" id="propScale" min="0.1" max="3" step="0.1" value="1">
@@ -1093,6 +1140,11 @@
       updateLayerProps();
     }
 
+    function toggleTextoFields(type) {
+      const fields = document.getElementById('textoFields');
+      if (fields) fields.style.display = (type === 'texto' || type === 'text') ? 'block' : 'none';
+    }
+
     function getLayerIcon(type) {
       const icons = {
         image: '◈', video: '▶', gif: '⟳', glb: '⬡', texto: 'T'
@@ -1141,6 +1193,25 @@
 
       document.getElementById('propPosZ').value = activeLayer.posZ || 0;
       document.getElementById('propPosZValue').textContent = (activeLayer.posZ || 0).toFixed(1) + ' cm';
+
+      const tipoEl = document.getElementById('propTipo');
+      if (tipoEl) tipoEl.value = activeLayer.type || 'image';
+      toggleTextoFields(activeLayer.type);
+
+      if (activeLayer.type === 'texto' || activeLayer.type === 'text') {
+        const te  = document.getElementById('propTexto');
+        const ce  = document.getElementById('propColorTexto');
+        const cv  = document.getElementById('propColorTextoVal');
+        const tme = document.getElementById('propTamTexto');
+        const tmv = document.getElementById('propTamTextoVal');
+        const t3  = document.getElementById('propTexto3d');
+        if (te)  te.value   = activeLayer.texto || '';
+        if (ce)  ce.value   = activeLayer.colorTexto || '#ffffff';
+        if (cv)  cv.textContent = activeLayer.colorTexto || '#ffffff';
+        if (tme) tme.value  = activeLayer.tamanoTexto || 0.1;
+        if (tmv) tmv.textContent = (activeLayer.tamanoTexto || 0.1).toFixed(2);
+        if (t3)  t3.checked = activeLayer.texto3d || false;
+      }
     }
 
     function initLayerProps() {
@@ -1181,6 +1252,43 @@
           posXValue.textContent = layer.posX.toFixed(2);
           updateCanvas();
         }
+      });
+
+      // Tipo selector
+      const tipoSelect = document.getElementById('propTipo');
+      if (tipoSelect) {
+        tipoSelect.addEventListener('change', (e) => {
+          const layer = APP.layers.find(l => l.id === APP.activeLayerId);
+          if (layer) {
+            layer.type = e.target.value;
+            layer.file = null;
+            updateLayersList();
+            toggleTextoFields(layer.type);
+            if (layer.type !== 'texto') showLayerFilePicker(layer.id);
+          }
+        });
+      }
+
+      // Texto fields listeners
+      const propTexto = document.getElementById('propTexto');
+      if (propTexto) propTexto.addEventListener('input', (e) => {
+        const layer = APP.layers.find(l => l.id === APP.activeLayerId);
+        if (layer) { layer.texto = e.target.value; updateLayersList(); }
+      });
+      const propColorTexto = document.getElementById('propColorTexto');
+      if (propColorTexto) propColorTexto.addEventListener('input', (e) => {
+        const layer = APP.layers.find(l => l.id === APP.activeLayerId);
+        if (layer) { layer.colorTexto = e.target.value; document.getElementById('propColorTextoVal').textContent = e.target.value; }
+      });
+      const propTamTexto = document.getElementById('propTamTexto');
+      if (propTamTexto) propTamTexto.addEventListener('input', (e) => {
+        const layer = APP.layers.find(l => l.id === APP.activeLayerId);
+        if (layer) { layer.tamanoTexto = parseFloat(e.target.value); document.getElementById('propTamTextoVal').textContent = parseFloat(e.target.value).toFixed(2); }
+      });
+      const propTexto3d = document.getElementById('propTexto3d');
+      if (propTexto3d) propTexto3d.addEventListener('change', (e) => {
+        const layer = APP.layers.find(l => l.id === APP.activeLayerId);
+        if (layer) layer.texto3d = e.target.checked;
       });
 
       // PosY slider
@@ -1322,48 +1430,18 @@
       window.open(`viewer.html?p=${slug}`, '_blank');
     }
 
-    async function deleteProyecto(slug) {
-      if (!confirm(`¿Eliminar "${slug}" de GitHub y la lista?`)) return;
-      const btn = event.target;
-      btn.textContent = '...';
-      btn.disabled = true;
-      try {
-        const res = await fetch(WORKER_URL, {
-          method: 'DELETE',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ slug })
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || 'Error al eliminar');
-        // Borrar de localStorage también
-        const proyectos = JSON.parse(localStorage.getItem('ara-proyectos') || '[]');
-        localStorage.setItem('ara-proyectos', JSON.stringify(proyectos.filter(p => p.slug !== slug)));
-        loadProyectos();
-      } catch(e) {
-        alert('Error al eliminar: ' + e.message);
-        btn.textContent = '✕';
-        btn.disabled = false;
-      }
+    function deleteProyecto(slug) {
+      if (!confirm(`¿Eliminar "${slug}" de la lista? (El proyecto en GitHub no se borra)`)) return;
+      const proyectos = JSON.parse(localStorage.getItem('ara-proyectos') || '[]');
+      const filtered = proyectos.filter(p => p.slug !== slug);
+      localStorage.setItem('ara-proyectos', JSON.stringify(filtered));
+      loadProyectos();
     }
 
-    async function deleteAllProyectos() {
-      const proyectos = JSON.parse(localStorage.getItem('ara-proyectos') || '[]');
-      if (proyectos.length === 0) return;
-      if (!confirm(`¿Eliminar los ${proyectos.length} proyectos de GitHub y la lista? Esto no se puede deshacer.`)) return;
-      const results = [];
-      for (const p of proyectos) {
-        try {
-          await fetch(WORKER_URL, {
-            method: 'DELETE',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ slug: p.slug })
-          });
-          results.push(p.slug);
-        } catch(e) {}
-      }
+    function deleteAllProyectos() {
+      if (!confirm('¿Borrar toda la lista de proyectos? (Los proyectos en GitHub no se borran)')) return;
       localStorage.setItem('ara-proyectos', '[]');
       loadProyectos();
-      alert(`Eliminados: ${results.join(', ')}`);
     }
 
     // ── Update Canvas Override ──

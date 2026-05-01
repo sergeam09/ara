@@ -594,9 +594,29 @@
       }
       cam.getWorldPosition(this._camPos);
       this.el.parentEl.object3D.worldToLocal(this._camPos);
-      this.el.object3D.position.x = this._baseX - this._camPos.x * depth * 0.5;
-      this.el.object3D.position.y = this._baseY - this._camPos.y * depth * 0.5;
+      this.el.object3D.position.x = this._baseX - this._camPos.x * depth * 0.25;
+      this.el.object3D.position.y = this._baseY - this._camPos.y * depth * 0.25;
       this.el.object3D.position.z = this._baseZ;
+    }
+  });
+
+  // Luz que sigue a la cámara para sombras dinámicas
+  AFRAME.registerComponent('dynamic-shadow-light', {
+    init() {
+      this._camPos = new THREE.Vector3();
+      this._lightPos = new THREE.Vector3();
+    },
+    tick() {
+      const cam = this.el.sceneEl && this.el.sceneEl.camera;
+      if (!cam) return;
+      cam.getWorldPosition(this._camPos);
+      // La luz siempre viene desde la dirección de la cámara, elevada
+      const light = this.el.object3D;
+      light.position.set(
+        this._camPos.x * 0.5,
+        Math.abs(this._camPos.z) * 0.8 + 2,
+        this._camPos.z * 0.5 + 1
+      );
     }
   });
 
@@ -649,11 +669,30 @@
     const sceneDiv = document.getElementById('arScene');
     sceneDiv.innerHTML = `
       <a-scene mindar-image="imageTargetSrc:${PATHS.mind};autoStart:true;uiScanning:false;uiLoading:false;filterMinCF:0.001;filterBeta:0.001;"
-        color-space="sRGB" embedded renderer="colorManagement:true;physicallyCorrectLights:true"
+        color-space="sRGB" embedded renderer="colorManagement:true;physicallyCorrectLights:true;shadowMapEnabled:true;shadowMapType:pcfsoft"
         vr-mode-ui="enabled:false" device-orientation-permission-ui="enabled:false"
         style="width:100vw;height:100vh;">
-        <a-light type="ambient" intensity="1.2"></a-light>
-        <a-light type="directional" intensity="0.8" position="1 3 2"></a-light>
+        <a-light type="ambient" intensity="0.8" color="#ffffff"></a-light>
+        <a-light id="shadowLight" type="directional" dynamic-shadow-light 
+          intensity="1.0" color="#ffffff"
+          position="0 5 2"
+          cast-shadow="true"
+          shadow-camera-near="0.1"
+          shadow-camera-far="20"
+          shadow-camera-left="-2"
+          shadow-camera-right="2"
+          shadow-camera-top="2"
+          shadow-camera-bottom="-2"
+          shadow-map-width="1024"
+          shadow-map-height="1024">
+        </a-light>
+        <a-plane id="shadowReceiver"
+          width="3" height="3"
+          rotation="-90 0 0"
+          position="0 -0.001 0"
+          material="color:#000000;transparent:true;opacity:0;shader:shadow"
+          receive-shadow="true">
+        </a-plane>
         <a-camera position="0 0 0" look-controls="enabled:false"></a-camera>
         <a-entity id="target" mindar-image-target="targetIndex:0;" ar-smooth>
           ${entityHTML}
@@ -742,44 +781,32 @@
       const depth   = (posZcm / (triggerW > 0 ? triggerW : 20)).toFixed(4);
       const parallaxAttr = `parallax-layer="depth: ${depth}"`;
 
-      // Sombra falsa debajo de cada capa (excepto la base)
-      const shadowOpacity = Math.min(0.35, depth * 0.8);
-      const shadowSize    = (planeW * 1.05).toFixed(4);
-      const shadowH       = (planeH * 1.05).toFixed(4);
-      const shadowZ       = (posZ - 0.0002).toFixed(6);
-      const shadowPos     = `${posX} ${posYh} ${shadowZ}`;
-      const shadowHTML    = i > 0 && shadowOpacity > 0 ? `
-        <a-plane id="shadow-${i}" width="${shadowSize}" height="${shadowH}"
-          position="${shadowPos}"
-          material="color:#000000;transparent:true;opacity:${shadowOpacity.toFixed(3)}"
-          ${parallaxAttr}></a-plane>` : '';
-
       switch (capa.tipo) {
         case 'video': {
           if (['mp4','webm'].includes(ext)) {
             const alphaTest = ext === 'webm' ? 'alphaTest:0.01;' : 'alphaTest:0;';
             const mat = `material="src:#vid-${i};transparent:true;${alphaTest}opacity:${op}"`;
-            return shadowHTML + `<a-plane id="arc-${i}" width="${planeW.toFixed(4)}" height="${planeH.toFixed(4)}"
+            return `<a-plane id="arc-${i}" width="${planeW.toFixed(4)}" height="${planeH.toFixed(4)}"
               position="${pos}" scale="${scl}" ${mat} ${anim} ${parallaxAttr}
               class="clickable" onclick="toggleVideo(${i})"></a-plane>`;
           }
           return '';
         }
         case 'image':
-          return shadowHTML + `<a-image id="arc-${i}" src="${src}" width="${planeW.toFixed(4)}" height="${planeH.toFixed(4)}"
+          return `<a-image id="arc-${i}" src="${src}" width="${planeW.toFixed(4)}" height="${planeH.toFixed(4)}"
             position="${pos}" scale="${scl}"
             material="${matBase}" ${anim} ${parallaxAttr}></a-image>`;
         case 'gif':
-          return shadowHTML + `<a-image id="arc-${i}" src="${src}" width="${planeW.toFixed(4)}" height="${planeH.toFixed(4)}"
+          return `<a-image id="arc-${i}" src="${src}" width="${planeW.toFixed(4)}" height="${planeH.toFixed(4)}"
             position="${pos}" scale="${scl}"
             material="${matBase}" ${anim} ${parallaxAttr}></a-image>`;
         case 'glb':
         case 'gltf':
         case 'model':
-          return shadowHTML + `<a-gltf-model id="arc-${i}" src="${src}"
+          return `<a-gltf-model id="arc-${i}" src="${src}"
             position="${pos}" scale="${scl}" ${anim} ${parallaxAttr}></a-gltf-model>`;
         case 'svg':
-          return shadowHTML + `<a-image id="arc-${i}" src="${src}" width="${planeW.toFixed(4)}" height="${planeH.toFixed(4)}"
+          return `<a-image id="arc-${i}" src="${src}" width="${planeW.toFixed(4)}" height="${planeH.toFixed(4)}"
             position="${pos}" scale="${scl}"
             material="${matBase}" ${anim} ${parallaxAttr}></a-image>`;
         case 'texto':
@@ -787,7 +814,7 @@
           const txt   = (capa.texto || '').replace(/"/g, '&quot;');
           const color = capa.colorTexto || '#ffffff';
           const fw    = Math.max(0.4, s * (capa.tamanoTexto || 24) / 48);
-          return shadowHTML + `<a-text id="arc-${i}" value="${txt}" color="${color}"
+          return `<a-text id="arc-${i}" value="${txt}" color="${color}"
             position="${pos}" scale="${scl}" width="${fw}" align="center"
             material="opacity:${op};transparent:true" ${anim}></a-text>`;
         }
@@ -798,12 +825,31 @@
     const sceneDiv = document.getElementById('arScene');
     sceneDiv.innerHTML = `
       <a-scene mindar-image="imageTargetSrc:${PATHS.mind};autoStart:true;uiScanning:false;uiLoading:false;filterMinCF:0.001;filterBeta:0.001;"
-        color-space="sRGB" embedded renderer="colorManagement:true;physicallyCorrectLights:true"
+        color-space="sRGB" embedded renderer="colorManagement:true;physicallyCorrectLights:true;shadowMapEnabled:true;shadowMapType:pcfsoft"
         vr-mode-ui="enabled:false" device-orientation-permission-ui="enabled:false"
         style="width:100vw;height:100vh;">
         ${assetsHTML}
-        <a-light type="ambient" intensity="1.2"></a-light>
-        <a-light type="directional" intensity="0.8" position="1 3 2"></a-light>
+        <a-light type="ambient" intensity="0.8" color="#ffffff"></a-light>
+        <a-light id="shadowLight" type="directional" dynamic-shadow-light 
+          intensity="1.0" color="#ffffff"
+          position="0 5 2"
+          cast-shadow="true"
+          shadow-camera-near="0.1"
+          shadow-camera-far="20"
+          shadow-camera-left="-2"
+          shadow-camera-right="2"
+          shadow-camera-top="2"
+          shadow-camera-bottom="-2"
+          shadow-map-width="1024"
+          shadow-map-height="1024">
+        </a-light>
+        <a-plane id="shadowReceiver"
+          width="3" height="3"
+          rotation="-90 0 0"
+          position="0 -0.001 0"
+          material="color:#000000;transparent:true;opacity:0;shader:shadow"
+          receive-shadow="true">
+        </a-plane>
         <a-camera position="0 0 0" look-controls="enabled:false"></a-camera>
         <a-entity id="target" mindar-image-target="targetIndex:0;" ar-smooth>
           ${entities}

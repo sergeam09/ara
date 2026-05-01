@@ -570,8 +570,8 @@
             <div class="prop-label">Tipo</div>
             <div class="prop-control">
               <select class="prop-slider" id="propTipo" style="background:#1a1a1a;color:#fff;border:1px solid #333;border-radius:6px;padding:4px 8px;font-size:11px;width:100%;">
-                <option value="image">Imagen PNG/JPG/WEBP</option>
-                <option value="video">Video MP4/WebM</option>
+                <option value="image">Imagen PNG/JPG/WEBP/APNG</option>
+                <option value="video">Video MP4 / WebM+MOV con alpha</option>
                 <option value="gif">GIF Animado</option>
                 <option value="svg">SVG</option>
                 <option value="glb">Modelo 3D GLB/GLTF</option>
@@ -1080,10 +1080,11 @@
 
     function getAcceptTypes(type) {
       const accepts = {
-        video: 'video/mp4,video/webm',
-        image: 'image/png,image/jpg,image/jpeg,image/gif',
-        gif: 'image/gif',
-        glb: '.glb,.gltf',
+        video: 'video/mp4,video/webm,video/quicktime,.mov,.webm',
+        image: 'image/png,image/jpeg,image/jpg,image/webp,image/apng',
+        gif:   'image/gif',
+        svg:   'image/svg+xml',
+        glb:   '.glb,.gltf',
         texto: ''
       };
       return accepts[type] || 'image/*';
@@ -1531,7 +1532,7 @@
         for (let i = 0; i < APP.layers.length; i++) {
           const layer = APP.layers[i];
           if (layer.file) {
-            const layerExt = getFileExtension(layer.file.name);
+            const layerExt = getFileExtension(layer.file.name); // mp4, webm, mov, png, jpg, glb, etc
             const layerB64 = await fileToBase64(layer.file);
             await uploadFile(`proyectos/${slug}/layer-${i}.${layerExt}`, layerB64, `layer ${i}`);
 

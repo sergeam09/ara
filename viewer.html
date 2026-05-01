@@ -700,15 +700,42 @@
     const triggerH = CFG.altoReal  || 1;
     const triggerRatio = triggerW / triggerH;
 
-    // Assets HTML para videos (necesitan preload en a-assets)
-    let assetsHTML = '<a-assets>';
+    // Assets — video dual-source (webm VP9 para Android + mov HEVC para iOS)
+    let assetsHTML = '<a-assets timeout="10000">';
     CAPAS.forEach((capa, i) => {
       if (!capa.archivo) return;
-      const ext = capa.archivo.split('.').pop().toLowerCase();
-      const src = `${BP}${capa.archivo}`;
-      if (['mp4','webm'].includes(ext)) {
-        const loop = capa.loop !== false ? 'loop' : '';
-        assetsHTML += `<video id="vid-${i}" src="${src}" playsinline webkit-playsinline muted crossorigin="anonymous" preload="auto" ${loop}></video>`;
+      const ext  = capa.archivo.split('.').pop().toLowerCase();
+      const src  = `${BP}${capa.archivo}`;
+      const loop = capa.loop !== false ? 'loop' : '';
+      const muted = capa.audio ? '' : 'muted';
+
+      if (['mp4','webm','mov'].includes(ext)) {
+        // Buscar si existe un archivo par (.mov para iOS o .webm para Android)
+        const base = capa.archivo.substring(0, capa.archivo.lastIndexOf('.'));
+        const altMov  = `${BP}${base}.mov`;
+        const altWebm = `${BP}${base}.webm`;
+
+        if (ext === 'webm') {
+          // webm = fuente principal Android, agregar .mov para iOS
+          assetsHTML += `<video id="vid-${i}" playsinline webkit-playsinline ${muted} crossorigin="anonymous" preload="auto" ${loop}>
+            <source src="${altMov}"  type="video/mp4;codecs=hvc1">
+            <source src="${src}"     type="video/webm">
+          </video>`;
+        } else if (ext === 'mov') {
+          // mov = fuente principal iOS, agregar .webm para Android
+          assetsHTML += `<video id="vid-${i}" playsinline webkit-playsinline ${muted} crossorigin="anonymous" preload="auto" ${loop}>
+            <source src="${src}"      type="video/mp4;codecs=hvc1">
+            <source src="${altWebm}"  type="video/webm">
+          </video>`;
+        } else {
+          // mp4 sin alpha — source único
+          assetsHTML += `<video id="vid-${i}" src="${src}" playsinline webkit-playsinline ${muted} crossorigin="anonymous" preload="auto" ${loop}></video>`;
+        }
+      }
+
+      // Imágenes y APNG en assets para preload
+      if (['png','jpg','jpeg','gif','webp','svg'].includes(ext)) {
+        assetsHTML += `<img id="img-${i}" src="${src}" crossorigin="anonymous">`;
       }
     });
     assetsHTML += '</a-assets>';
@@ -743,67 +770,67 @@
       const parallaxAttr = `parallax-layer="depth: ${depth}"`;
 
       switch (capa.tipo) {
+
+        // ── VIDEO: MP4 sin alpha / WebM+MOV con alpha dual-source ──
         case 'video': {
-          if (!['mp4','webm'].includes(ext)) return '';
-          const isWebm = ext === 'webm';
-          // WebM con alpha: shader:flat + alphaTest muy bajo
-          // MP4: opaco sin transparencia
-          const mat = isWebm
-            ? `material="src:#vid-${i};shader:flat;transparent:true;alphaTest:0.001;opacity:${op};depthWrite:false"`
-            : `material="src:#vid-${i};shader:flat;opacity:${op}"`;
-          // Proporciones reales del video — no deformar al ratio del trigger
-          const vidEl = document.getElementById(`vid-${i}`);
-          const vidRatio = (vidEl && vidEl.videoWidth && vidEl.videoHeight)
-            ? vidEl.videoWidth / vidEl.videoHeight
-            : (capa.videoRatio || triggerRatio);
-          const vH = (1 / vidRatio).toFixed(4);
+          if (!['mp4','webm','mov'].includes(ext)) return '';
+          const hasAlpha = ['webm','mov'].includes(ext);
+          const mat = hasAlpha
+            ? `material="src:#vid-${i};shader:flat;transparent:true;alphaTest:0.001;opacity:${op}"`
+            : `material="src:#vid-${i};shader:flat;transparent:false;opacity:${op}"`;
+          // Proporciones del video: capa.videoRatio si está definido, sino triggerRatio
+          const vRatio = capa.videoRatio || triggerRatio;
+          const vH = (1 / vRatio).toFixed(4);
           return `<a-plane id="arc-${i}" width="1" height="${vH}"
             position="${pos}" scale="${scl}" ${mat} ${anim} ${parallaxAttr}
             class="clickable" onclick="toggleVideo(${i})"></a-plane>`;
         }
+
+        // ── PNG / JPG / WEBP / APNG ──
         case 'image': {
-          const imgSrc = ['png','jpg','jpeg','webp','gif'].includes(ext) ? `#img-${i}` : src;
-          const imgMat = ['png','webp'].includes(ext)
-            ? `transparent:true;alphaTest:0.05;opacity:${op};depthWrite:false`
+          const imgSrc = `#img-${i}`;
+          const hasTransp = ['png','webp','apng'].includes(ext);
+          const imgMat = hasTransp
+            ? `transparent:true;alphaTest:0.05;opacity:${op}`
             : `transparent:false;opacity:${op}`;
-          // width=1, A-Frame calcula height automáticamente según el asset
           return `<a-image id="arc-${i}" src="${imgSrc}" width="1"
             position="${pos}" scale="${scl}"
             material="${imgMat}" ${anim} ${parallaxAttr}></a-image>`;
         }
+
+        // ── GIF ANIMADO ──
         case 'gif':
           return `<a-image id="arc-${i}" src="#img-${i}" width="1"
             position="${pos}" scale="${scl}"
-            material="${matBase}" ${anim} ${parallaxAttr}></a-image>`;
+            material="transparent:true;alphaTest:0.1;opacity:${op}" ${anim} ${parallaxAttr}></a-image>`;
+
+        // ── SVG ──
+        case 'svg':
+          return `<a-image id="arc-${i}" src="#img-${i}" width="1"
+            position="${pos}" scale="${scl}"
+            material="transparent:true;alphaTest:0.01;opacity:${op}" ${anim} ${parallaxAttr}></a-image>`;
+
+        // ── GLB / GLTF ──
         case 'glb':
         case 'gltf':
         case 'model':
           return `<a-gltf-model id="arc-${i}" src="${src}"
             position="${pos}" scale="${scl}" ${anim} ${parallaxAttr}></a-gltf-model>`;
-        case 'svg':
-          return `<a-image id="arc-${i}" src="#img-${i}" width="1"
-            position="${pos}" scale="${scl}"
-            material="transparent:true;alphaTest:0.01;opacity:${op};depthWrite:false" ${anim} ${parallaxAttr}></a-image>`;
+
+        // ── TEXTO ──
         case 'texto':
         case 'text': {
           const txt   = (capa.texto || 'Texto AR').replace(/"/g, '&quot;');
           const color = capa.colorTexto || '#ffffff';
-          const align = capa.alignTexto  || 'center';
+          const align = capa.alignTexto || 'center';
           const size  = parseFloat(capa.tamanoTexto) || 0.2;
-          const is3d  = capa.texto3d === true;
           const fw    = Math.max(0.3, size * 5);
-          if (is3d) {
-            return `<a-entity id="arc-${i}" position="${pos}" ${parallaxAttr} ${anim}>
-              <a-text value="${txt}" color="${color}" align="${align}"
-                width="${fw}" scale="1 1 0.2"
-                material="opacity:${op};transparent:true"></a-text>
-            </a-entity>`;
-          }
           return `<a-text id="arc-${i}" value="${txt}" color="${color}"
             align="${align}" width="${fw}"
             position="${pos}" scale="${scl}"
             material="opacity:${op};transparent:true" ${anim} ${parallaxAttr}></a-text>`;
         }
+
         default: return '';
       }
     }).join('\n          ');

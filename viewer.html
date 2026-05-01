@@ -575,33 +575,27 @@
   AFRAME.registerComponent('parallax-layer', {
     schema: { depth: { type: 'number', default: 0 } },
     init() {
-      this._baseX = this.el.object3D.position.x;
-      this._baseY = this.el.object3D.position.y;
-      this._baseZ = this.el.object3D.position.z;
-      this._cam   = null;
+      this._baseX  = 0;
+      this._baseY  = 0;
+      this._baseZ  = 0;
+      this._camPos = new THREE.Vector3();
+      this._ready  = false;
     },
     tick() {
-      if (!this._cam) {
-        const camEl = this.el.sceneEl && this.el.sceneEl.camera;
-        if (!camEl) return;
-        this._cam = camEl;
-      }
-      const depth  = this.data.depth;
+      const depth = this.data.depth;
       if (depth === 0) return;
-
-      // Vector de la cámara relativo al target
-      const target = this.el.parentEl.object3D;
-      const camPos = new THREE.Vector3();
-      this._cam.getWorldPosition(camPos);
-      target.worldToLocal(camPos);
-
-      // Desplazar la capa inversamente proporcional a su profundidad
-      // Capas con más depth se mueven MÁS → ilusión de estar más cerca
-      const parallaxX = -camPos.x * depth * 0.3;
-      const parallaxY = -camPos.y * depth * 0.3;
-
-      this.el.object3D.position.x = this._baseX + parallaxX;
-      this.el.object3D.position.y = this._baseY + parallaxY;
+      const cam = this.el.sceneEl && this.el.sceneEl.camera;
+      if (!cam) return;
+      if (!this._ready) {
+        this._baseX = this.el.object3D.position.x;
+        this._baseY = this.el.object3D.position.y;
+        this._baseZ = this.el.object3D.position.z;
+        this._ready = true;
+      }
+      cam.getWorldPosition(this._camPos);
+      this.el.parentEl.object3D.worldToLocal(this._camPos);
+      this.el.object3D.position.x = this._baseX - this._camPos.x * depth * 0.25;
+      this.el.object3D.position.y = this._baseY - this._camPos.y * depth * 0.25;
       this.el.object3D.position.z = this._baseZ;
     }
   });
@@ -745,6 +739,8 @@
       const scl = `1 1 1`;
       // Material base con transparent+alphaTest para TODOS los tipos — evita z-fighting y mezcla de píxeles
       const matBase = `transparent:true;alphaTest:0.1;opacity:${op}`;
+      const depth   = (posZcm / (triggerW > 0 ? triggerW : 20)).toFixed(4);
+      const parallaxAttr = `parallax-layer="depth: ${depth}"`;
 
       switch (capa.tipo) {
         case 'video': {

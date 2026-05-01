@@ -567,6 +567,21 @@
         <div class="layer-props">
 
           <div class="prop-row">
+            <div class="prop-label">Tipo</div>
+            <div class="prop-control">
+              <select class="prop-slider" id="propTipo" style="background:#1a1a1a;color:#fff;border:1px solid #333;border-radius:6px;padding:4px 8px;font-size:11px;width:100%;">
+                <option value="image">Imagen (PNG/JPG/WEBP)</option>
+                <option value="video">Video (MP4/WebM)</option>
+                <option value="gif">GIF Animado</option>
+                <option value="secuencia">Secuencia PNG/JPG</option>
+                <option value="svg">SVG</option>
+                <option value="glb">Modelo 3D (GLB/GLTF)</option>
+                <option value="texto">Texto</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="prop-row">
             <div class="prop-label">Escala</div>
             <div class="prop-control">
               <input type="range" class="prop-slider" id="propScale" min="0.1" max="3" step="0.1" value="1">
@@ -1033,22 +1048,26 @@
 
     function getAcceptTypes(type) {
       const accepts = {
-        video: 'video/mp4,video/webm',
-        image: 'image/png,image/jpg,image/jpeg,image/gif',
-        gif: 'image/gif',
-        glb: '.glb,.gltf',
-        texto: ''
+        video:    'video/mp4,video/webm',
+        image:    'image/png,image/jpeg,image/jpg,image/webp,image/svg+xml',
+        gif:      'image/gif',
+        secuencia:'image/png,image/jpeg',
+        glb:      '.glb,.gltf',
+        svg:      'image/svg+xml',
+        texto:    ''
       };
       return accepts[type] || 'image/*';
     }
 
     function getLayerColor(type) {
       const colors = {
-        image: 0x5b8def,
-        video: 0xc8f542,
-        gif: 0xf5a623,
-        glb: 0xc471ed,
-        texto: 0xf542b6
+        image:    0x5b8def,
+        video:    0xe63329,
+        gif:      0xf5a623,
+        secuencia:0xff9500,
+        glb:      0xc471ed,
+        svg:      0x00d4aa,
+        texto:    0xf542b6
       };
       return colors[type] || 0x666666;
     }
@@ -1095,7 +1114,13 @@
 
     function getLayerIcon(type) {
       const icons = {
-        image: '◈', video: '▶', gif: '⟳', glb: '⬡', texto: 'T'
+        image:    '◈',
+        video:    '▶',
+        gif:      '⟳',
+        secuencia:'⊞',
+        glb:      '⬡',
+        svg:      '⬟',
+        texto:    'T'
       };
       return icons[type] || '?';
     }
@@ -1135,6 +1160,9 @@
 
       document.getElementById('propPosX').value = activeLayer.posX;
       document.getElementById('propPosXValue').textContent = activeLayer.posX.toFixed(2);
+
+      const tipoEl = document.getElementById('propTipo');
+      if (tipoEl) tipoEl.value = activeLayer.type || 'image';
 
       document.getElementById('propPosY').value = activeLayer.posY;
       document.getElementById('propPosYValue').textContent = activeLayer.posY.toFixed(2);
@@ -1180,6 +1208,19 @@
           layer.posX = parseFloat(e.target.value);
           posXValue.textContent = layer.posX.toFixed(2);
           updateCanvas();
+        }
+      });
+
+      // Tipo selector
+      const tipoSelect = document.getElementById('propTipo');
+      tipoSelect.addEventListener('change', (e) => {
+        const layer = APP.layers.find(l => l.id === APP.activeLayerId);
+        if (layer) {
+          layer.type = e.target.value;
+          layer.file = null; // reset file
+          updateLayersList();
+          // Reabrir file picker con el tipo correcto
+          if (layer.type !== 'texto') showLayerFilePicker(layer.id);
         }
       });
 
@@ -1407,14 +1448,18 @@
               id: i,
               tipo: layer.type,
               archivo: `layer-${i}.${layerExt}`,
-              posX: layer.posX,
-              posY: layer.posY,
-              posZ: layer.posZ || 0,
-              escala: layer.scale,
-              opacidad: layer.opacity,
-              entrada: layer.animation,
+              posX: layer.posX   || 0,
+              posY: layer.posY   || 0,
+              posZ: layer.posZ   || 0,
+              escala: layer.scale  || 1,
+              opacidad: layer.opacity !== undefined ? layer.opacity : 1,
+              entrada: layer.animation || 'fade',
               delay: 0,
-              loop: true
+              loop: true,
+              audio: layer.audio || false,
+              texto: layer.texto || '',
+              colorTexto: layer.colorTexto || '#ffffff',
+              tamanoTexto: layer.tamanoTexto || 24
             });
           }
           updateProgress(45 + (i + 1) * 30 / APP.layers.length);

@@ -1322,18 +1322,48 @@
       window.open(`viewer.html?p=${slug}`, '_blank');
     }
 
-    function deleteProyecto(slug) {
-      if (!confirm(`¿Eliminar "${slug}" de la lista? (El proyecto en GitHub no se borra)`)) return;
-      const proyectos = JSON.parse(localStorage.getItem('ara-proyectos') || '[]');
-      const filtered = proyectos.filter(p => p.slug !== slug);
-      localStorage.setItem('ara-proyectos', JSON.stringify(filtered));
-      loadProyectos();
+    async function deleteProyecto(slug) {
+      if (!confirm(`¿Eliminar "${slug}" de GitHub y la lista?`)) return;
+      const btn = event.target;
+      btn.textContent = '...';
+      btn.disabled = true;
+      try {
+        const res = await fetch(WORKER_URL, {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ slug })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Error al eliminar');
+        // Borrar de localStorage también
+        const proyectos = JSON.parse(localStorage.getItem('ara-proyectos') || '[]');
+        localStorage.setItem('ara-proyectos', JSON.stringify(proyectos.filter(p => p.slug !== slug)));
+        loadProyectos();
+      } catch(e) {
+        alert('Error al eliminar: ' + e.message);
+        btn.textContent = '✕';
+        btn.disabled = false;
+      }
     }
 
-    function deleteAllProyectos() {
-      if (!confirm('¿Borrar toda la lista de proyectos? (Los proyectos en GitHub no se borran)')) return;
+    async function deleteAllProyectos() {
+      const proyectos = JSON.parse(localStorage.getItem('ara-proyectos') || '[]');
+      if (proyectos.length === 0) return;
+      if (!confirm(`¿Eliminar los ${proyectos.length} proyectos de GitHub y la lista? Esto no se puede deshacer.`)) return;
+      const results = [];
+      for (const p of proyectos) {
+        try {
+          await fetch(WORKER_URL, {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ slug: p.slug })
+          });
+          results.push(p.slug);
+        } catch(e) {}
+      }
       localStorage.setItem('ara-proyectos', '[]');
       loadProyectos();
+      alert(`Eliminados: ${results.join(', ')}`);
     }
 
     // ── Update Canvas Override ──

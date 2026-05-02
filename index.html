@@ -668,7 +668,7 @@
           <div class="prop-row">
             <div class="prop-label">Profundidad Z</div>
             <div class="prop-control">
-              <input type="range" class="prop-slider" id="propPosZ" min="0" max="20" step="0.5" value="0">
+              <input type="range" class="prop-slider" id="propPosZ" min="0" max="200" step="1" value="0">
               <div class="prop-value" id="propPosZValue">0.01</div>
             </div>
           </div>
@@ -1122,13 +1122,14 @@
 
     function getLayerColor(type) {
       const colors = {
-        image: 0x5b8def,
-        video: 0xc8f542,
-        gif: 0xf5a623,
-        glb: 0xc471ed,
-        texto: 0xf542b6
+        image:  0x5b8def,
+        video:  0xe63329,
+        gif:    0xff9500,
+        glb:    0xc471ed,
+        svg:    0x00d4aa,
+        texto:  0xe63329
       };
-      return colors[type] || 0x666666;
+      return colors[type] || 0x444444;
     }
 
     function updateLayersList() {
@@ -1172,11 +1173,39 @@
     }
 
     function toggleTextoFields(type) {
+      const layer = APP.layers.find(l => l.id === APP.activeLayerId);
+      const hasFile = layer && layer.file;
+      const isTexto = type === 'texto' || type === 'text';
+
+      // Campos de texto
       const fields = document.getElementById('textoFields');
-      if (fields) fields.style.display = (type === 'texto' || type === 'text') ? 'block' : 'none';
+      if (fields) fields.style.display = isTexto ? 'block' : 'none';
+
+      // Botones de tipo — solo visibles si NO hay archivo todavía
+      const tipoBtns = document.getElementById('tipoBtns');
+      if (tipoBtns) tipoBtns.style.display = (hasFile || isTexto) ? 'none' : 'grid';
+
+      // Botón seleccionar archivo
       const btnArch = document.getElementById('btnSelArchivo');
-      if (btnArch) btnArch.style.display = (type === 'texto' || type === 'text') ? 'none' : 'block';
-      // Highlight active tipo button
+      if (btnArch) {
+        if (isTexto) {
+          btnArch.style.display = 'none';
+        } else if (hasFile) {
+          btnArch.textContent = '↺ Cambiar archivo';
+          btnArch.style.display = 'block';
+          btnArch.style.background = '#1a1a1a';
+          btnArch.style.border = '1px solid #333';
+          btnArch.style.color = '#888';
+        } else {
+          btnArch.textContent = '◈ Seleccionar archivo';
+          btnArch.style.display = 'block';
+          btnArch.style.background = '#e63329';
+          btnArch.style.border = 'none';
+          btnArch.style.color = '#fff';
+        }
+      }
+
+      // Highlight tipo activo
       document.querySelectorAll('.tipo-btn').forEach(b => {
         b.classList.toggle('active', b.dataset.tipo === type);
       });
@@ -1221,7 +1250,7 @@
 
     function getLayerIcon(type) {
       const icons = {
-        image: '◈', video: '▶', gif: '⟳', glb: '⬡', texto: 'T'
+        image: '◈', video: '▶', gif: '⟳', glb: '⬡', texto: 'T', svg: '⬟', secuencia: '⊞'
       };
       return icons[type] || '?';
     }

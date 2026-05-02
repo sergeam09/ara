@@ -283,18 +283,20 @@
       // Entities HTML
       const entities = CAPAS.map((c, i) => {
         if (!c.archivo && c.tipo !== 'texto' && c.tipo !== 'text') return '';
-        const px  = c.posX || 0;
-        const py  = c.posY || 0;
-        const pz  = (i * 0.0001).toFixed(6);
+        const px      = c.posX || 0;
+        const py      = c.posY || 0;
+        const depthCm = c.posZ || 0;
+        // En MindAR Z negativo = hacia la cámara
+        // Artivive usa cm directos, dividimos entre 100 para convertir a metros
+        // que es la escala natural de MindAR cuando el trigger está en cm reales
+        const pz  = (-(depthCm / 100) - (i * 0.001)).toFixed(4);
         const pos = `${px} ${py} ${pz}`;
+        const depth = (depthCm / 100).toFixed(4);
         const s   = c.escala   || 1;
         const op  = c.opacidad !== undefined ? c.opacidad : 1;
         const src = c.archivo ? `${BASE}/proyectos/${PROJECT}/${c.archivo}` : '';
         const ext = c.archivo ? c.archivo.split('.').pop().toLowerCase() : '';
         const scl = `${s} ${s} ${s}`;
-        // Depth para parallax
-        const depthCm = c.posZ || 0;
-        const depth   = (depthCm / tw).toFixed(4);
         const px_attr = parseFloat(depth) > 0 ? `parallax-layer="depth:${depth}"` : '';
         // Proporciones: 1 unidad ancho, height según ratio del trigger
         const pw = 1;

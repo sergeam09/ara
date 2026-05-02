@@ -627,7 +627,7 @@
             <div class="prop-row">
               <div class="prop-label">Tamaño</div>
               <div class="prop-control">
-                <input type="range" class="prop-slider" id="propTamTexto" min="0.05" max="0.5" step="0.01" value="0.1">
+                <input type="range" class="prop-slider" id="propTamTexto" min="0.1" max="2" step="0.1" value="0.5">
                 <div class="prop-value" id="propTamTextoVal">0.10</div>
               </div>
             </div>
@@ -876,36 +876,94 @@
 
     // ── Global Functions ──
     function addLayerToCanvas(id, color) {
-      // Create horizontal plane for layer (parallel to trigger)
-      const layerGeometry = new THREE.PlaneGeometry(20, 15);
-      layerGeometry.rotateX(-Math.PI / 2); // Make it horizontal like trigger
+      const layer = APP.layers.find(l => l.id === id);
+      if (!layer) return;
 
-      const layerMaterial = new THREE.MeshLambertMaterial({
-        color: color || 0x00ff00,
-        transparent: true,
-        opacity: 0.8,
-        side: THREE.DoubleSide
-      });
+      // Calcular dimensiones basadas en el trigger
+      const tw = parseFloat(document.getElementById('inputWidth').value) || 21;
+      const th = parseFloat(document.getElementById('inputHeight').value) || 29.7;
+      const ratio = tw / th;
+      const planeW = 150;
+      const planeH = planeW / ratio;
 
-      const layerMesh = new THREE.Mesh(layerGeometry, layerMaterial);
+      let mat;
+      if (layer.type === 'texto' || layer.type === 'text') {
+        // Texto: canvas con el texto real
+        const c = document.createElement('canvas');
+        c.width = 512; c.height = 128;
+        const ctx = c.getContext('2d');
+        ctx.fillStyle = layer.colorTexto || '#ffffff';
+        ctx.font = 'bold 48px Montserrat, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(layer.texto || 'Texto AR', 256, 64);
+        mat = new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(c), transparent: true, side: THREE.DoubleSide });
+      } else if (layer.file && layer.file.type.startsWith('image/')) {
+        // Imagen: mostrar thumbnail real
+        const img = new Image();
+        img.src = URL.createObjectURL(layer.file);
+        const tex = new THREE.Texture(img);
+        img.onload = () => { tex.needsUpdate = true; };
+        mat = new THREE.MeshBasicMaterial({ map: tex, transparent: true, side: THREE.DoubleSide });
+      } else if (layer.file && layer.file.type.startsWith('video/')) {
+        // Video: placeholder con ícono ▶ y nombre
+        const c = document.createElement('canvas');
+        c.width = 512; c.height = Math.round(512 / ratio);
+        const ctx = c.getContext('2d');
+        ctx.fillStyle = '#1a1a1a';
+        ctx.fillRect(0, 0, c.width, c.height);
+        ctx.fillStyle = '#e63329';
+        ctx.font = 'bold 64px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('▶', c.width/2, c.height/2 - 20);
+        ctx.fillStyle = '#ffffff';
+        ctx.font = '24px Montserrat, sans-serif';
+        ctx.fillText(layer.file.name, c.width/2, c.height/2 + 40);
+        mat = new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(c), transparent: true, side: THREE.DoubleSide });
+      } else {
+        // Sin archivo: placeholder gris con tipo
+        const c = document.createElement('canvas');
+        c.width = 256; c.height = 256;
+        const ctx = c.getContext('2d');
+        ctx.fillStyle = '#222';
+        ctx.fillRect(0, 0, 256, 256);
+        ctx.fillStyle = '#555';
+        ctx.font = '48px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(layer.type === 'glb' ? '⬡' : '◈', 128, 128);
+        mat = new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(c), transparent: true, opacity: 0.6, side: THREE.DoubleSide });
+      }
 
-      // Position above trigger at height proportional to index
-      const layerIndex = layers.length;
-      layerMesh.position.set(
-        (Math.random() - 0.5) * 100, // Random X position
-        layerIndex * 0.05,            // Small increments above trigger
-        (Math.random() - 0.5) * 60    // Random Z position
-      );
+      const geo = new THREE.PlaneGeometry(planeW, planeH);
+      const mesh = new THREE.Mesh(geo, mat);
+      mesh.userData = { id };
 
-      layerMesh.userData = { id: id };
-      layers.push(layerMesh);
-      scene.add(layerMesh);
+      // Posición basada en posZ del layer
+      const posZ = layer.posZ || 0;
+      mesh.position.set(layer.posX * 30 || 0, posZ * 5, layer.posY * 20 || 0);
 
-      return layerMesh;
+      layers.push(mesh);
+      scene.add(mesh);
+      return mesh;
     }
 
     function updateCanvas() {
-      // Empty for now - will be used for real-time updates
+      if (!scene) return;
+      layers.forEach(mesh => {
+        const layer = APP.layers.find(l => l.id === mesh.userData.id);
+        if (!layer) return;
+        // Actualizar posición según sliders
+        const posZ = layer.posZ || 0;
+        mesh.position.set(
+          (layer.posX || 0) * 30,
+          posZ * 5,
+          (layer.posY || 0) * 20
+        );
+        mesh.scale.setScalar(layer.scale || 1);
+        mesh.material.opacity = (layer.opacity !== undefined ? layer.opacity : 1) * 0.85;
+      });
     }
 
     // ── Initialize on load ──

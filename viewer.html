@@ -722,8 +722,8 @@
         case 'text': {
           const txt   = (capa.texto || 'Texto').replace(/"/g, '&quot;');
           const color = capa.colorTexto || '#ffffff';
-          const size  = parseFloat(capa.tamanoTexto) || 0.2;
-          const fw    = Math.max(0.3, size * 5);
+          const size  = parseFloat(capa.tamanoTexto) || 0.5;
+          const fw    = Math.max(1, size * 3);
           return `<a-text id="arc-${i}" value="${txt}" color="${color}"
             position="${pos}" scale="${scl}" width="${fw}" align="center"
             material="opacity:${op};transparent:true" ${anim}></a-text>`;

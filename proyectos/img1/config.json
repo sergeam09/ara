@@ -18,6 +18,19 @@
       "entrada": "fade",
       "delay": 0,
       "loop": true
+    },
+    {
+      "id": 1,
+      "tipo": "video",
+      "archivo": "layer-1.webm",
+      "posX": 0,
+      "posY": 0,
+      "posZ": 7.5,
+      "escala": 1,
+      "opacidad": 1,
+      "entrada": "fade",
+      "delay": 0,
+      "loop": true
     }
   ]
 }

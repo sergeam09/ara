@@ -4,25 +4,25 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <title>ARA — Experiencia AR</title>
+  <title>ARA Viewer Android Estable</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800;900&display=swap" rel="stylesheet">
   <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
   <style>
     :root {
-      --bg: #0a0a0a;
-      --bg2: #111111;
+      --bg: #090909;
+      --panel: rgba(10, 10, 10, 0.84);
       --red: #e63329;
       --red2: #ff5a4d;
-      --fd: "Montserrat", sans-serif;
+      --text: #ffffff;
+      --muted: rgba(255, 255, 255, 0.66);
+      --font: "Montserrat", sans-serif;
     }
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    body { background: var(--bg); color: #fff; font-family: var(--fd); height: 100vh; overflow: hidden; touch-action: none; }
-
-    #startScreen,
-    #splash,
-    #errBox {
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg); color: var(--text); font-family: var(--font); }
+    body { touch-action: none; }
+    .screen {
       position: fixed;
       inset: 0;
       display: flex;
@@ -30,317 +30,217 @@
       align-items: center;
       justify-content: center;
       text-align: center;
-      padding: 40px;
+      padding: 28px;
     }
-
-    #startScreen {
-      background: var(--bg);
-      gap: 20px;
-      z-index: 2000;
-    }
+    #startScreen { background: var(--bg); z-index: 20; gap: 18px; }
     #startScreen.hidden { display: none; }
-
-    .start-mark,
-    .splash-mark {
+    #loadingScreen {
+      background: rgba(9, 9, 9, 0.94);
+      z-index: 18;
+      gap: 14px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease;
+    }
+    #loadingScreen.show { opacity: 1; pointer-events: all; }
+    #errorScreen {
+      background: rgba(9, 9, 9, 0.97);
+      z-index: 30;
+      gap: 14px;
+      display: none;
+    }
+    #errorScreen.show { display: flex; }
+    .mark {
+      width: 66px;
+      height: 66px;
+      border-radius: 18px;
       display: flex;
       align-items: center;
       justify-content: center;
-      color: #fff;
-      font-weight: 900;
       background: linear-gradient(135deg, var(--red), var(--red2));
-    }
-
-    .start-mark {
-      width: 64px;
-      height: 64px;
-      border-radius: 18px;
       font-size: 28px;
-      box-shadow: 0 8px 24px rgba(230, 51, 41, 0.4);
+      font-weight: 900;
+      box-shadow: 0 8px 24px rgba(230, 51, 41, 0.35);
     }
-
-    .start-logo { font-size: 42px; font-weight: 900; letter-spacing: -0.03em; }
-    .start-name { font-size: 18px; font-weight: 700; opacity: 0.9; }
-    .start-hint { font-size: 12px; opacity: 0.5; letter-spacing: 0.05em; }
-
-    .start-btn {
-      background: linear-gradient(135deg, var(--red), var(--red2));
-      color: #fff;
-      border: none;
-      padding: 16px 40px;
+    .logo { font-size: 40px; font-weight: 900; letter-spacing: -0.03em; }
+    .project { font-size: 16px; font-weight: 700; opacity: 0.92; }
+    .hint, .status, .error-text {
+      max-width: 360px;
       font-size: 13px;
-      font-weight: 800;
-      letter-spacing: 0.12em;
+      line-height: 1.6;
+      color: var(--muted);
+    }
+    .button {
+      border: none;
+      border-radius: 999px;
+      padding: 15px 28px;
+      background: linear-gradient(135deg, var(--red), var(--red2));
+      color: white;
+      font: 800 13px/1 var(--font);
+      letter-spacing: 0.1em;
       text-transform: uppercase;
       cursor: pointer;
-      border-radius: 999px;
-      font-family: var(--fd);
-      box-shadow: 0 4px 20px rgba(230, 51, 41, 0.4);
     }
-
-    #splash {
-      background: var(--bg);
-      gap: 16px;
-      z-index: 1900;
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 0.3s;
-    }
-    #splash.visible { opacity: 1; pointer-events: all; }
-
-    .splash-mark {
-      width: 48px;
-      height: 48px;
-      border-radius: 12px;
-      font-size: 22px;
-    }
-
-    .splash-msg { font-size: 13px; opacity: 0.6; letter-spacing: 0.06em; }
-
     #hud {
       position: fixed;
       top: 0;
       left: 0;
       right: 0;
+      z-index: 10;
       display: flex;
-      align-items: center;
       justify-content: space-between;
-      padding: 16px 20px;
-      z-index: 1000;
+      align-items: center;
+      padding: 16px;
       opacity: 0;
       pointer-events: none;
-      transition: opacity 0.3s;
+      transition: opacity 0.2s ease;
     }
     #hud.show { opacity: 1; pointer-events: all; }
-
-    .hud-logo,
-    .hud-close,
-    #scan {
-      background: rgba(10, 10, 10, 0.82);
+    .pill {
+      background: var(--panel);
+      border: 1px solid rgba(255, 255, 255, 0.08);
       backdrop-filter: blur(8px);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-    }
-
-    .hud-logo {
-      padding: 8px 16px;
       border-radius: 999px;
-      font-size: 13px;
-      font-weight: 900;
-      color: var(--red);
-      letter-spacing: 0.08em;
-    }
-
-    .hud-close {
-      padding: 8px 16px;
-      border-radius: 999px;
+      padding: 8px 14px;
       font-size: 12px;
-      font-weight: 700;
-      color: #fff;
-      cursor: pointer;
-      letter-spacing: 0.06em;
+      font-weight: 800;
     }
-
     #scan {
       position: fixed;
-      bottom: 40px;
       left: 50%;
+      bottom: 34px;
       transform: translateX(-50%);
-      padding: 10px 24px;
+      z-index: 10;
+      background: var(--panel);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      backdrop-filter: blur(8px);
       border-radius: 999px;
+      padding: 10px 18px;
       font-size: 11px;
-      font-weight: 700;
-      letter-spacing: 0.12em;
+      font-weight: 800;
+      letter-spacing: 0.08em;
       text-transform: uppercase;
-      color: rgba(255, 255, 255, 0.7);
-      z-index: 1000;
       opacity: 0;
       pointer-events: none;
-      transition: opacity 0.3s;
+      transition: opacity 0.2s ease;
     }
     #scan.show { opacity: 1; }
-
-    #arScene { position: fixed; inset: 0; display: none; z-index: 500; }
-    #arScene.show { display: block; }
-
-    #errBox {
-      background: var(--bg);
-      gap: 16px;
-      z-index: 3000;
-      display: none;
+    #note {
+      position: fixed;
+      left: 50%;
+      bottom: 80px;
+      transform: translateX(-50%);
+      z-index: 10;
+      width: min(88vw, 420px);
+      text-align: center;
+      font-size: 11px;
+      line-height: 1.5;
+      color: rgba(255, 255, 255, 0.55);
+      opacity: 0;
+      transition: opacity 0.2s ease;
     }
-    #errBox.show { display: flex; }
-
-    .err-icon { font-size: 40px; opacity: 0.4; }
-    .err-msg { font-size: 14px; opacity: 0.7; line-height: 1.6; max-width: 320px; }
+    #note.show { opacity: 1; }
+    #arContainer { position: fixed; inset: 0; display: none; z-index: 1; }
+    #arContainer.show { display: block; }
   </style>
 </head>
 <body>
-  <div id="startScreen">
-    <div class="start-mark">◆</div>
-    <div class="start-logo">ARA</div>
-    <div class="start-name" id="startName"></div>
-    <div class="start-hint">Apunta la cámara al trigger para activar el contenido</div>
-    <button class="start-btn" onclick="arrancarExperiencia()">◆ Iniciar AR</button>
+  <div id="startScreen" class="screen">
+    <div class="mark">◆</div>
+    <div class="logo">ARA</div>
+    <div id="projectName" class="project"></div>
+    <div class="hint">
+      Esta versión prioriza estabilidad en Android. Usa profundidad real entre capas, evita parallax artificial y no depende de WebM alfa como formato principal.
+    </div>
+    <button class="button" id="startButton">Iniciar AR</button>
   </div>
 
-  <div id="splash">
-    <div class="splash-mark">◆</div>
-    <div class="splash-msg" id="splashMsg">Cargando...</div>
+  <div id="loadingScreen" class="screen">
+    <div class="mark">◆</div>
+    <div id="loadingText" class="status">Cargando…</div>
+  </div>
+
+  <div id="errorScreen" class="screen">
+    <div class="mark">!</div>
+    <div id="errorText" class="error-text"></div>
+    <button class="button" id="retryButton">Reintentar</button>
   </div>
 
   <div id="hud">
-    <div class="hud-logo">ARA</div>
-    <div class="hud-close" onclick="cerrarViewer()">✕ Cerrar</div>
+    <div class="pill">ARA</div>
+    <button class="pill" id="closeButton" type="button">Cerrar</button>
   </div>
 
-  <div id="scan" class="show">Apunta a la obra</div>
-
-  <div id="arScene"></div>
-
-  <div id="errBox">
-    <div class="err-icon">⚠</div>
-    <div class="err-msg" id="errMsg"></div>
-  </div>
+  <div id="scan" class="show">Apunta al trigger</div>
+  <div id="note">Si un video alfa aparece con fondo negro, conviértelo a secuencia PNG/APNG o usa MP4 normal.</div>
+  <div id="arContainer"></div>
 
   <script>
-    const P = new URLSearchParams(location.search);
-    const PROJECT = P.get("p") || P.get("slug") || P.get("project");
-    const BASE = "https://sergeam09.github.io/ara";
-    const WORKER = "https://ara.sergeam09.workers.dev";
-    const PATHS = {
-      mind: `${BASE}/proyectos/${PROJECT}/trigger.mind`,
-      config: `${BASE}/proyectos/${PROJECT}/config.json`
+    const params = new URLSearchParams(location.search);
+    const projectId = params.get("p") || params.get("slug") || params.get("project");
+    const baseUrl = "https://sergeam09.github.io/ara";
+    const workerUrl = "https://ara.sergeam09.workers.dev";
+    const paths = {
+      config: `${baseUrl}/proyectos/${projectId}/config.json`,
+      mind: `${baseUrl}/proyectos/${projectId}/trigger.mind`
     };
 
-    let CFG = {};
-    let CAPAS = [];
+    let config = null;
+    let layers = [];
+    let sceneRef = null;
 
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
-      (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+    const isAndroid = /Android/i.test(navigator.userAgent);
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
 
-    const setSplash = (msg) => {
-      document.getElementById("splashMsg").textContent = msg;
-    };
+    const startScreen = document.getElementById("startScreen");
+    const loadingScreen = document.getElementById("loadingScreen");
+    const errorScreen = document.getElementById("errorScreen");
+    const loadingText = document.getElementById("loadingText");
+    const errorText = document.getElementById("errorText");
+    const arContainer = document.getElementById("arContainer");
+    const hud = document.getElementById("hud");
+    const scan = document.getElementById("scan");
+    const note = document.getElementById("note");
 
-    const showSplash = () => {
-      document.getElementById("splash").classList.add("visible");
-    };
+    document.getElementById("projectName").textContent = projectId ? projectId.replace(/-/g, " ").toUpperCase() : "";
+    document.getElementById("startButton").addEventListener("click", startExperience);
+    document.getElementById("retryButton").addEventListener("click", retryExperience);
+    document.getElementById("closeButton").addEventListener("click", closeExperience);
 
-    const hideSplash = () => {
-      document.getElementById("splash").classList.remove("visible");
-    };
-
-    const showErr = (msg) => {
-      hideSplash();
-      document.getElementById("errMsg").innerHTML = msg;
-      document.getElementById("errBox").classList.add("show");
-    };
-
-    document.getElementById("startName").textContent = PROJECT
-      ? PROJECT.replace(/-/g, " ").toUpperCase()
-      : "";
-
-    if (!PROJECT) {
-      showErr("No se especificó ningún proyecto.<br>Verifica el link.");
+    if (!projectId) {
+      showError("Falta el identificador del proyecto en la URL.");
     }
 
-    function arrancarExperiencia() {
-      document.getElementById("startScreen").classList.add("hidden");
-      showSplash();
-      setSplash("Cargando configuración...");
-      loadConfig();
+    function setLoading(message) {
+      loadingText.textContent = message;
     }
 
-    async function loadConfig() {
-      try {
-        const r1 = await fetch(`${WORKER}?config=${PROJECT}&v=${Date.now()}`);
-        if (r1.ok) {
-          const d = await r1.json();
-          if (!d.error) {
-            processConfig(d);
-            return;
-          }
-        }
-      } catch (_err) {}
-
-      try {
-        const r2 = await fetch(`${PATHS.config}?t=${Date.now()}`);
-        if (r2.ok) {
-          processConfig(await r2.json());
-          return;
-        }
-      } catch (_err) {}
-
-      showErr("No se pudo cargar el proyecto.<br>Verifica que exista y esté publicado.");
+    function showLoading(message) {
+      setLoading(message);
+      loadingScreen.classList.add("show");
     }
 
-    function processConfig(saved) {
-      CFG = saved || {};
-      CAPAS = Array.isArray(saved?.capas) ? saved.capas : [];
-      setSplash("Iniciando cámara...");
-      buildScene();
+    function hideLoading() {
+      loadingScreen.classList.remove("show");
     }
 
-    AFRAME.registerComponent("render-order", {
-      schema: { value: { type: "number", default: 0 } },
-      init() {
-        this.el.addEventListener("object3dset", () => this.apply());
-        this.apply();
-      },
-      apply() {
-        this.el.object3D.traverse((node) => {
-          if (!node.isMesh) {
-            return;
-          }
-          node.renderOrder = this.data.value;
-          if (node.material) {
-            node.material.transparent = true;
-            node.material.depthWrite = false;
-            node.material.alphaTest = Math.max(node.material.alphaTest || 0, 0.01);
-            node.material.side = THREE.DoubleSide;
-            node.material.needsUpdate = true;
-          }
-        });
-      }
-    });
+    function showError(message) {
+      hideLoading();
+      errorText.innerHTML = message;
+      errorScreen.classList.add("show");
+    }
 
-    AFRAME.registerComponent("mindar-pose-smoothing", {
-      schema: {
-        positionLerp: { type: "number", default: 0.22 },
-        quaternionLerp: { type: "number", default: 0.18 },
-        scaleLerp: { type: "number", default: 0.22 }
-      },
-      init() {
-        this.started = false;
-        this.smoothPosition = new THREE.Vector3();
-        this.smoothQuaternion = new THREE.Quaternion();
-        this.smoothScale = new THREE.Vector3(1, 1, 1);
-      },
-      tick() {
-        const obj = this.el.object3D;
-        if (!obj.visible) {
-          this.started = false;
-          return;
-        }
+    function hideError() {
+      errorScreen.classList.remove("show");
+    }
 
-        if (!this.started) {
-          this.smoothPosition.copy(obj.position);
-          this.smoothQuaternion.copy(obj.quaternion);
-          this.smoothScale.copy(obj.scale);
-          this.started = true;
-          return;
-        }
+    function normalizeDepth(depthCm, targetWidthCm) {
+      if (!depthCm) return 0;
+      const width = Math.max(parseFloat(targetWidthCm) || 20, 0.001);
+      return depthCm / width;
+    }
 
-        this.smoothPosition.lerp(obj.position, this.data.positionLerp);
-        this.smoothQuaternion.slerp(obj.quaternion, this.data.quaternionLerp);
-        this.smoothScale.lerp(obj.scale, this.data.scaleLerp);
-
-        obj.position.copy(this.smoothPosition);
-        obj.quaternion.copy(this.smoothQuaternion);
-        obj.scale.copy(this.smoothScale);
-      }
-    });
-
-    function escapeAttr(value) {
+    function escapeHtml(value) {
       return String(value)
         .replace(/&/g, "&amp;")
         .replace(/"/g, "&quot;")
@@ -348,220 +248,326 @@
         .replace(/>/g, "&gt;");
     }
 
-    function normalizeDepth(depthCm, targetWidthCm) {
-      if (!depthCm) {
-        return 0;
+    AFRAME.registerComponent("stable-target", {
+      schema: {
+        posLerp: { type: "number", default: 0.14 },
+        rotLerp: { type: "number", default: 0.12 }
+      },
+      init() {
+        this.started = false;
+        this.sp = new THREE.Vector3();
+        this.sq = new THREE.Quaternion();
+      },
+      tick() {
+        const obj = this.el.object3D;
+        if (!obj.visible) {
+          this.started = false;
+          return;
+        }
+        if (!this.started) {
+          this.sp.copy(obj.position);
+          this.sq.copy(obj.quaternion);
+          this.started = true;
+          return;
+        }
+        this.sp.lerp(obj.position, this.data.posLerp);
+        this.sq.slerp(obj.quaternion, this.data.rotLerp);
+        obj.position.copy(this.sp);
+        obj.quaternion.copy(this.sq);
       }
+    });
 
-      const width = Math.max(parseFloat(targetWidthCm) || 20, 0.001);
-      return depthCm / width;
+    AFRAME.registerComponent("transparent-layer", {
+      schema: { order: { type: "number", default: 0 } },
+      init() {
+        this.apply = this.apply.bind(this);
+        this.el.addEventListener("object3dset", this.apply);
+        this.apply();
+      },
+      apply() {
+        this.el.object3D.traverse((node) => {
+          if (!node.isMesh || !node.material) return;
+          node.renderOrder = this.data.order;
+          node.material.transparent = true;
+          node.material.depthWrite = false;
+          node.material.side = THREE.DoubleSide;
+          node.material.alphaTest = Math.max(node.material.alphaTest || 0, 0.01);
+          node.material.needsUpdate = true;
+        });
+      }
+    });
+
+    async function startExperience() {
+      if (!projectId) return;
+      hideError();
+      startScreen.classList.add("hidden");
+      showLoading("Cargando proyecto…");
+      try {
+        await loadProjectConfig();
+        buildViewerScene();
+        await startMindARScene();
+      } catch (error) {
+        console.error(error);
+        showError(error.message || "No se pudo iniciar la experiencia.");
+      }
     }
 
-    function buildVideoAsset(capa, index) {
-      const ext = capa.archivo.split(".").pop().toLowerCase();
-      const src = `${BASE}/proyectos/${PROJECT}/${capa.archivo}`;
-      const base = capa.archivo.slice(0, capa.archivo.lastIndexOf("."));
-      const muted = capa.audio ? "" : "muted";
-      const loop = capa.loop !== false ? "loop" : "";
+    function retryExperience() {
+      closeExperience();
+      startExperience();
+    }
 
-      if (!["mp4", "webm", "mov"].includes(ext)) {
+    async function loadProjectConfig() {
+      const attempts = [
+        `${workerUrl}?config=${projectId}&v=${Date.now()}`,
+        `${paths.config}?t=${Date.now()}`
+      ];
+
+      let lastError = null;
+      for (const url of attempts) {
+        try {
+          const response = await fetch(url, { cache: "no-store" });
+          if (!response.ok) continue;
+          const data = await response.json();
+          if (data?.error) continue;
+          config = data || {};
+          layers = Array.isArray(config.capas) ? config.capas : [];
+          return;
+        } catch (error) {
+          lastError = error;
+        }
+      }
+
+      throw new Error(lastError?.message || "No se pudo cargar la configuración del proyecto.");
+    }
+
+    function buildAssetsHtml() {
+      return layers.map((layer, index) => {
+        if (!layer.archivo) return "";
+        const ext = layer.archivo.split(".").pop().toLowerCase();
+        const src = `${baseUrl}/proyectos/${projectId}/${layer.archivo}`;
+        const loop = layer.loop !== false ? "loop" : "";
+        const muted = layer.audio ? "" : "muted";
+
+        if (["mp4", "webm", "mov"].includes(ext)) {
+          const chosenSource = chooseVideoSource(layer.archivo, ext);
+          return `<video id="video${index}" playsinline webkit-playsinline preload="auto" crossorigin="anonymous" ${loop} ${muted} src="${chosenSource}"></video>`;
+        }
+
         return "";
-      }
-
-      if (ext === "webm") {
-        return isIOS
-          ? `<video id="v${index}" playsinline webkit-playsinline ${muted} crossorigin="anonymous" preload="auto" ${loop}>
-               <source src="${BASE}/proyectos/${PROJECT}/${base}.mov" type="video/quicktime">
-             </video>`
-          : `<video id="v${index}" playsinline webkit-playsinline ${muted} crossorigin="anonymous" preload="auto" ${loop}>
-               <source src="${src}" type="video/webm">
-             </video>`;
-      }
-
-      if (ext === "mov") {
-        return isIOS
-          ? `<video id="v${index}" playsinline webkit-playsinline ${muted} crossorigin="anonymous" preload="auto" ${loop}>
-               <source src="${src}" type="video/quicktime">
-             </video>`
-          : `<video id="v${index}" playsinline webkit-playsinline ${muted} crossorigin="anonymous" preload="auto" ${loop}>
-               <source src="${BASE}/proyectos/${PROJECT}/${base}.webm" type="video/webm">
-             </video>`;
-      }
-
-      return `<video id="v${index}" src="${src}" playsinline webkit-playsinline ${muted} crossorigin="anonymous" preload="auto" ${loop}></video>`;
+      }).join("");
     }
 
-    function buildScene() {
-      const targetWidthCm = parseFloat(CFG.anchoReal) || 20;
-      const targetHeightCm = parseFloat(CFG.altoReal) || 20;
+    function chooseVideoSource(filename, ext) {
+      const stem = filename.slice(0, filename.lastIndexOf("."));
+      if (ext === "webm" && isAndroid) {
+        return `${baseUrl}/proyectos/${projectId}/${filename}`;
+      }
+      if (ext === "mov" && isIOS) {
+        return `${baseUrl}/proyectos/${projectId}/${filename}`;
+      }
+      if (ext === "webm" && isIOS) {
+        return `${baseUrl}/proyectos/${projectId}/${stem}.mp4`;
+      }
+      if (ext === "mov" && isAndroid) {
+        return `${baseUrl}/proyectos/${projectId}/${stem}.mp4`;
+      }
+      if (ext === "mp4") {
+        return `${baseUrl}/proyectos/${projectId}/${filename}`;
+      }
+      return `${baseUrl}/proyectos/${projectId}/${stem}.mp4`;
+    }
+
+    function buildEntitiesHtml() {
+      const targetWidthCm = parseFloat(config.anchoReal) || 20;
+      const targetHeightCm = parseFloat(config.altoReal) || 20;
       const ratio = targetWidthCm / targetHeightCm;
       const planeWidth = 1;
       const planeHeight = 1 / ratio;
 
-      const assets = CAPAS
-        .map((capa, index) => {
-          if (!capa.archivo) {
-            return "";
-          }
+      return layers.map((layer, index) => {
+        if (!layer.archivo && layer.tipo !== "texto" && layer.tipo !== "text") return "";
 
-          const ext = capa.archivo.split(".").pop().toLowerCase();
-          return ["mp4", "webm", "mov"].includes(ext) ? buildVideoAsset(capa, index) : "";
-        })
-        .join("");
+        const x = parseFloat(layer.posX) || 0;
+        const y = parseFloat(layer.posY) || 0;
+        const zUnits = normalizeDepth(parseFloat(layer.posZ) || 0, targetWidthCm);
+        const z = (-zUnits - index * 0.003).toFixed(4);
+        const scale = parseFloat(layer.escala) || 1;
+        const opacity = layer.opacidad !== undefined ? layer.opacidad : 1;
+        const position = `${x.toFixed(4)} ${y.toFixed(4)} ${z}`;
+        const scaleAttr = `${scale} ${scale} ${scale}`;
+        const orderAttr = `transparent-layer="order:${100 + index}"`;
+        const entryAnim = buildEntryAnimation(layer, scale, opacity);
+        const fileExt = layer.archivo ? layer.archivo.split(".").pop().toLowerCase() : "";
+        const fileUrl = layer.archivo ? `${baseUrl}/proyectos/${projectId}/${layer.archivo}` : "";
 
-      const entities = CAPAS.map((capa, index) => {
-        if (!capa.archivo && capa.tipo !== "texto" && capa.tipo !== "text") {
-          return "";
-        }
-
-        const px = parseFloat(capa.posX) || 0;
-        const py = parseFloat(capa.posY) || 0;
-        const depthUnits = normalizeDepth(parseFloat(capa.posZ) || 0, targetWidthCm);
-        const pz = (-depthUnits - index * 0.002).toFixed(4);
-        const pos = `${px.toFixed(4)} ${py.toFixed(4)} ${pz}`;
-        const scale = parseFloat(capa.escala) || 1;
-        const opacity = capa.opacidad !== undefined ? capa.opacidad : 1;
-        const source = capa.archivo ? `${BASE}/proyectos/${PROJECT}/${capa.archivo}` : "";
-        const ext = capa.archivo ? capa.archivo.split(".").pop().toLowerCase() : "";
-        const scl = `${scale} ${scale} ${scale}`;
-        const order = 100 + index;
-
-        let anim = "";
-        if (capa.entrada === "fade") {
-          anim = `animation__in="property:material.opacity;from:0;to:${opacity};dur:800;startEvents:targetFound"`;
-        }
-        if (capa.entrada === "scale") {
-          anim = `animation__in="property:scale;from:0 0 0;to:${scale} ${scale} ${scale};dur:600;startEvents:targetFound"`;
-        }
-
-        switch (capa.tipo) {
+        switch (layer.tipo) {
           case "video": {
-            if (!["mp4", "webm", "mov"].includes(ext)) {
-              return "";
-            }
-
-            const isAlphaVideo = ext === "webm" || ext === "mov";
-            const material = isAlphaVideo
-              ? `material="src:#v${index};shader:flat;transparent:true;alphaTest:0.01;opacity:${opacity};depthWrite:false;side:double"`
-              : `material="src:#v${index};shader:flat;transparent:true;opacity:${opacity};depthWrite:false;side:double"`;
-
-            return `<a-plane id="arc${index}" width="${planeWidth}" height="${planeHeight.toFixed(4)}" position="${pos}" scale="${scl}" ${material} render-order="value:${order}" ${anim}></a-plane>`;
+            const alphaLike = fileExt === "webm" || fileExt === "mov";
+            const material = alphaLike
+              ? `material="src:#video${index};shader:flat;transparent:true;opacity:${opacity};alphaTest:0.01;depthWrite:false;side:double"`
+              : `material="src:#video${index};shader:flat;transparent:true;opacity:${opacity};depthWrite:false;side:double"`;
+            return `<a-plane id="layer${index}" width="${planeWidth}" height="${planeHeight.toFixed(4)}" position="${position}" scale="${scaleAttr}" ${material} ${orderAttr} ${entryAnim}></a-plane>`;
           }
-
           case "image":
           case "gif": {
-            const hasAlpha = ["png", "webp", "apng"].includes(ext);
+            const hasAlpha = ["png", "webp", "apng"].includes(fileExt);
             const material = hasAlpha
-              ? `material="src:${source};transparent:true;alphaTest:0.01;opacity:${opacity};depthWrite:false;side:double"`
-              : `material="src:${source};transparent:true;opacity:${opacity};depthWrite:false;side:double"`;
-
-            return `<a-image id="arc${index}" src="${source}" width="${planeWidth}" height="${planeHeight.toFixed(4)}" position="${pos}" scale="${scl}" ${material} render-order="value:${order}" ${anim}></a-image>`;
+              ? `material="src:${fileUrl};transparent:true;alphaTest:0.01;opacity:${opacity};depthWrite:false;side:double"`
+              : `material="src:${fileUrl};transparent:true;opacity:${opacity};depthWrite:false;side:double"`;
+            return `<a-image id="layer${index}" src="${fileUrl}" width="${planeWidth}" height="${planeHeight.toFixed(4)}" position="${position}" scale="${scaleAttr}" ${material} ${orderAttr} ${entryAnim}></a-image>`;
           }
-
           case "svg":
-            return `<a-image id="arc${index}" src="${source}" width="${planeWidth}" height="${planeHeight.toFixed(4)}" position="${pos}" scale="${scl}" material="src:${source};transparent:true;alphaTest:0.01;opacity:${opacity};depthWrite:false;side:double" render-order="value:${order}" ${anim}></a-image>`;
-
+            return `<a-image id="layer${index}" src="${fileUrl}" width="${planeWidth}" height="${planeHeight.toFixed(4)}" position="${position}" scale="${scaleAttr}" material="src:${fileUrl};transparent:true;alphaTest:0.01;opacity:${opacity};depthWrite:false;side:double" ${orderAttr} ${entryAnim}></a-image>`;
           case "glb":
           case "gltf":
           case "model":
-            return `<a-gltf-model id="arc${index}" src="${source}" position="${pos}" scale="${scl}" render-order="value:${order}" ${anim}></a-gltf-model>`;
-
+            return `<a-gltf-model id="layer${index}" src="${fileUrl}" position="${position}" scale="${scaleAttr}" ${orderAttr} ${entryAnim}></a-gltf-model>`;
           case "texto":
           case "text": {
-            const txt = escapeAttr(capa.texto || "Texto");
-            const color = capa.colorTexto || "#ffffff";
-            const size = parseFloat(capa.tamanoTexto) || 0.2;
-            const width = Math.max(0.3, size * 5);
-            return `<a-text id="arc${index}" value="${txt}" color="${color}" align="center" width="${width}" position="${pos}" scale="${scl}" material="opacity:${opacity};transparent:true;depthWrite:false" render-order="value:${order}" ${anim}></a-text>`;
+            const text = escapeHtml(layer.texto || "Texto");
+            const color = layer.colorTexto || "#ffffff";
+            const width = Math.max(0.3, (parseFloat(layer.tamanoTexto) || 0.2) * 5);
+            return `<a-text id="layer${index}" value="${text}" color="${color}" align="center" width="${width}" position="${position}" scale="${scaleAttr}" material="opacity:${opacity};transparent:true;depthWrite:false" ${orderAttr} ${entryAnim}></a-text>`;
           }
-
           default:
             return "";
         }
       }).join("");
+    }
 
-      const div = document.getElementById("arScene");
-      div.innerHTML = `
+    function buildEntryAnimation(layer, scale, opacity) {
+      if (layer.entrada === "fade") {
+        return `animation__in="property:material.opacity;from:0;to:${opacity};dur:700;startEvents:targetFound"`;
+      }
+      if (layer.entrada === "scale") {
+        return `animation__in="property:scale;from:0 0 0;to:${scale} ${scale} ${scale};dur:520;startEvents:targetFound"`;
+      }
+      return "";
+    }
+
+    function buildViewerScene() {
+      showLoading("Preparando cámara…");
+      const assetsHtml = buildAssetsHtml();
+      const entitiesHtml = buildEntitiesHtml();
+      arContainer.innerHTML = `
         <a-scene
-          mindar-image="imageTargetSrc:${PATHS.mind};autoStart:true;uiScanning:false;uiLoading:false;missTolerance:8;warmupTolerance:5;filterMinCF:0.0005;filterBeta:0.01;"
-          color-space="sRGB"
           embedded
-          renderer="alpha:true;colorManagement:true;physicallyCorrectLights:false;sortObjects:true"
+          color-space="sRGB"
+          renderer="alpha:true;antialias:true;colorManagement:true;sortObjects:true;physicallyCorrectLights:false"
           vr-mode-ui="enabled:false"
           device-orientation-permission-ui="enabled:false"
-          style="width:100vw;height:100vh;"
+          mindar-image="imageTargetSrc:${paths.mind};autoStart:false;uiScanning:false;uiLoading:false;missTolerance:10;warmupTolerance:8;filterMinCF:0.0008;filterBeta:0.015"
+          style="width:100vw;height:100vh"
         >
-          <a-assets timeout="30000">${assets}</a-assets>
-          <a-light type="ambient" intensity="1.15"></a-light>
-          <a-light type="directional" intensity="0.65" position="1 2 2"></a-light>
+          <a-assets timeout="30000">
+            ${assetsHtml}
+          </a-assets>
+          <a-light type="ambient" intensity="1.1"></a-light>
+          <a-light type="directional" intensity="0.55" position="1 2 2"></a-light>
           <a-camera position="0 0 0" look-controls="enabled:false"></a-camera>
-          <a-entity id="target" mindar-image-target="targetIndex:0" mindar-pose-smoothing>
+          <a-entity id="targetRoot" mindar-image-target="targetIndex:0" stable-target>
             <a-entity id="contentRoot">
-              ${entities}
+              ${entitiesHtml}
             </a-entity>
           </a-entity>
         </a-scene>
       `;
-
-      div.classList.add("show");
-      document.getElementById("hud").classList.add("show");
-      document.getElementById("scan").classList.add("show");
-
-      window.setTimeout(() => {
-        const scene = div.querySelector("a-scene");
-        if (!scene) {
-          showErr("Error al iniciar la escena AR.");
-          return;
-        }
-
-        scene.addEventListener("loaded", () => hideSplash());
-        scene.addEventListener("arReady", () => hideSplash());
-        scene.addEventListener("arError", () => showErr("No se pudo acceder a la cámara.<br>Verifica los permisos."));
-
-        const target = scene.querySelector("[mindar-image-target]");
-        if (!target) {
-          return;
-        }
-
-        target.addEventListener("targetFound", () => {
-          document.getElementById("scan").classList.remove("show");
-          scene.querySelectorAll("video").forEach((video) => {
-            const playPromise = video.play();
-            if (playPromise) {
-              playPromise.catch(() => {
-                video.muted = true;
-                video.play().catch(() => {});
-              });
-            }
-          });
-        });
-
-        target.addEventListener("targetLost", () => {
-          document.getElementById("scan").classList.add("show");
-          scene.querySelectorAll("video").forEach((video) => {
-            try {
-              video.pause();
-            } catch (_err) {}
-          });
-        });
-
-        window.setTimeout(() => hideSplash(), 12000);
-      }, 500);
+      arContainer.classList.add("show");
+      hud.classList.add("show");
+      scan.classList.add("show");
+      note.classList.add("show");
+      sceneRef = arContainer.querySelector("a-scene");
     }
 
-    function cerrarViewer() {
-      try {
-        const scene = document.querySelector("a-scene");
-        if (scene?.renderer) {
-          scene.renderer.setAnimationLoop(null);
-        }
-      } catch (_err) {}
+    async function startMindARScene() {
+      if (!sceneRef) throw new Error("No se pudo crear la escena.");
 
-      document.getElementById("arScene").classList.remove("show");
-      document.getElementById("arScene").innerHTML = "";
-      document.getElementById("hud").classList.remove("show");
-      document.getElementById("scan").classList.remove("show");
-      document.getElementById("startScreen").classList.remove("hidden");
+      await waitForSceneLoaded(sceneRef);
+
+      sceneRef.addEventListener("arError", () => {
+        showError("No se pudo abrir la cámara. En Android prueba con Chrome actualizado y permisos de cámara habilitados.");
+      }, { once: true });
+
+      const arSystem = sceneRef.systems["mindar-image-system"];
+      if (!arSystem || typeof arSystem.start !== "function") {
+        throw new Error("MindAR no quedó disponible en la escena.");
+      }
+
+      await arSystem.start();
+      bindTargetEvents(sceneRef);
+      hideLoading();
+    }
+
+    function waitForSceneLoaded(scene) {
+      if (scene.hasLoaded) return Promise.resolve();
+      return new Promise((resolve) => {
+        scene.addEventListener("loaded", resolve, { once: true });
+      });
+    }
+
+    function bindTargetEvents(scene) {
+      const target = scene.querySelector("[mindar-image-target]");
+      if (!target) return;
+
+      target.addEventListener("targetFound", () => {
+        scan.classList.remove("show");
+        playSceneVideos(scene);
+      });
+
+      target.addEventListener("targetLost", () => {
+        scan.classList.add("show");
+        pauseSceneVideos(scene);
+      });
+    }
+
+    function playSceneVideos(scene) {
+      scene.querySelectorAll("video").forEach((video) => {
+        const promise = video.play();
+        if (promise) {
+          promise.catch(() => {
+            video.muted = true;
+            video.play().catch(() => {});
+          });
+        }
+      });
+    }
+
+    function pauseSceneVideos(scene) {
+      scene.querySelectorAll("video").forEach((video) => {
+        try { video.pause(); } catch (_error) {}
+      });
+    }
+
+    async function closeExperience() {
+      try {
+        if (sceneRef) {
+          pauseSceneVideos(sceneRef);
+          const arSystem = sceneRef.systems["mindar-image-system"];
+          if (arSystem && typeof arSystem.stop === "function") {
+            await arSystem.stop();
+          }
+          if (sceneRef.renderer) {
+            sceneRef.renderer.setAnimationLoop(null);
+          }
+        }
+      } catch (_error) {}
+
+      arContainer.classList.remove("show");
+      arContainer.innerHTML = "";
+      hud.classList.remove("show");
+      scan.classList.remove("show");
+      note.classList.remove("show");
+      hideLoading();
+      hideError();
+      startScreen.classList.remove("hidden");
+      sceneRef = null;
+    }
+
+    if (isAndroid) {
+      note.textContent = "Optimizado primero para Chrome Android. Si un WebM alfa aparece negro, usa APNG o secuencia PNG para esa capa.";
+    } else if (isIOS) {
+      note.textContent = "En iPhone el video con alfa suele ser poco fiable. Para transparencias animadas usa APNG o secuencia PNG.";
     }
   </script>
 </body>

@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <title>ARA — Experiencia AR</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800;900&display=swap" rel="stylesheet">
+  <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
+  <style>
+    :root {
+      --bg:  #0a0a0a;
+      --bg2: #111111;
+      --red: #e63329;
+      --red2:#ff5a4d;
+      --fd:  'Montserrat', sans-serif;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: #fff; font-family: var(--fd); height: 100vh; overflow: hidden; touch-action: none; }
+
+    /* START SCREEN */
+    #startScreen {
+      position: fixed; inset: 0;
+      background: var(--bg);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 20px; z-index: 2000; padding: 40px; text-align: center;
+    }
+    #startScreen.hidden { display: none; }
+    .start-mark {
+      width: 64px; height: 64px; border-radius: 18px;
+      background: linear-gradient(135deg, var(--red), var(--red2));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 28px; color: #fff; font-weight: 900;
+      box-shadow: 0 8px 24px rgba(230,51,41,0.4);
+    }
+    .start-logo { font-size: 42px; font-weight: 900; letter-spacing: -0.03em; }
+    .start-name { font-size: 18px; font-weight: 700; opacity: 0.9; }
+    .start-hint { font-size: 12px; opacity: 0.5; letter-spacing: 0.05em; }
+    .start-btn {
+      background: linear-gradient(135deg, var(--red), var(--red2));
+      color: #fff; border: none;
+      padding: 16px 40px; font-size: 13px; font-weight: 800;
+      letter-spacing: 0.12em; text-transform: uppercase; cursor: pointer;
+      border-radius: 999px; font-family: var(--fd);
+      box-shadow: 0 4px 20px rgba(230,51,41,0.4);
+    }
+
+    /* SPLASH */
+    #splash {
+      position: fixed; inset: 0; background: var(--bg);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 16px; z-index: 1900;
+      opacity: 0; pointer-events: none; transition: opacity 0.3s;
+    }
+    #splash.visible { opacity: 1; pointer-events: all; }
+    .splash-mark {
+      width: 48px; height: 48px; border-radius: 12px;
+      background: linear-gradient(135deg, var(--red), var(--red2));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px; color: #fff; font-weight: 900;
+    }
+    .splash-msg { font-size: 13px; opacity: 0.6; letter-spacing: 0.06em; }
+
+    /* HUD */
+    #hud {
+      position: fixed; top: 0; left: 0; right: 0;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 16px 20px; z-index: 1000;
+      opacity: 0; pointer-events: none; transition: opacity 0.3s;
+    }
+    #hud.show { opacity: 1; pointer-events: all; }
+    .hud-logo {
+      background: rgba(10,10,10,0.85); backdrop-filter: blur(8px);
+      border: 1px solid rgba(255,255,255,0.08);
+      padding: 8px 16px; border-radius: 999px;
+      font-size: 13px; font-weight: 900; color: var(--red);
+      letter-spacing: 0.08em;
+    }
+    .hud-close {
+      background: rgba(10,10,10,0.85); backdrop-filter: blur(8px);
+      border: 1px solid rgba(255,255,255,0.08);
+      padding: 8px 16px; border-radius: 999px;
+      font-size: 12px; font-weight: 700; color: #fff;
+      cursor: pointer; letter-spacing: 0.06em;
+    }
+
+    /* SCAN */
+    #scan {
+      position: fixed; bottom: 40px; left: 50%; transform: translateX(-50%);
+      background: rgba(10,10,10,0.75); backdrop-filter: blur(8px);
+      border: 1px solid rgba(255,255,255,0.1);
+      padding: 10px 24px; border-radius: 999px;
+      font-size: 11px; font-weight: 700; letter-spacing: 0.12em;
+      text-transform: uppercase; color: rgba(255,255,255,0.7);
+      z-index: 1000; opacity: 0; pointer-events: none; transition: opacity 0.3s;
+    }
+    #scan.show { opacity: 1; }
+
+    /* AR SCENE */
+    #arScene { position: fixed; inset: 0; display: none; z-index: 500; }
+    #arScene.show { display: block; }
+
+    /* ERROR */
+    #errBox {
+      position: fixed; inset: 0; background: var(--bg);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 16px; z-index: 3000; padding: 40px; text-align: center; display: none;
+    }
+    #errBox.show { display: flex; }
+    .err-icon { font-size: 40px; opacity: 0.4; }
+    .err-msg { font-size: 14px; opacity: 0.7; line-height: 1.6; max-width: 320px; }
+  </style>
+</head>
+<body>
+
+  <!-- START -->
+  <div id="startScreen">
+    <div class="start-mark">◈</div>
+    <div class="start-logo">ARA</div>
+    <div class="start-name" id="startName"></div>
+    <div class="start-hint">Apunta la cámara al trigger para activar el contenido</div>
+    <button class="start-btn" onclick="arrancarExperiencia()">◈ Iniciar AR</button>
+  </div>
+
+  <!-- SPLASH -->
+  <div id="splash">
+    <div class="splash-mark">◈</div>
+    <div class="splash-msg" id="splashMsg">Cargando...</div>
+  </div>
+
+  <!-- HUD -->
+  <div id="hud">
+    <div class="hud-logo">ARA</div>
+    <div class="hud-close" onclick="cerrarViewer()">✕ Cerrar</div>
+  </div>
+
+  <!-- SCAN -->
+  <div id="scan" class="show">APUNTA A LA OBRA</div>
+
+  <!-- AR SCENE -->
+  <div id="arScene"></div>
+
+  <!-- ERROR -->
+  <div id="errBox">
+    <div class="err-icon">⚠</div>
+    <div class="err-msg" id="errMsg"></div>
+  </div>
+
+  <script>
+    const P       = new URLSearchParams(location.search);
+    const PROJECT = P.get('p') || P.get('slug') || P.get('project');
+    const BASE    = 'https://sergeam09.github.io/ara';
+    const WORKER  = 'https://ara.sergeam09.workers.dev';
+    const PATHS   = {
+      mind:   `${BASE}/proyectos/${PROJECT}/trigger.mind`,
+      config: `${BASE}/proyectos/${PROJECT}/config.json`,
+    };
+
+    let CFG   = {};
+    let CAPAS = [];
+
+    // ── UI helpers ──
+    const setSplash = msg => document.getElementById('splashMsg').textContent = msg;
+    const showSplash = () => document.getElementById('splash').classList.add('visible');
+    const hideSplash = () => document.getElementById('splash').classList.remove('visible');
+    const showErr = msg => {
+      hideSplash();
+      document.getElementById('errMsg').innerHTML = msg;
+      document.getElementById('errBox').classList.add('show');
+    };
+
+    document.getElementById('startName').textContent = PROJECT ? PROJECT.replace(/-/g,' ').toUpperCase() : '';
+
+    if (!PROJECT) showErr('No se especificó ningún proyecto.<br>Verifica el link.');
+
+    // ── START ──
+    function arrancarExperiencia() {
+      document.getElementById('startScreen').classList.add('hidden');
+      showSplash();
+      setSplash('Cargando configuración...');
+      loadConfig();
+    }
+
+    async function loadConfig() {
+      try {
+        // 1. KV worker (sin caché)
+        const r1 = await fetch(`${WORKER}?config=${PROJECT}&v=${Date.now()}`);
+        if (r1.ok) {
+          const d = await r1.json();
+          if (!d.error) { processConfig(d); return; }
+        }
+      } catch(e) {}
+      try {
+        // 2. GitHub Pages fallback
+        const r2 = await fetch(`${PATHS.config}?t=${Date.now()}`);
+        if (r2.ok) { processConfig(await r2.json()); return; }
+      } catch(e) {}
+      showErr('No se pudo cargar el proyecto.<br>Verifica que exista y esté publicado.');
+    }
+
+    function processConfig(saved) {
+      CFG   = saved;
+      CAPAS = saved.capas || [];
+      setSplash('Iniciando cámara...');
+      buildScene();
+    }
+
+    // ── PARALLAX COMPONENT ──
+    AFRAME.registerComponent('parallax-layer', {
+      schema: { depth: { type: 'number', default: 0 } },
+      init() {
+        this._bx = 0; this._by = 0; this._bz = 0;
+        this._cp = new THREE.Vector3();
+        this._ok = false;
+      },
+      tick() {
+        const d = this.data.depth;
+        if (d === 0) return;
+        const cam = this.el.sceneEl && this.el.sceneEl.camera;
+        if (!cam) return;
+        if (!this._ok) {
+          this._bx = this.el.object3D.position.x;
+          this._by = this.el.object3D.position.y;
+          this._bz = this.el.object3D.position.z;
+          this._ok = true;
+        }
+        cam.getWorldPosition(this._cp);
+        this.el.parentEl.object3D.worldToLocal(this._cp);
+        this.el.object3D.position.x = this._bx - this._cp.x * d * 0.5;
+        this.el.object3D.position.y = this._by - this._cp.y * d * 0.5;
+        this.el.object3D.position.z = this._bz;
+      }
+    });
+
+    // ── AR SMOOTH COMPONENT (from viewer3) ──
+    AFRAME.registerComponent('ar-smooth', {
+      init() { this.smoothing = 0.4; },
+      tick() {
+        const el = this.el;
+        const obj = el.object3D;
+        if (!obj.visible) return;
+        const pos = el.getAttribute('position');
+        obj.position.lerp(new THREE.Vector3(pos.x, pos.y, pos.z), this.smoothing);
+      }
+    });
+
+    // ── BUILD SCENE ──
+    function buildScene() {
+      const tw = CFG.anchoReal || 20;
+      const th = CFG.altoReal  || 20;
+      const ratio = tw / th;
+
+      // Assets HTML
+      let assets = '';
+      CAPAS.forEach((c, i) => {
+        if (!c.archivo) return;
+        const ext = c.archivo.split('.').pop().toLowerCase();
+        const src = `${BASE}/proyectos/${PROJECT}/${c.archivo}`;
+        const base = c.archivo.substring(0, c.archivo.lastIndexOf('.'));
+        const loop = c.loop !== false ? 'loop' : '';
+        const muted = c.audio ? '' : 'muted';
+        if (['mp4','webm','mov'].includes(ext)) {
+          if (ext === 'webm') {
+            // WebM = principal (Android) + MOV fallback (iOS)
+            assets += `<video id="v${i}" playsinline webkit-playsinline ${muted} crossorigin="anonymous" preload="auto" ${loop}>
+              <source src="${BASE}/proyectos/${PROJECT}/${base}.mov" type="video/mp4;codecs=hvc1">
+              <source src="${src}" type="video/webm">
+            </video>`;
+          } else if (ext === 'mov') {
+            // MOV = principal (iOS) + WebM fallback (Android)
+            assets += `<video id="v${i}" playsinline webkit-playsinline ${muted} crossorigin="anonymous" preload="auto" ${loop}>
+              <source src="${src}" type="video/mp4;codecs=hvc1">
+              <source src="${BASE}/proyectos/${PROJECT}/${base}.webm" type="video/webm">
+            </video>`;
+          } else {
+            assets += `<video id="v${i}" src="${src}" playsinline webkit-playsinline ${muted} crossorigin="anonymous" preload="auto" ${loop}></video>`;
+          }
+        }
+      });
+
+      // Entities HTML
+      const entities = CAPAS.map((c, i) => {
+        if (!c.archivo && c.tipo !== 'texto' && c.tipo !== 'text') return '';
+        const px  = c.posX || 0;
+        const py  = c.posY || 0;
+        const pz  = (i * 0.0001).toFixed(6);
+        const pos = `${px} ${py} ${pz}`;
+        const s   = c.escala   || 1;
+        const op  = c.opacidad !== undefined ? c.opacidad : 1;
+        const src = c.archivo ? `${BASE}/proyectos/${PROJECT}/${c.archivo}` : '';
+        const ext = c.archivo ? c.archivo.split('.').pop().toLowerCase() : '';
+        const scl = `${s} ${s} ${s}`;
+        // Depth para parallax
+        const depthCm = c.posZ || 0;
+        const depth   = (depthCm / tw).toFixed(4);
+        const px_attr = parseFloat(depth) > 0 ? `parallax-layer="depth:${depth}"` : '';
+        // Proporciones: 1 unidad ancho, height según ratio del trigger
+        const pw = 1;
+        const ph = (1 / ratio).toFixed(4);
+        // Animación de entrada
+        let anim = '';
+        if (c.entrada === 'fade')  anim = `animation__in="property:material.opacity;from:0;to:${op};dur:800;startEvents:targetFound"`;
+        if (c.entrada === 'scale') anim = `animation__in="property:scale;from:0 0 0;to:${s} ${s} ${s};dur:600;startEvents:targetFound"`;
+
+        switch(c.tipo) {
+          case 'video': {
+            if (!['mp4','webm','mov'].includes(ext)) return '';
+            const isAlpha = ['webm','mov'].includes(ext);
+            const mat = isAlpha
+              ? `material="src:#v${i};shader:flat;transparent:true;alphaTest:0.01;opacity:${op}"`
+              : `material="src:#v${i};shader:flat;opacity:${op}"`;
+            return `<a-plane id="arc${i}" width="${pw}" height="${ph}" position="${pos}" scale="${scl}" ${mat} ${anim} ${px_attr}></a-plane>`;
+          }
+          case 'image':
+          case 'gif': {
+            const hasAlpha = ['png','webp','apng'].includes(ext);
+            const mat = hasAlpha
+              ? `material="src:${src};transparent:true;alphaTest:0.05;opacity:${op}"`
+              : `material="src:${src};opacity:${op}"`;
+            return `<a-image id="arc${i}" src="${src}" width="${pw}" height="${ph}" position="${pos}" scale="${scl}" ${mat} ${anim} ${px_attr}></a-image>`;
+          }
+          case 'svg':
+            return `<a-image id="arc${i}" src="${src}" width="${pw}" height="${ph}" position="${pos}" scale="${scl}" material="src:${src};transparent:true;alphaTest:0.01;opacity:${op}" ${anim} ${px_attr}></a-image>`;
+          case 'glb':
+          case 'gltf':
+          case 'model':
+            return `<a-gltf-model id="arc${i}" src="${src}" position="${pos}" scale="${scl}" ${anim} ${px_attr}></a-gltf-model>`;
+          case 'texto':
+          case 'text': {
+            const txt   = (c.texto || 'Texto').replace(/"/g,'&quot;');
+            const color = c.colorTexto || '#ffffff';
+            const size  = parseFloat(c.tamanoTexto) || 0.2;
+            const fw    = Math.max(0.3, size * 5);
+            return `<a-text id="arc${i}" value="${txt}" color="${color}" align="center" width="${fw}" position="${pos}" scale="${scl}" material="opacity:${op};transparent:true" ${anim} ${px_attr}></a-text>`;
+          }
+          default: return '';
+        }
+      }).join('');
+
+      // Inject scene
+      const div = document.getElementById('arScene');
+      div.innerHTML = `<a-scene mindar-image="imageTargetSrc:${PATHS.mind};autoStart:true;uiScanning:false;uiLoading:false;filterMinCF:0.001;filterBeta:0.001;" color-space="sRGB" embedded renderer="colorManagement:true;physicallyCorrectLights:true" vr-mode-ui="enabled:false" device-orientation-permission-ui="enabled:false" style="width:100vw;height:100vh;"><a-assets timeout="30000">${assets}</a-assets><a-light type="ambient" intensity="1.2"></a-light><a-light type="directional" intensity="0.8" position="1 3 2"></a-light><a-camera position="0 0 0" look-controls="enabled:false"></a-camera><a-entity id="target" mindar-image-target="targetIndex:0;" ar-smooth>${entities}</a-entity></a-scene>`;
+
+      div.classList.add('show');
+      document.getElementById('hud').classList.add('show');
+      document.getElementById('scan').classList.add('show');
+
+      setTimeout(() => {
+        const scene = div.querySelector('a-scene');
+        if (!scene) { showErr('Error al iniciar la escena AR.'); return; }
+        scene.addEventListener('loaded',  () => hideSplash());
+        scene.addEventListener('arReady', () => hideSplash());
+        scene.addEventListener('arError', () => showErr('No se pudo acceder a la cámara.<br>Verifica los permisos.'));
+        const target = scene.querySelector('[mindar-image-target]');
+        if (target) {
+          target.addEventListener('targetFound', () => {
+            document.getElementById('scan').classList.remove('show');
+            // Autoplay videos
+            scene.querySelectorAll('video').forEach(v => {
+              const p = v.play();
+              if (p) p.catch(() => { v.muted = true; v.play().catch(()=>{}); });
+            });
+          });
+          target.addEventListener('targetLost', () => {
+            document.getElementById('scan').classList.add('show');
+            scene.querySelectorAll('video').forEach(v => { try { v.pause(); } catch(e){} });
+          });
+        }
+        setTimeout(() => hideSplash(), 12000);
+      }, 600);
+    }
+
+    // ── CERRAR ──
+    function cerrarViewer() {
+      try {
+        const s = document.querySelector('a-scene');
+        if (s && s.renderer) s.renderer.setAnimationLoop(null);
+      } catch(e) {}
+      document.getElementById('arScene').classList.remove('show');
+      document.getElementById('arScene').innerHTML = '';
+      document.getElementById('hud').classList.remove('show');
+      document.getElementById('scan').classList.remove('show');
+      document.getElementById('startScreen').classList.remove('hidden');
+    }
+  </script>
+</body>
+</html>

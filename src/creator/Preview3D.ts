@@ -13,13 +13,13 @@ interface LayerEntry {
 
 const FONT_MAP: Record<string, string> = {
   roboto:          'Roboto, Arial, sans-serif',
-  ubuntu:          'Ubuntu, sans-serif',
-  dejavu:          '"DejaVu Sans", Arial, sans-serif',
-  exo2bold:        '"Exo 2", sans-serif',
-  exo2semibold:    '"Exo 2", sans-serif',
-  kelsonsans:      'sans-serif',
-  sourcecodepro:   '"Source Code Pro", Courier, monospace',
-  aileronsemibold: 'Arial, sans-serif',
+  ubuntu:          'Ubuntu, "Segoe UI", Tahoma, sans-serif',
+  dejavu:          '"DejaVu Sans", Verdana, Geneva, sans-serif',
+  exo2bold:        '"Exo 2", Impact, "Arial Black", sans-serif',
+  exo2semibold:    '"Exo 2", "Trebuchet MS", sans-serif',
+  kelsonsans:      'Tahoma, Geneva, sans-serif',
+  sourcecodepro:   '"Source Code Pro", "Courier New", Courier, monospace',
+  aileronsemibold: '"Gill Sans", Optima, Helvetica, Arial, sans-serif',
 }
 
 const DEG = THREE.MathUtils.degToRad
@@ -78,14 +78,20 @@ export class Preview3D {
 
     // ── TC mode toggle buttons ───────────────────────────────────────────────
     const modeBar = document.createElement('div')
-    modeBar.style.cssText = 'position:absolute;top:8px;right:8px;z-index:25;display:flex;gap:4px;'
+    modeBar.style.cssText = 'position:absolute;top:10px;right:10px;z-index:25;display:flex;gap:6px;'
     modeBar.innerHTML = `
-      <button id="tc-btn-translate" title="Mover (W)" style="background:#1a1a1a;border:1px solid #e63329;color:#e63329;padding:4px 10px;border-radius:4px;cursor:pointer;font-size:11px;font-weight:700;">⊕ Mover</button>
-      <button id="tc-btn-rotate"    title="Rotar (E)"    style="background:#1a1a1a;border:1px solid #444;color:#888;padding:4px 10px;border-radius:4px;cursor:pointer;font-size:11px;font-weight:700;">↻ Rotar</button>
+      <button id="tc-btn-translate" title="Mover [W]" style="background:#1a1a1a;border:2px solid #e63329;color:#e63329;padding:6px 14px;border-radius:5px;cursor:pointer;font-size:12px;font-weight:800;letter-spacing:0.04em;font-family:monospace;">↔ MOVER</button>
+      <button id="tc-btn-rotate"    title="Rotar [E]" style="background:#1a1a1a;border:2px solid #444;color:#666;padding:6px 14px;border-radius:5px;cursor:pointer;font-size:12px;font-weight:800;letter-spacing:0.04em;font-family:monospace;">↻ ROTAR</button>
     `
     container.appendChild(modeBar)
     modeBar.querySelector('#tc-btn-translate')?.addEventListener('click', () => this.setTransformMode('translate'))
     modeBar.querySelector('#tc-btn-rotate')?.addEventListener('click',    () => this.setTransformMode('rotate'))
+    // Keyboard shortcuts W / E
+    document.addEventListener('keydown', (ev: KeyboardEvent) => {
+      if (ev.target instanceof HTMLInputElement || ev.target instanceof HTMLTextAreaElement) return
+      if (ev.key === 'w' || ev.key === 'W') this.setTransformMode('translate')
+      if (ev.key === 'e' || ev.key === 'E') this.setTransformMode('rotate')
+    })
 
     // ── Scene ────────────────────────────────────────────────────────────────
     this.scene = new THREE.Scene()
@@ -217,7 +223,11 @@ export class Preview3D {
       ? layer.naturalWidth / layer.naturalHeight
       : layer.type === 'texto' ? 4 : 1
 
-    const w = triggerWidth * layer.scale
+    // For texto, tamanoTexto controls the plane size (matches viewer formula: fw = max(0.5, size*2))
+    const textoScale = layer.type === 'texto'
+      ? Math.max(0.25, (layer.tamanoTexto ?? 0.5) * 2)
+      : 1
+    const w = triggerWidth * layer.scale * textoScale
     const h = w / aspect
     const geo = new THREE.PlaneGeometry(w, h)
     geo.rotateX(-Math.PI / 2)
@@ -237,7 +247,7 @@ export class Preview3D {
       objectURL = URL.createObjectURL(layer.file)
       mat = new THREE.MeshLambertMaterial({ map: new THREE.TextureLoader().load(objectURL), transparent: true, opacity: layer.opacity, side: THREE.DoubleSide, depthWrite: false })
     } else if (layer.type === 'texto') {
-      mat = new THREE.MeshLambertMaterial({ map: this.makeTextTexture(layer.texto || 'Texto AR', layer.colorTexto || '#ffffff', layer.fontTexto || 'roboto'), transparent: true, opacity: layer.opacity, side: THREE.DoubleSide, depthWrite: false })
+      mat = new THREE.MeshLambertMaterial({ map: this.makeTextTexture(layer.texto || 'Texto AR', layer.colorTexto || '#ffffff', layer.fontTexto || 'roboto', layer.extrusionDepth ?? 0), transparent: true, opacity: layer.opacity, side: THREE.DoubleSide, depthWrite: false })
     } else {
       mat = new THREE.MeshLambertMaterial({ color: this.typeColor(layer.type), transparent: true, opacity: layer.file ? 0.45 : 0.3, side: THREE.DoubleSide, wireframe: !layer.file })
     }
@@ -458,7 +468,7 @@ export class Preview3D {
     return (Math.max(0, Math.min(200, layer.posZ)) / 200) * 25 + 1
   }
 
-  private makeTextTexture(text: string, color: string, fontName = 'roboto'): THREE.CanvasTexture {
+  private makeTextTexture(text: string, color: string, fontName = 'roboto', extrusion = 0): THREE.CanvasTexture {
     const family = FONT_MAP[fontName] || 'Arial, sans-serif'
     const canvas = document.createElement('canvas')
     canvas.width = 1024; canvas.height = 256
@@ -466,12 +476,33 @@ export class Preview3D {
     ctx.imageSmoothingEnabled = true
     ctx.imageSmoothingQuality = 'high'
     ctx.clearRect(0, 0, 1024, 256)
-    ctx.fillStyle = color
     ctx.font = `bold 120px ${family}`
     ctx.textAlign = 'center'
     ctx.textBaseline = 'middle'
+
+    if (extrusion > 0) {
+      // Draw offset shadow copies to simulate 3D extrusion depth
+      const px = Math.max(2, Math.round(extrusion * 120)) // 0–0.15 depth → 0–18 px offset
+      const dark = this.darkenColor(color, 0.35)
+      for (let i = px; i > 0; i -= Math.max(1, Math.floor(px / 4))) {
+        ctx.fillStyle = dark
+        ctx.fillText(text, 512 + i * 0.6, 128 + i * 0.6, 960)
+      }
+    }
+
+    ctx.fillStyle = color
     ctx.fillText(text, 512, 128, 960)
     return new THREE.CanvasTexture(canvas)
+  }
+
+  private darkenColor(hex: string, f: number): string {
+    try {
+      const n = parseInt((hex || '#888888').replace('#', ''), 16)
+      const r = Math.round(((n >> 16) & 255) * f)
+      const g = Math.round(((n >>  8) & 255) * f)
+      const b = Math.round(( n        & 255) * f)
+      return '#' + [r, g, b].map(v => v.toString(16).padStart(2, '0')).join('')
+    } catch { return '#444444' }
   }
 
   private typeColor(type: Layer['type']): number {

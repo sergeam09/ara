@@ -694,8 +694,10 @@
       if (!capa.archivo && capa.tipo !== 'texto' && capa.tipo !== 'text') return '';
       const posX = capa.posX ?? 0;
       const posY = capa.posY ?? 0;
-      // Always positive: layers are in FRONT of trigger surface (toward camera)
-      const posZaf = (sortedIdx * 0.01) + 0.003;
+      // Use actual posZ (0=background, 200=foreground) for real depth separation.
+      // Maps to 0.003–0.303 A-Frame units in front of trigger surface.
+      // sortedIdx * 0.002 prevents z-fighting between same-posZ layers.
+      const posZaf = (capa.posZ ?? 0) / 200 * 0.3 + (sortedIdx * 0.002) + 0.003;
       const pos  = `${posX} ${posY} ${posZaf.toFixed(4)}`;
       const s    = capa.escala   ?? 1;
       const op   = capa.opacidad ?? 1;
@@ -704,7 +706,7 @@
       const ext  = capa.archivo ? capa.archivo.split('.').pop().toLowerCase() : '';
       const dur  = capa.animDuration  ?? (capa.entrada === 'fade' ? 800 : capa.entrada === 'scale' ? 600 : capa.entrada === 'rotate' ? 6000 : 2000);
       const dly  = capa.animDelay    ?? 0;
-      const amp  = capa.animAmplitude ?? 0.04;
+      const amp  = capa.animAmplitude ?? 0.07;
       let anim = '';
       // No startEvents — animations autoplay; targetFound listener below replays them
       if (capa.entrada === 'fade')   anim  = `animation__in="property:material.opacity;from:0;to:${op};dur:${dur};delay:${dly}"`;
@@ -820,10 +822,13 @@
           document.getElementById('scan').classList.remove('show');
           const pg = document.getElementById('ping'); pg.classList.add('go'); setTimeout(()=>pg.classList.remove('go'),700);
           scene.querySelectorAll('video').forEach(v => { try { const p=v.play(); if(p) p.catch(()=>{ v.muted=true; v.play(); }); } catch(e){} });
-          // Restart entrance animations on re-detection
+          // Restart all animations on re-detection
           scene.querySelectorAll('[id^="arc-"]').forEach(el => {
-            const comp = el.components && el.components['animation__in'];
-            if (comp) { try { comp.stop(); comp.play(); } catch(e){} }
+            if (!el.components) return;
+            ['animation__in','animation__float','animation__rot'].forEach(name => {
+              const comp = el.components[name];
+              if (comp) { try { comp.stop(); comp.play(); } catch(e){} }
+            });
           });
         });
         target.addEventListener('targetLost', () => {

@@ -148,9 +148,11 @@ export class Preview3D {
 
   private positionMesh(mesh: THREE.Mesh, layer: Layer): void {
     const halfW = this.triggerW / 2
+    // posZ=0 = encima (más elevado en preview), posZ=200 = fondo (menos elevado)
+    const elevation = ((200 - Math.max(0, Math.min(200, layer.posZ))) / 200) * 25 + 1
     mesh.position.set(
       layer.posX * halfW,
-      Math.max(0, layer.posZ) * 0.4 + 1,
+      elevation,
       layer.posY * halfW
     )
   }

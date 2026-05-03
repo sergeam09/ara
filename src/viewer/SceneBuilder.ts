@@ -6,14 +6,14 @@ export class SceneBuilder {
     const triggerExt  = config.trigger.split('.').pop()
     const triggerPath = `${contentPath}/trigger.${triggerExt}`
 
-    // Sort layers by posZ ascending so higher-Z layers render LAST (on top)
-    const capas = [...config.capas].sort((a, b) => a.posZ - b.posZ)
+    // Sort layers by posZ DESCENDING: highest posZ (farthest from camera) renders first = stays behind
+    const capas = [...config.capas].sort((a, b) => b.posZ - a.posZ)
 
     let entities = ''
     for (let idx = 0; idx < capas.length; idx++) {
       const capa = capas[idx]
       const layerPath = `${contentPath}/${capa.archivo}`
-      const pos   = `${capa.posX} ${capa.posY} ${this.calcZ(capa.posZ, config)}`
+      const pos   = `${capa.posX} ${capa.posY} ${this.calcZ(idx, capas.length)}`
       const scl   = `${capa.escala} ${capa.escala} ${capa.escala}`
       const alpha = `transparent:true;alphaTest:0.01;opacity:${capa.opacidad}`
 
@@ -74,10 +74,11 @@ export class SceneBuilder {
     </a-scene>`
   }
 
-  // posZ 0..200 → A-Frame Z (positive = toward camera, above trigger surface)
-  private calcZ(posZ: number, config: PublishConfig): string {
-    const triggerW = config.anchoReal || 20
-    const z = (posZ / triggerW) * 0.05   // 0→0, 100→0.25 units above trigger
+  // sortedIndex = 0 → renderizado primero = queda detrás (mayor posZ)
+  // sortedIndex = n-1 → renderizado último = queda encima (menor posZ, más cerca de cámara)
+  // A-Frame: mayor Z = más hacia la cámara
+  private calcZ(sortedIndex: number, _total: number): string {
+    const z = (sortedIndex * 0.008) + 0.003
     return z.toFixed(4)
   }
 }

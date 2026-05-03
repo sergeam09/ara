@@ -278,12 +278,22 @@ function setupSliders() {
 
 // ── Publish ──────────────────────────────────────────────────────────────────
 
+async function shortenUrl(url: string): Promise<string> {
+  try {
+    const res = await fetch(`https://is.gd/create.php?format=json&url=${encodeURIComponent(url)}`)
+    const data = await res.json()
+    return data.shorturl || url
+  } catch {
+    return url
+  }
+}
+
 function setupPublish() {
-  const btn     = document.getElementById('btnPublish') as HTMLButtonElement
-  const overlay = document.getElementById('publishOverlay') as HTMLElement
-  const fill    = document.getElementById('pubFill') as HTMLElement
-  const msg     = document.getElementById('pubMsg') as HTMLElement
-  const result  = document.getElementById('pubResult') as HTMLElement
+  const btn      = document.getElementById('btnPublish') as HTMLButtonElement
+  const overlay  = document.getElementById('publishOverlay') as HTMLElement
+  const fill     = document.getElementById('pubFill') as HTMLElement
+  const msg      = document.getElementById('pubMsg') as HTMLElement
+  const result   = document.getElementById('pubResult') as HTMLElement
   const btnClose = document.getElementById('btnClosePub') as HTMLElement
 
   btnClose.addEventListener('click', () => {
@@ -319,14 +329,25 @@ function setupPublish() {
         layers,
         anchoReal,
         altoReal
-      }, nombre, (event: PublishEvent) => {
+      }, nombre, async (event: PublishEvent) => {
         if (event.type === 'progress') {
           fill.style.width = `${event.percent}%`
           msg.textContent = event.message
         } else if (event.type === 'success') {
           fill.style.width = '100%'
-          msg.textContent = '¡Listo!'
-          result.innerHTML = `<a href="${event.url}" target="_blank">${event.url}</a>`
+          msg.textContent = 'Acortando enlace...'
+
+          const shortUrl = await shortenUrl(event.url)
+          const qrSrc = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&color=f0f0f0&bgcolor=111111&data=${encodeURIComponent(shortUrl)}`
+
+          msg.textContent = '¡Publicado!'
+          result.innerHTML = `
+            <div style="margin:12px 0 8px;">
+              <img src="${qrSrc}" alt="QR" style="border-radius:8px;display:block;margin:0 auto 10px;" width="180" height="180">
+            </div>
+            <a href="${shortUrl}" target="_blank" style="font-size:13px;font-weight:700;">${shortUrl}</a>
+            <div style="font-size:9px;color:#555;margin-top:4px;word-break:break-all;">${event.url}</div>
+          `
           btnClose.style.display = 'block'
         } else {
           msg.textContent = `Error: ${event.message}`

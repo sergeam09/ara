@@ -11,7 +11,6 @@ interface LayerEntry {
   baseElevation: number
 }
 
-// Maps A-Frame font names to system font stacks for canvas preview
 const FONT_MAP: Record<string, string> = {
   roboto:          'Roboto, Arial, sans-serif',
   ubuntu:          'Ubuntu, sans-serif',
@@ -23,12 +22,16 @@ const FONT_MAP: Record<string, string> = {
   aileronsemibold: 'Arial, sans-serif',
 }
 
+const DEG = THREE.MathUtils.degToRad
+const RAD = THREE.MathUtils.radToDeg
+
 export class Preview3D {
   private scene: THREE.Scene | null = null
   private camera: THREE.PerspectiveCamera | null = null
   private renderer: THREE.WebGLRenderer | null = null
   private controls: OrbitControls | null = null
   private transformControls: TransformControls | null = null
+  private boxHelper: THREE.BoxHelper | null = null
   private triggerMesh: THREE.Mesh | null = null
   private layers: Map<string, LayerEntry> = new Map()
   private container: HTMLElement | null = null
@@ -37,28 +40,54 @@ export class Preview3D {
   private triggerH = 100
   private clock = new THREE.Clock()
 
-  // Drag state (free-drag on XZ plane)
+  // Drag state (free XZ drag)
   private dragging = false
   private dragLayerId: string | null = null
   private dragPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0)
   private dragOffset = new THREE.Vector3()
   private raycaster = new THREE.Raycaster()
   private mouse = new THREE.Vector2()
-  private coordTip: HTMLDivElement | null = null
 
-  // Callback when layer is moved (drag or transform controls)
-  onLayerMoved: ((id: string, posX: number, posY: number, posZ?: number) => void) | null = null
+  // TC state
+  private tcDragging = false
+  private tcMode: 'translate' | 'rotate' = 'translate'
+
+  // UI overlays
+  private coordTip: HTMLDivElement | null = null
+  private dimLabel: HTMLDivElement | null = null
+
+  // Fired on drag/TC end with layer property updates
+  onLayerTransformed: ((id: string, update: Partial<Layer>) => void) | null = null
+  // Fired when a layer mesh is clicked in the viewport
+  onLayerSelected: ((id: string) => void) | null = null
 
   init(container: HTMLElement): void {
     this.container = container
     container.style.position = 'relative'
 
-    // Coordinate tooltip
+    // ── Overlays ────────────────────────────────────────────────────────────
     const tip = document.createElement('div')
-    tip.style.cssText = 'position:absolute;background:rgba(0,0,0,0.82);color:#e63329;font-size:10px;font-weight:700;font-family:monospace;padding:4px 9px;border-radius:4px;pointer-events:none;display:none;z-index:20;white-space:nowrap;border:1px solid rgba(230,51,41,0.4);letter-spacing:0.04em;'
+    tip.style.cssText = 'position:absolute;background:rgba(0,0,0,0.85);color:#e63329;font-size:10px;font-weight:700;font-family:monospace;padding:4px 9px;border-radius:4px;pointer-events:none;display:none;z-index:20;white-space:nowrap;border:1px solid rgba(230,51,41,0.4);'
     container.appendChild(tip)
     this.coordTip = tip
 
+    const dim = document.createElement('div')
+    dim.style.cssText = 'position:absolute;bottom:8px;left:8px;background:rgba(0,0,0,0.7);color:#aaa;font-size:10px;font-family:monospace;padding:3px 8px;border-radius:4px;pointer-events:none;display:none;z-index:20;'
+    container.appendChild(dim)
+    this.dimLabel = dim
+
+    // ── TC mode toggle buttons ───────────────────────────────────────────────
+    const modeBar = document.createElement('div')
+    modeBar.style.cssText = 'position:absolute;top:8px;right:8px;z-index:25;display:flex;gap:4px;'
+    modeBar.innerHTML = `
+      <button id="tc-btn-translate" title="Mover (W)" style="background:#1a1a1a;border:1px solid #e63329;color:#e63329;padding:4px 10px;border-radius:4px;cursor:pointer;font-size:11px;font-weight:700;">⊕ Mover</button>
+      <button id="tc-btn-rotate"    title="Rotar (E)"    style="background:#1a1a1a;border:1px solid #444;color:#888;padding:4px 10px;border-radius:4px;cursor:pointer;font-size:11px;font-weight:700;">↻ Rotar</button>
+    `
+    container.appendChild(modeBar)
+    modeBar.querySelector('#tc-btn-translate')?.addEventListener('click', () => this.setTransformMode('translate'))
+    modeBar.querySelector('#tc-btn-rotate')?.addEventListener('click',    () => this.setTransformMode('rotate'))
+
+    // ── Scene ────────────────────────────────────────────────────────────────
     this.scene = new THREE.Scene()
     this.scene.background = new THREE.Color(0x0a0a0a)
 
@@ -73,6 +102,7 @@ export class Preview3D {
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
     container.appendChild(this.renderer.domElement)
 
+    // ── Orbit controls ────────────────────────────────────────────────────────
     this.controls = new OrbitControls(this.camera, this.renderer.domElement)
     this.controls.enableDamping = true
     this.controls.dampingFactor = 0.06
@@ -80,31 +110,41 @@ export class Preview3D {
     this.controls.maxDistance = 1200
     this.controls.target.set(0, 0, 0)
 
-    // TransformControls gizmo
+    // ── TransformControls ─────────────────────────────────────────────────────
     this.transformControls = new TransformControls(this.camera, this.renderer.domElement)
-    this.transformControls.setMode('translate')
     this.transformControls.setSize(0.75)
-    this.transformControls.addEventListener('dragging-changed', (event: any) => {
-      if (this.controls) this.controls.enabled = !event.value
-      if (!event.value && this.coordTip) this.coordTip.style.display = 'none'
-    })
-    this.transformControls.addEventListener('objectChange', () => {
-      this.syncTransformToCallback()
-    })
     this.scene.add(this.transformControls as unknown as THREE.Object3D)
 
-    // Lights
+    this.transformControls.addEventListener('dragging-changed', (event: any) => {
+      this.tcDragging = event.value
+      if (this.controls) this.controls.enabled = !event.value
+      if (!event.value) {
+        // Drag ended — fire final positions to layer manager
+        const obj = this.transformControls?.object as THREE.Mesh | undefined
+        if (obj) this.fireTCCallback(obj)
+        if (this.coordTip) this.coordTip.style.display = 'none'
+      }
+    })
+
+    this.transformControls.addEventListener('objectChange', () => {
+      // During drag: update tooltip only — do NOT call onLayerTransformed
+      // (calling it would trigger updateLayer, which rebuilds the mesh, killing the drag)
+      const obj = this.transformControls?.object as THREE.Mesh | undefined
+      if (obj && this.tcDragging) this.updateTCTip(obj)
+    })
+
+    // ── Lights ────────────────────────────────────────────────────────────────
     this.scene.add(new THREE.AmbientLight(0xffffff, 0.9))
     const dir = new THREE.DirectionalLight(0xffffff, 0.5)
     dir.position.set(100, 300, 150)
     this.scene.add(dir)
 
-    // Grid
+    // ── Grid ──────────────────────────────────────────────────────────────────
     const grid = new THREE.GridHelper(600, 60, 0x2a2a2a, 0x1a1a1a)
     grid.position.y = -1
     this.scene.add(grid)
 
-    // Free-drag events (XZ plane)
+    // ── Mouse events ──────────────────────────────────────────────────────────
     const canvas = this.renderer.domElement
     canvas.addEventListener('mousedown',  this.onMouseDown)
     canvas.addEventListener('mousemove',  this.onMouseMove)
@@ -116,40 +156,50 @@ export class Preview3D {
     this.animate()
   }
 
-  // Attach TransformControls to a layer (call when user selects a layer)
+  setTransformMode(mode: 'translate' | 'rotate'): void {
+    this.tcMode = mode
+    this.transformControls?.setMode(mode)
+    // Update button styles
+    const btnT = this.container?.querySelector('#tc-btn-translate') as HTMLButtonElement
+    const btnR = this.container?.querySelector('#tc-btn-rotate')    as HTMLButtonElement
+    if (btnT) { btnT.style.borderColor = mode === 'translate' ? '#e63329' : '#444'; btnT.style.color = mode === 'translate' ? '#e63329' : '#888' }
+    if (btnR) { btnR.style.borderColor = mode === 'rotate'    ? '#e63329' : '#444'; btnR.style.color = mode === 'rotate'    ? '#e63329' : '#888' }
+  }
+
   selectLayer(id: string | null): void {
-    if (!this.transformControls) return
-    if (!id) {
-      this.transformControls.detach()
-      return
-    }
+    if (!this.transformControls || !this.scene) return
+    // Remove old box helper
+    if (this.boxHelper) { this.scene.remove(this.boxHelper); this.boxHelper = null }
+    if (this.dimLabel) this.dimLabel.style.display = 'none'
+
+    if (!id) { this.transformControls.detach(); return }
+
     const entry = this.layers.get(id)
-    if (entry) this.transformControls.attach(entry.mesh)
+    if (!entry) { this.transformControls.detach(); return }
+
+    this.transformControls.attach(entry.mesh)
+
+    // Box helper — red wireframe around selected layer
+    this.boxHelper = new THREE.BoxHelper(entry.mesh, 0xe63329)
+    this.scene.add(this.boxHelper)
+
+    // Dimension annotation
+    this.showDimLabel(entry.mesh, entry.layer)
   }
 
-  setTriggerImage(dataURL: string, width: number, height: number): void {
-    if (!this.scene) return
-    this.triggerW = width
-    this.triggerH = height
-
-    if (this.triggerMesh) {
-      this.scene.remove(this.triggerMesh)
-      ;(this.triggerMesh.material as THREE.MeshLambertMaterial).map?.dispose()
-      ;(this.triggerMesh.material as THREE.MeshLambertMaterial).dispose()
-      this.triggerMesh.geometry.dispose()
-    }
-
-    const texture = new THREE.TextureLoader().load(dataURL)
-    const geo = new THREE.PlaneGeometry(width, height)
-    geo.rotateX(-Math.PI / 2)
-    const mat = new THREE.MeshLambertMaterial({
-      map: texture, transparent: true, opacity: 0.92, side: THREE.DoubleSide
-    })
-    this.triggerMesh = new THREE.Mesh(geo, mat)
-    this.triggerMesh.position.y = 0
-    this.triggerMesh.userData = { isTrigger: true }
-    this.scene.add(this.triggerMesh)
+  private showDimLabel(mesh: THREE.Mesh, layer: Layer): void {
+    if (!this.dimLabel) return
+    const bbox = new THREE.Box3().setFromObject(mesh)
+    const size = bbox.getSize(new THREE.Vector3())
+    const halfW = this.triggerW / 2
+    const wx = (size.x / halfW).toFixed(2)
+    const wz = (size.z / halfW).toFixed(2)
+    const typeLabel = layer.type === 'texto' ? 'Texto' : layer.type.toUpperCase()
+    this.dimLabel.textContent = `${typeLabel}  ${wx} × ${wz} u  |  escala ${layer.scale.toFixed(2)}×  |  Z ${layer.posZ}`
+    this.dimLabel.style.display = 'block'
   }
+
+  // ── Layer CRUD ────────────────────────────────────────────────────────────
 
   addLayer(layer: Layer, triggerWidth: number): void {
     this.updateLayer(layer, triggerWidth)
@@ -158,18 +208,15 @@ export class Preview3D {
   updateLayer(layer: Layer, triggerWidth: number): void {
     if (!this.scene) return
 
-    // If TC is attached to this layer, detach before rebuilding
     const wasSelected = (this.transformControls as any)?.object?.userData?.layerId === layer.id
     if (wasSelected) this.transformControls?.detach()
 
     this.removeLayer(layer.id)
 
-    // Aspect ratio: use natural dimensions, or 4:1 for text (canvas texture), or 1:1
     const aspect = (layer.naturalWidth && layer.naturalHeight)
       ? layer.naturalWidth / layer.naturalHeight
-      : layer.type === 'texto'
-        ? 4
-        : 1
+      : layer.type === 'texto' ? 4 : 1
+
     const w = triggerWidth * layer.scale
     const h = w / aspect
     const geo = new THREE.PlaneGeometry(w, h)
@@ -182,62 +229,48 @@ export class Preview3D {
     if (layer.file && layer.file.type.startsWith('video/')) {
       objectURL = URL.createObjectURL(layer.file)
       videoEl = document.createElement('video')
-      videoEl.src = objectURL
-      videoEl.muted = true
-      videoEl.loop = true
-      videoEl.playsInline = true
-      videoEl.crossOrigin = 'anonymous'
+      videoEl.src = objectURL; videoEl.muted = true; videoEl.loop = true
+      videoEl.playsInline = true; videoEl.crossOrigin = 'anonymous'
       videoEl.play().catch(() => {})
-      const texture = new THREE.VideoTexture(videoEl)
-      mat = new THREE.MeshLambertMaterial({
-        map: texture, transparent: true, opacity: layer.opacity,
-        side: THREE.DoubleSide, depthWrite: false
-      })
+      mat = new THREE.MeshLambertMaterial({ map: new THREE.VideoTexture(videoEl), transparent: true, opacity: layer.opacity, side: THREE.DoubleSide, depthWrite: false })
     } else if (layer.file && layer.file.type.startsWith('image/')) {
       objectURL = URL.createObjectURL(layer.file)
-      const texture = new THREE.TextureLoader().load(objectURL)
-      mat = new THREE.MeshLambertMaterial({
-        map: texture, transparent: true, opacity: layer.opacity,
-        side: THREE.DoubleSide, depthWrite: false
-      })
+      mat = new THREE.MeshLambertMaterial({ map: new THREE.TextureLoader().load(objectURL), transparent: true, opacity: layer.opacity, side: THREE.DoubleSide, depthWrite: false })
     } else if (layer.type === 'texto') {
-      const texture = this.makeTextTexture(
-        layer.texto || 'Texto AR',
-        layer.colorTexto || '#ffffff',
-        layer.fontTexto || 'roboto'
-      )
-      mat = new THREE.MeshLambertMaterial({
-        map: texture, transparent: true, opacity: layer.opacity,
-        side: THREE.DoubleSide, depthWrite: false
-      })
+      mat = new THREE.MeshLambertMaterial({ map: this.makeTextTexture(layer.texto || 'Texto AR', layer.colorTexto || '#ffffff', layer.fontTexto || 'roboto'), transparent: true, opacity: layer.opacity, side: THREE.DoubleSide, depthWrite: false })
     } else {
-      mat = new THREE.MeshLambertMaterial({
-        color: this.typeColor(layer.type),
-        transparent: true,
-        opacity: layer.file ? 0.45 : 0.3,
-        side: THREE.DoubleSide,
-        wireframe: !layer.file
-      })
+      mat = new THREE.MeshLambertMaterial({ color: this.typeColor(layer.type), transparent: true, opacity: layer.file ? 0.45 : 0.3, side: THREE.DoubleSide, wireframe: !layer.file })
     }
 
     const mesh = new THREE.Mesh(geo, mat)
     mesh.userData = { layerId: layer.id, isLayer: true }
+
     const baseElevation = this.calcElevation(layer)
     mesh.position.set(layer.posX * (this.triggerW / 2), baseElevation, layer.posY * (this.triggerW / 2))
+    mesh.rotation.set(DEG(layer.rotX ?? 0), DEG(layer.rotY ?? 0), DEG(layer.rotZ ?? 0))
+
     this.scene.add(mesh)
     this.layers.set(layer.id, { mesh, objectURL, videoEl, layer: { ...layer }, baseElevation })
 
-    // Re-attach TC if this layer was selected
-    if (wasSelected) this.transformControls?.attach(mesh)
+    if (wasSelected) {
+      this.transformControls?.attach(mesh)
+      // Refresh box helper
+      if (this.boxHelper) { this.scene.remove(this.boxHelper) }
+      this.boxHelper = new THREE.BoxHelper(mesh, 0xe63329)
+      this.scene.add(this.boxHelper)
+      this.showDimLabel(mesh, layer)
+    }
 
-    // Entrance animation preview (one-shot)
     this.playEntranceAnimation(mesh, layer)
   }
 
   removeLayer(id: string): void {
     const entry = this.layers.get(id)
     if (!entry || !this.scene) return
-    if ((this.transformControls as any)?.object === entry.mesh) this.transformControls?.detach()
+    if ((this.transformControls as any)?.object === entry.mesh) {
+      this.transformControls?.detach()
+      if (this.boxHelper) { this.scene.remove(this.boxHelper); this.boxHelper = null }
+    }
     this.scene.remove(entry.mesh)
     ;(entry.mesh.material as THREE.MeshLambertMaterial).map?.dispose()
     ;(entry.mesh.material as THREE.MeshLambertMaterial).dispose()
@@ -247,87 +280,91 @@ export class Preview3D {
     this.layers.delete(id)
   }
 
-  // ── Entrance animation (one-shot preview) ────────────────────────────────
-
-  private playEntranceAnimation(mesh: THREE.Mesh, layer: Layer): void {
-    if (!layer.animation) return
-    const mat = mesh.material as THREE.MeshLambertMaterial
-    const dur = (layer.animationDuration ?? 800) / 1000
-    const targetOpacity = layer.opacity
-    const startScale = mesh.scale.clone()
-
-    if (layer.animation === 'fade') {
-      mat.opacity = 0
-      const start = this.clock.getElapsedTime()
-      const tick = () => {
-        if (!this.layers.has(layer.id)) return
-        const t = Math.min((this.clock.getElapsedTime() - start) / dur, 1)
-        mat.opacity = t * targetOpacity
-        if (t < 1) requestAnimationFrame(tick)
-      }
-      requestAnimationFrame(tick)
-    } else if (layer.animation === 'scale') {
-      mesh.scale.set(0, 0, 0)
-      const start = this.clock.getElapsedTime()
-      const tick = () => {
-        if (!this.layers.has(layer.id)) return
-        const t = Math.min((this.clock.getElapsedTime() - start) / dur, 1)
-        const ease = 1 - Math.pow(1 - t, 3) // ease-out cubic
-        mesh.scale.set(ease, ease, ease)
-        if (t < 1) requestAnimationFrame(tick)
-        else mesh.scale.copy(startScale)
-      }
-      requestAnimationFrame(tick)
+  setTriggerImage(dataURL: string, width: number, height: number): void {
+    if (!this.scene) return
+    this.triggerW = width; this.triggerH = height
+    if (this.triggerMesh) {
+      this.scene.remove(this.triggerMesh)
+      ;(this.triggerMesh.material as THREE.MeshLambertMaterial).map?.dispose()
+      ;(this.triggerMesh.material as THREE.MeshLambertMaterial).dispose()
+      this.triggerMesh.geometry.dispose()
     }
+    const geo = new THREE.PlaneGeometry(width, height)
+    geo.rotateX(-Math.PI / 2)
+    this.triggerMesh = new THREE.Mesh(geo, new THREE.MeshLambertMaterial({ map: new THREE.TextureLoader().load(dataURL), transparent: true, opacity: 0.92, side: THREE.DoubleSide }))
+    this.triggerMesh.userData = { isTrigger: true }
+    this.scene.add(this.triggerMesh)
   }
 
-  // ── TransformControls sync ───────────────────────────────────────────────
+  // ── TC callback ──────────────────────────────────────────────────────────
 
-  private syncTransformToCallback(): void {
-    if (!this.transformControls?.object) return
-    const mesh = this.transformControls.object as THREE.Mesh
+  private fireTCCallback(mesh: THREE.Mesh): void {
     const id = mesh.userData.layerId as string
     if (!id) return
-
     const halfW = this.triggerW / 2
-    const posX = mesh.position.x / halfW
-    const posY = mesh.position.z / halfW
-    // elevation = (posZ/200)*25+1  →  posZ = (elevation-1)*200/25 = (elevation-1)*8
-    const posZ = Math.round(Math.max(0, Math.min(200, (mesh.position.y - 1) * 8)))
-
-    // Update baseElevation in entry so animation loop uses correct base
-    const entry = this.layers.get(id)
-    if (entry) entry.baseElevation = mesh.position.y
-
-    if (this.coordTip) {
-      this.coordTip.style.cssText += ';display:block;left:8px;top:8px;'
-      this.coordTip.textContent = `X ${posX >= 0 ? '+' : ''}${posX.toFixed(2)}  Y ${posY >= 0 ? '+' : ''}${posY.toFixed(2)}  Z ${posZ}`
+    if (this.tcMode === 'translate') {
+      const posX = mesh.position.x / halfW
+      const posY = mesh.position.z / halfW
+      const posZ = Math.round(Math.max(0, Math.min(200, (mesh.position.y - 1) * 8)))
+      // Update stored base elevation
+      const entry = this.layers.get(id)
+      if (entry) entry.baseElevation = mesh.position.y
+      this.onLayerTransformed?.(id, { posX, posY, posZ })
+    } else {
+      const rotX = Math.round(RAD(mesh.rotation.x))
+      const rotY = Math.round(RAD(mesh.rotation.y))
+      const rotZ = Math.round(RAD(mesh.rotation.z))
+      this.onLayerTransformed?.(id, { rotX, rotY, rotZ })
     }
-
-    this.onLayerMoved?.(id, posX, posY, posZ)
   }
 
-  // ── Free-drag (XZ plane) ──────────────────────────────────────────────────
+  private updateTCTip(mesh: THREE.Mesh): void {
+    if (!this.coordTip) return
+    const halfW = this.triggerW / 2
+    let text: string
+    if (this.tcMode === 'translate') {
+      const posX = mesh.position.x / halfW
+      const posY = mesh.position.z / halfW
+      const posZ = Math.round(Math.max(0, Math.min(200, (mesh.position.y - 1) * 8)))
+      text = `X ${posX >= 0 ? '+' : ''}${posX.toFixed(2)}  Y ${posY >= 0 ? '+' : ''}${posY.toFixed(2)}  Z ${posZ}`
+    } else {
+      text = `RX ${Math.round(RAD(mesh.rotation.x))}°  RY ${Math.round(RAD(mesh.rotation.y))}°  RZ ${Math.round(RAD(mesh.rotation.z))}°`
+    }
+    this.coordTip.style.left = '8px'
+    this.coordTip.style.top  = '8px'
+    this.coordTip.style.display = 'block'
+    this.coordTip.textContent = text
+  }
+
+  // ── Free drag (XZ plane) ──────────────────────────────────────────────────
 
   private onMouseDown = (e: MouseEvent): void => {
-    if (!this.camera || !this.renderer) return
-    // Don't start free-drag if TransformControls is consuming the event
-    if (this.transformControls?.dragging) return
-
+    if (!this.camera || !this.renderer || this.tcDragging) return
     this.setMouse(e)
     this.raycaster.setFromCamera(this.mouse, this.camera)
+
+    // Check TC gizmo objects first — if TC is handling the event, skip
+    const tcChildren: THREE.Object3D[] = []
+    this.transformControls?.traverse(o => { if (o !== this.transformControls) tcChildren.push(o) })
+    if (this.raycaster.intersectObjects(tcChildren, false).length > 0) return
+
     const layerMeshes = Array.from(this.layers.values()).map(en => en.mesh)
     const hits = this.raycaster.intersectObjects(layerMeshes, false)
-
     if (hits.length > 0) {
       const hit = hits[0]
       const id = hit.object.userData.layerId as string
       if (!id) return
+
+      // Click to select
+      this.onLayerSelected?.(id)
+
+      // Start free drag only in translate mode
+      if (this.tcMode !== 'translate') return
+
       this.dragging = true
       this.dragLayerId = id
       if (this.controls) this.controls.enabled = false
-      const layerY = hit.object.position.y
-      this.dragPlane.set(new THREE.Vector3(0, 1, 0), -layerY)
+      this.dragPlane.set(new THREE.Vector3(0, 1, 0), -hit.object.position.y)
       const pt = new THREE.Vector3()
       this.raycaster.ray.intersectPlane(this.dragPlane, pt)
       this.dragOffset.copy(pt).sub(hit.object.position)
@@ -346,7 +383,8 @@ export class Preview3D {
     const newPos = pt.clone().sub(this.dragOffset)
     entry.mesh.position.x = newPos.x
     entry.mesh.position.z = newPos.z
-    entry.baseElevation = entry.mesh.position.y
+    if (this.boxHelper) this.boxHelper.update()
+
     const halfW = this.triggerW / 2
     const posX = newPos.x / halfW
     const posY = newPos.z / halfW
@@ -357,10 +395,19 @@ export class Preview3D {
       this.coordTip.style.display = 'block'
       this.coordTip.textContent = `X ${posX >= 0 ? '+' : ''}${posX.toFixed(2)}  Y ${posY >= 0 ? '+' : ''}${posY.toFixed(2)}`
     }
-    this.onLayerMoved?.(this.dragLayerId, posX, posY)
+    // NOTE: do NOT call onLayerTransformed here — deferred to mouseUp to prevent mesh rebuild during drag
   }
 
   private onMouseUp = (): void => {
+    if (this.dragging && this.dragLayerId) {
+      const entry = this.layers.get(this.dragLayerId)
+      if (entry) {
+        const halfW = this.triggerW / 2
+        const posX = entry.mesh.position.x / halfW
+        const posY = entry.mesh.position.z / halfW
+        this.onLayerTransformed?.(this.dragLayerId, { posX, posY })
+      }
+    }
     this.dragging = false
     this.dragLayerId = null
     if (this.controls) this.controls.enabled = true
@@ -372,6 +419,37 @@ export class Preview3D {
     const rect = this.renderer.domElement.getBoundingClientRect()
     this.mouse.x =  ((e.clientX - rect.left) / rect.width)  * 2 - 1
     this.mouse.y = -((e.clientY - rect.top)  / rect.height) * 2 + 1
+  }
+
+  // ── Animations ────────────────────────────────────────────────────────────
+
+  private playEntranceAnimation(mesh: THREE.Mesh, layer: Layer): void {
+    if (!layer.animation) return
+    const mat = mesh.material as THREE.MeshLambertMaterial
+    const dur = (layer.animationDuration ?? 800) / 1000
+    const targetOpacity = layer.opacity
+    if (layer.animation === 'fade') {
+      mat.opacity = 0
+      const start = this.clock.getElapsedTime()
+      const tick = () => {
+        if (!this.layers.has(layer.id)) return
+        const t = Math.min((this.clock.getElapsedTime() - start) / dur, 1)
+        mat.opacity = t * targetOpacity
+        if (t < 1) requestAnimationFrame(tick)
+      }
+      requestAnimationFrame(tick)
+    } else if (layer.animation === 'scale') {
+      mesh.scale.set(0, 0, 0)
+      const start = this.clock.getElapsedTime()
+      const tick = () => {
+        if (!this.layers.has(layer.id)) return
+        const t = Math.min((this.clock.getElapsedTime() - start) / dur, 1)
+        const ease = 1 - Math.pow(1 - t, 3)
+        mesh.scale.set(ease, ease, ease)
+        if (t < 1) requestAnimationFrame(tick)
+      }
+      requestAnimationFrame(tick)
+    }
   }
 
   // ── Helpers ───────────────────────────────────────────────────────────────
@@ -397,11 +475,8 @@ export class Preview3D {
   }
 
   private typeColor(type: Layer['type']): number {
-    const colors: Record<Layer['type'], number> = {
-      image: 0x4488ff, video: 0xe63329, gif: 0xff9900,
-      glb: 0xaa44ff, svg: 0x00cc88, texto: 0xffffff
-    }
-    return colors[type] ?? 0x666666
+    const c: Record<Layer['type'], number> = { image: 0x4488ff, video: 0xe63329, gif: 0xff9900, glb: 0xaa44ff, svg: 0x00cc88, texto: 0xffffff }
+    return c[type] ?? 0x666666
   }
 
   // ── Render loop ───────────────────────────────────────────────────────────
@@ -409,9 +484,10 @@ export class Preview3D {
   private animate = (): void => {
     this.animId = requestAnimationFrame(this.animate)
     this.controls?.update()
+    if (this.boxHelper) this.boxHelper.update()
     const t = this.clock.getElapsedTime()
 
-    this.layers.forEach((entry) => {
+    this.layers.forEach(entry => {
       const l = entry.layer
       const mesh = entry.mesh
       if (l.animation === 'float') {

@@ -200,9 +200,12 @@ function updatePropsPanel(layer: Layer | undefined) {
   }
   set('propScale',   layer.scale)
   set('propOpacity', layer.opacity * 100)
-  set('propPosX',    layer.posX)
-  set('propPosY',    layer.posY)
+  set('propPosX',    parseFloat(layer.posX.toFixed(2)))
+  set('propPosY',    parseFloat(layer.posY.toFixed(2)))
   set('propPosZ',    layer.posZ)
+  set('propRotX',    Math.round(layer.rotX ?? 0))
+  set('propRotY',    Math.round(layer.rotY ?? 0))
+  set('propRotZ',    Math.round(layer.rotZ ?? 0))
 
   // Animation buttons + params
   const activeAnim = layer.animation || ''
@@ -238,6 +241,9 @@ function updateSliderValues(layer: Layer) {
   v('valPosX',    layer.posX.toFixed(2))
   v('valPosY',    layer.posY.toFixed(2))
   v('valPosZ',    layer.posZ.toString())
+  v('valRotX',    `${Math.round(layer.rotX ?? 0)}°`)
+  v('valRotY',    `${Math.round(layer.rotY ?? 0)}°`)
+  v('valRotZ',    `${Math.round(layer.rotZ ?? 0)}°`)
   if (layer.type === 'texto') {
     v('valTamanoTexto',   `${(layer.tamanoTexto ?? 0.5).toFixed(2)}×`)
     v('valExtrusionTexto', (layer.extrusionDepth ?? 0).toFixed(2))
@@ -342,6 +348,21 @@ function setupSliders() {
 
   slider('propTamanoTexto', v => ({ tamanoTexto: v }), v => `${v.toFixed(2)}×`, 'valTamanoTexto')
   slider('propExtrusionTexto', v => ({ extrusionDepth: v }), v => v.toFixed(3), 'valExtrusionTexto')
+
+  // Rotation number inputs
+  const rotInput = (id: string, field: 'rotX' | 'rotY' | 'rotZ') => {
+    const el = document.getElementById(id) as HTMLInputElement
+    if (!el) return
+    el.addEventListener('input', () => {
+      const val = parseFloat(el.value) || 0
+      const active = layerManager.getActiveLayer()
+      if (!active) return
+      layerManager.updateLayer(active.id, { [field]: val } as Partial<Layer>)
+    })
+  }
+  rotInput('propRotX', 'rotX')
+  rotInput('propRotY', 'rotY')
+  rotInput('propRotZ', 'rotZ')
 
   const textarea = document.getElementById('propTexto') as HTMLTextAreaElement
   if (textarea) {
@@ -549,20 +570,27 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (canvasEl) {
     preview3D.init(canvasEl)
 
-    // When a layer is moved in 3D (drag or TransformControls), sync back to inputs
-    preview3D.onLayerMoved = (id, posX, posY, posZ) => {
-      const update: Partial<Layer> = { posX, posY }
-      if (posZ !== undefined) update.posZ = posZ
+    // When a layer is moved/rotated via gizmo (TC drag-end or free-drag mouseUp)
+    preview3D.onLayerTransformed = (id, update) => {
       layerManager.updateLayer(id, update)
       const active = layerManager.getActiveLayer()
       if (active?.id === id) {
-        const inX = document.getElementById('propPosX') as HTMLInputElement
-        const inY = document.getElementById('propPosY') as HTMLInputElement
-        const inZ = document.getElementById('propPosZ') as HTMLInputElement
-        if (inX) inX.value = posX.toFixed(2)
-        if (inY) inY.value = posY.toFixed(2)
-        if (posZ !== undefined && inZ) inZ.value = posZ.toString()
+        const setInput = (elId: string, val: number, decimals: number) => {
+          const el = document.getElementById(elId) as HTMLInputElement
+          if (el) el.value = decimals >= 0 ? val.toFixed(decimals) : Math.round(val).toString()
+        }
+        if (update.posX !== undefined) setInput('propPosX', update.posX, 2)
+        if (update.posY !== undefined) setInput('propPosY', update.posY, 2)
+        if (update.posZ !== undefined) setInput('propPosZ', update.posZ, 0)
+        if (update.rotX !== undefined) setInput('propRotX', update.rotX, -1)
+        if (update.rotY !== undefined) setInput('propRotY', update.rotY, -1)
+        if (update.rotZ !== undefined) setInput('propRotZ', update.rotZ, -1)
       }
+    }
+
+    // When a layer is clicked in the 3D preview, select it in the panel
+    preview3D.onLayerSelected = (id) => {
+      layerManager.selectLayer(id)
     }
   }
 

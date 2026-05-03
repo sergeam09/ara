@@ -13,6 +13,9 @@ export interface Layer {
   animationDuration?: number
   animationDelay?: number
   animationAmplitude?: number
+  rotX?: number
+  rotY?: number
+  rotZ?: number
   texto?: string
   colorTexto?: string
   tamanoTexto?: number
@@ -61,6 +64,9 @@ export interface PublishConfig {
     animDelay?: number
     animAmplitude?: number
     aspectRatio?: number
+    rotX?: number
+    rotY?: number
+    rotZ?: number
     posX: number
     posY: number
     posZ: number

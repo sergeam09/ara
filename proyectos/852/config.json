@@ -47,7 +47,7 @@
       "texto": "HOLA",
       "colorTexto": "#ff0000",
       "tamanoTexto": 1.25,
-      "extrusionDepth": 0,
+      "extrusionDepth": 0.07,
       "font": "sourcecodepro",
       "posX": 0.000930822307152038,
       "posY": -0.21005288230984473,
@@ -57,8 +57,9 @@
       "rotZ": 0,
       "escala": 1,
       "opacidad": 1,
-      "entrada": "float",
-      "animDuration": 2000,
+      "entrada": "rotate",
+      "animDuration": 5000,
+      "animAmplitude": 0.08,
       "delay": 0,
       "loop": true
     }

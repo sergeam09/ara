@@ -572,34 +572,50 @@
     buildAFrameScene();
   }
 
-  // Extruded 3D text component (falls back to flat if font fails)
+  // Extruded 3D text via stacked a-text layers (no font loading needed)
   AFRAME.registerComponent('ara-text3d', {
     schema: {
       value:   { type: 'string', default: 'Texto' },
       color:   { type: 'color',  default: '#ffffff' },
-      size:    { type: 'number', default: 0.08 },
-      depth:   { type: 'number', default: 0.01 },
-      opacity: { type: 'number', default: 1 }
+      size:    { type: 'number', default: 0.5 },
+      depth:   { type: 'number', default: 0 },
+      opacity: { type: 'number', default: 1 },
+      font:    { type: 'string', default: 'roboto' }
     },
     init() {
-      const d = this.data, el = this.el, T = AFRAME.THREE;
-      const useFlatFallback = () => {
-        el.setAttribute('text', `value: ${d.value}; color: ${d.color}; align: center; width: 2; wrapCount: 20`);
-      };
-      if (!T.FontLoader) { useFlatFallback(); return; }
-      const loader = new T.FontLoader();
-      loader.load('https://threejs.org/examples/fonts/helvetiker_bold.typeface.json',
-        (font) => {
-          try {
-            const geo = new T.TextGeometry(d.value, { font, size: d.size, height: d.depth, curveSegments: 4, bevelEnabled: false });
-            geo.center();
-            const mat = new T.MeshLambertMaterial({ color: new T.Color(d.color), transparent: d.opacity < 1, opacity: d.opacity });
-            el.setObject3D('mesh', new T.Mesh(geo, mat));
-          } catch { useFlatFallback(); }
-        },
-        null,
-        useFlatFallback
-      );
+      const d = this.data, el = this.el;
+      const fw = Math.max(1, d.size * 3).toFixed(2);
+      if (d.depth <= 0) {
+        el.setAttribute('text', `value: ${d.value}; color: ${d.color}; align: center; width: ${fw}; font: ${d.font}`);
+        return;
+      }
+      // Stack layers to simulate extrusion depth
+      const steps = Math.min(Math.max(2, Math.ceil(d.depth * 15)), 8);
+      for (let s = 0; s < steps; s++) {
+        const isFront = (s === steps - 1);
+        const zOff = (s / (steps - 1)) * d.depth * 0.05;
+        const child = document.createElement('a-text');
+        child.setAttribute('value', d.value);
+        child.setAttribute('align', 'center');
+        child.setAttribute('width', fw);
+        child.setAttribute('font', d.font);
+        child.setAttribute('position', `0 0 ${zOff.toFixed(5)}`);
+        if (isFront) {
+          child.setAttribute('color', d.color);
+          child.setAttribute('material', `opacity:${d.opacity};transparent:true`);
+        } else {
+          child.setAttribute('color', this.darken(d.color, 0.45));
+          child.setAttribute('material', `opacity:${(d.opacity * 0.65).toFixed(2)};transparent:true`);
+        }
+        el.appendChild(child);
+      }
+    },
+    darken(hex, f) {
+      try {
+        const n = parseInt(hex.replace('#',''), 16);
+        const r = Math.round(((n>>16)&255)*f), g = Math.round(((n>>8)&255)*f), b = Math.round((n&255)*f);
+        return '#'+[r,g,b].map(v=>v.toString(16).padStart(2,'0')).join('');
+      } catch { return hex; }
     }
   });
 
@@ -680,26 +696,30 @@
     const th = CFG.altoReal  || 20;
     const ratio = tw / th;
 
-    // Sort descending: higher posZ = background = rendered first = smaller A-Frame Z
-    const sortedCapas = [...CAPAS].sort((a, b) => (b.posZ ?? 0) - (a.posZ ?? 0));
+    // Sort ascending: lower posZ = background = rendered first = smaller A-Frame Z
+    const sortedCapas = [...CAPAS].sort((a, b) => (a.posZ ?? 0) - (b.posZ ?? 0));
 
     const entities = sortedCapas.map((capa, sortedIdx) => {
       if (!capa.archivo && capa.tipo !== 'texto' && capa.tipo !== 'text') return '';
       const posX = capa.posX ?? 0;
       const posY = capa.posY ?? 0;
       // Always positive: layers are in FRONT of trigger surface (toward camera)
-      const posZaf = (sortedIdx * 0.005) + 0.002;
+      const posZaf = (sortedIdx * 0.01) + 0.003;
       const pos  = `${posX} ${posY} ${posZaf.toFixed(4)}`;
       const s    = capa.escala   ?? 1;
       const op   = capa.opacidad ?? 1;
       const loop = capa.loop !== false;
       const src  = capa.archivo ? `${BP}${capa.archivo}` : '';
       const ext  = capa.archivo ? capa.archivo.split('.').pop().toLowerCase() : '';
+      const dur  = capa.animDuration  ?? (capa.entrada === 'fade' ? 800 : capa.entrada === 'scale' ? 600 : capa.entrada === 'rotate' ? 6000 : 2000);
+      const dly  = capa.animDelay    ?? 0;
+      const amp  = capa.animAmplitude ?? 0.04;
       let anim = '';
-      if (capa.entrada === 'fade')   anim  = `animation__in="property:material.opacity;from:0;to:${op};dur:800;startEvents:targetFound"`;
-      if (capa.entrada === 'scale')  anim  = `animation__in="property:scale;from:0 0 0;to:${s} ${s} ${s};dur:600;startEvents:targetFound"`;
-      if (capa.entrada === 'rotate') anim += ` animation__rot="property:rotation;to:0 360 0;loop:true;dur:6000;easing:linear"`;
-      if (capa.entrada === 'float')  anim += ` animation__float="property:position;from:${pos};to:${posX} ${(posY+0.04).toFixed(4)} ${posZaf.toFixed(4)};dir:alternate;loop:true;dur:2000;easing:easeInOutSine"`;
+      // No startEvents — animations autoplay; targetFound listener below replays them
+      if (capa.entrada === 'fade')   anim  = `animation__in="property:material.opacity;from:0;to:${op};dur:${dur};delay:${dly}"`;
+      if (capa.entrada === 'scale')  anim  = `animation__in="property:scale;from:0 0 0;to:${s} ${s} ${s};dur:${dur};delay:${dly}"`;
+      if (capa.entrada === 'rotate') anim += ` animation__rot="property:rotation;from:0 0 0;to:0 360 0;loop:true;dur:${dur};easing:linear"`;
+      if (capa.entrada === 'float')  anim += ` animation__float="property:position;from:${pos};to:${posX} ${(posY+amp).toFixed(4)} ${posZaf.toFixed(4)};dir:alternate;loop:true;dur:${dur};delay:${dly};easing:easeInOutSine"`;
       const scl   = `${s} ${s} ${s}`;
       // Width/height sized relative to trigger width = 1 unit in MindAR
       const pw = 1;
@@ -742,12 +762,13 @@
           const size  = parseFloat(capa.tamanoTexto) || 0.5;
           const depth = parseFloat(capa.extrusionDepth) || 0;
           const fw    = Math.max(1, size * 3);
+          const font = capa.font || 'roboto';
           if (depth > 0) {
             return `<a-entity id="arc-${sortedIdx}"
-              ara-text3d="value:${txt};color:${color};size:${size};depth:${depth};opacity:${op}"
+              ara-text3d="value:${txt};color:${color};size:${size};depth:${depth};opacity:${op};font:${font}"
               position="${pos}" ${anim}></a-entity>`;
           }
-          return `<a-text id="arc-${sortedIdx}" value="${txt}" color="${color}"
+          return `<a-text id="arc-${sortedIdx}" value="${txt}" color="${color}" font="${font}"
             position="${pos}" scale="${scl}" width="${fw}" align="center"
             material="opacity:${op};transparent:true" ${anim}></a-text>`;
         }
@@ -789,6 +810,11 @@
           document.getElementById('scan').classList.remove('show');
           const pg = document.getElementById('ping'); pg.classList.add('go'); setTimeout(()=>pg.classList.remove('go'),700);
           scene.querySelectorAll('video').forEach(v => { try { const p=v.play(); if(p) p.catch(()=>{ v.muted=true; v.play(); }); } catch(e){} });
+          // Restart entrance animations on re-detection
+          scene.querySelectorAll('[id^="arc-"]').forEach(el => {
+            const comp = el.components && el.components['animation__in'];
+            if (comp) { try { comp.stop(); comp.play(); } catch(e){} }
+          });
         });
         target.addEventListener('targetLost', () => {
           document.getElementById('scan').classList.add('show');

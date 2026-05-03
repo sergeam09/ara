@@ -84,11 +84,19 @@
 
     /* LEFT PANEL */
     .panel-left {
-      width: 300px; background: var(--surface);
+      width: 330px; background: var(--surface);
       border-right: 1px solid var(--border);
       display: flex; flex-direction: column;
       overflow-y: auto; flex-shrink: 0;
     }
+    .prop-select {
+      width: 100%; background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 5px; padding: 6px 9px; color: var(--text);
+      font-family: inherit; font-size: 11px; outline: none; cursor: pointer;
+      appearance: none; transition: border-color 0.2s; margin-top: 6px;
+    }
+    .prop-select:focus { border-color: var(--accent); }
+    .anim-params { display: none; margin-top: 8px; border-top: 1px solid var(--border); padding-top: 8px; }
 
     .panel-section { padding: 16px 14px; border-bottom: 1px solid var(--border); }
 
@@ -416,7 +424,18 @@
             <input type="color" id="propColorTexto" value="#ffffff" class="prop-color-input" title="Color del texto">
             <span class="prop-color-label">Color del texto</span>
           </div>
-          <div class="prop-row" style="margin-top:8px;">
+          <span class="prop-label" style="margin-top:10px;display:block;">Tipografía</span>
+          <select class="prop-select" id="propFontTexto">
+            <option value="roboto">Roboto</option>
+            <option value="aileronsemibold">Aileron Semibold</option>
+            <option value="dejavu">DejaVu</option>
+            <option value="exo2bold">Exo 2 Bold</option>
+            <option value="exo2semibold">Exo 2 Semibold</option>
+            <option value="kelsonsans">Kelson Sans</option>
+            <option value="sourcecodepro">Source Code Pro (mono)</option>
+            <option value="ubuntu">Ubuntu</option>
+          </select>
+          <div class="prop-row" style="margin-top:10px;">
             <div class="prop-row-hd">
               <span class="prop-label" style="margin:0;">Tamaño</span>
               <span class="prop-val" id="valTamanoTexto">0.5×</span>
@@ -428,7 +447,7 @@
               <span class="prop-label" style="margin:0;">Extrusión 3D</span>
               <span class="prop-val" id="valExtrusionTexto">0</span>
             </div>
-            <input type="range" class="prop-slider" id="propExtrusionTexto" min="0" max="0.1" step="0.005" value="0">
+            <input type="range" class="prop-slider" id="propExtrusionTexto" min="0" max="0.15" step="0.01" value="0">
           </div>
         </div>
 
@@ -467,7 +486,7 @@
 
         <div class="prop-row">
           <div class="prop-row-hd">
-            <span class="prop-label" style="margin:0;">Orden Z (0=encima)</span>
+            <span class="prop-label" style="margin:0;">Profundidad Z (0=fondo)</span>
             <span class="prop-val" id="valPosZ">0</span>
           </div>
           <input type="range" class="prop-slider" id="propPosZ" min="0" max="200" step="1" value="0">
@@ -482,6 +501,30 @@
             <button class="anim-btn" data-anim="scale">⊕ Scale in</button>
             <button class="anim-btn" data-anim="float">↕ Flotar</button>
             <button class="anim-btn" data-anim="rotate">↻ Rotar</button>
+          </div>
+          <!-- Parámetros de animación (se muestran cuando hay animación activa) -->
+          <div class="anim-params" id="animParams">
+            <div class="prop-row" style="margin-bottom:8px;">
+              <div class="prop-row-hd">
+                <span class="prop-label" style="margin:0;">Duración</span>
+                <span class="prop-val" id="valAnimDuration">800ms</span>
+              </div>
+              <input type="range" class="prop-slider" id="propAnimDuration" min="100" max="5000" step="100" value="800">
+            </div>
+            <div class="prop-row" style="margin-bottom:8px;">
+              <div class="prop-row-hd">
+                <span class="prop-label" style="margin:0;">Retardo inicio</span>
+                <span class="prop-val" id="valAnimDelay">0ms</span>
+              </div>
+              <input type="range" class="prop-slider" id="propAnimDelay" min="0" max="3000" step="100" value="0">
+            </div>
+            <div class="prop-row" id="animAmplitudeRow" style="display:none;margin-bottom:0;">
+              <div class="prop-row-hd">
+                <span class="prop-label" style="margin:0;" id="animAmplitudeLabel">Amplitud</span>
+                <span class="prop-val" id="valAnimAmplitude">0.04</span>
+              </div>
+              <input type="range" class="prop-slider" id="propAnimAmplitude" min="0.01" max="0.15" step="0.01" value="0.04">
+            </div>
           </div>
         </div>
 

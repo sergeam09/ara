@@ -8,10 +8,14 @@ export interface Layer {
   scale: number
   opacity: number
   animation?: 'fade' | 'scale' | 'float' | 'rotate'
+  animationDuration?: number
+  animationDelay?: number
+  animationAmplitude?: number
   texto?: string
   colorTexto?: string
   tamanoTexto?: number
   extrusionDepth?: number
+  fontTexto?: string
   alignTexto?: 'left' | 'center' | 'right'
 }
 
@@ -50,6 +54,10 @@ export interface PublishConfig {
     colorTexto?: string
     tamanoTexto?: number
     extrusionDepth?: number
+    font?: string
+    animDuration?: number
+    animDelay?: number
+    animAmplitude?: number
     posX: number
     posY: number
     posZ: number

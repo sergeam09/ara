@@ -73,12 +73,15 @@ export class Publisher {
             id: i,
             tipo: layer.type,
             archivo: `layer-${i}.${ext}`,
-            posX: layer.posX * 0.5,      // normalize: editor ±1=edge → MindAR ±0.5=edge
+            posX: layer.posX * 0.5,
             posY: layer.posY * 0.5,
             posZ: layer.posZ || 0,
             escala: layer.scale,
             opacidad: layer.opacity,
             entrada: layer.animation,
+            animDuration: layer.animationDuration,
+            animDelay: layer.animationDelay,
+            animAmplitude: layer.animationAmplitude,
             delay: 0,
             loop: true
           })
@@ -91,12 +94,16 @@ export class Publisher {
             colorTexto: layer.colorTexto || '#ffffff',
             tamanoTexto: layer.tamanoTexto ?? 0.5,
             extrusionDepth: layer.extrusionDepth ?? 0,
+            font: layer.fontTexto || 'roboto',
             posX: layer.posX * 0.5,
             posY: layer.posY * 0.5,
             posZ: layer.posZ || 0,
             escala: layer.scale,
             opacidad: layer.opacity,
             entrada: layer.animation,
+            animDuration: layer.animationDuration,
+            animDelay: layer.animationDelay,
+            animAmplitude: layer.animationAmplitude,
             delay: 0,
             loop: true
           })

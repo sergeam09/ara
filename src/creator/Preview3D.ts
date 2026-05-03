@@ -26,12 +26,20 @@ export class Preview3D {
   private dragOffset = new THREE.Vector3()
   private raycaster = new THREE.Raycaster()
   private mouse = new THREE.Vector2()
+  private coordTip: HTMLDivElement | null = null
 
   // Callback when layer is moved via drag
   onLayerMoved: ((id: string, posX: number, posY: number) => void) | null = null
 
   init(container: HTMLElement): void {
     this.container = container
+    container.style.position = 'relative'
+
+    // Coordinate tooltip shown while dragging
+    const tip = document.createElement('div')
+    tip.style.cssText = 'position:absolute;background:rgba(0,0,0,0.82);color:#e63329;font-size:10px;font-weight:700;font-family:monospace;padding:4px 9px;border-radius:4px;pointer-events:none;display:none;z-index:20;white-space:nowrap;border:1px solid rgba(230,51,41,0.4);letter-spacing:0.04em;'
+    container.appendChild(tip)
+    this.coordTip = tip
 
     this.scene = new THREE.Scene()
     this.scene.background = new THREE.Color(0x0a0a0a)
@@ -157,8 +165,8 @@ export class Preview3D {
 
   private positionMesh(mesh: THREE.Mesh, layer: Layer): void {
     const halfW = this.triggerW / 2
-    // posZ=0 = encima (más elevado en preview), posZ=200 = fondo (menos elevado)
-    const elevation = ((200 - Math.max(0, Math.min(200, layer.posZ))) / 200) * 25 + 1
+    // posZ=0 = background (lowest elevation), posZ=200 = foreground (highest)
+    const elevation = (Math.max(0, Math.min(200, layer.posZ)) / 200) * 25 + 1
     mesh.position.set(
       layer.posX * halfW,
       elevation,
@@ -233,6 +241,15 @@ export class Preview3D {
     const posX = newPos.x / halfW
     const posY = newPos.z / halfW
 
+    // Update coordinate tooltip
+    if (this.coordTip && this.renderer) {
+      const rect = this.renderer.domElement.getBoundingClientRect()
+      this.coordTip.style.left = `${e.clientX - rect.left + 14}px`
+      this.coordTip.style.top  = `${e.clientY - rect.top  - 28}px`
+      this.coordTip.style.display = 'block'
+      this.coordTip.textContent = `X ${posX >= 0 ? '+' : ''}${posX.toFixed(2)}  Y ${posY >= 0 ? '+' : ''}${posY.toFixed(2)}`
+    }
+
     this.onLayerMoved?.(this.dragLayerId, posX, posY)
   }
 
@@ -240,6 +257,7 @@ export class Preview3D {
     this.dragging = false
     this.dragLayerId = null
     if (this.controls) this.controls.enabled = true
+    if (this.coordTip) this.coordTip.style.display = 'none'
   }
 
   private setMouse(e: MouseEvent): void {
@@ -253,14 +271,16 @@ export class Preview3D {
 
   private makeTextTexture(text: string, color: string): THREE.CanvasTexture {
     const canvas = document.createElement('canvas')
-    canvas.width = 512; canvas.height = 128
+    canvas.width = 1024; canvas.height = 256
     const ctx = canvas.getContext('2d')!
-    ctx.clearRect(0, 0, 512, 128)
+    ctx.imageSmoothingEnabled = true
+    ctx.imageSmoothingQuality = 'high'
+    ctx.clearRect(0, 0, 1024, 256)
     ctx.fillStyle = color
-    ctx.font = 'bold 56px sans-serif'
+    ctx.font = 'bold 80px Montserrat, sans-serif'
     ctx.textAlign = 'center'
     ctx.textBaseline = 'middle'
-    ctx.fillText(text, 256, 64, 480)
+    ctx.fillText(text, 512, 128, 960)
     return new THREE.CanvasTexture(canvas)
   }
 

@@ -189,6 +189,8 @@ function updatePropsPanel(layer: Layer | undefined) {
     if (tamEl) tamEl.value = (layer.tamanoTexto ?? 0.5).toString()
     const extEl = document.getElementById('propExtrusionTexto') as HTMLInputElement
     if (extEl) extEl.value = (layer.extrusionDepth ?? 0).toString()
+    const fontEl = document.getElementById('propFontTexto') as HTMLSelectElement
+    if (fontEl) fontEl.value = layer.fontTexto || 'roboto'
   }
 
   // Sliders
@@ -202,13 +204,26 @@ function updatePropsPanel(layer: Layer | undefined) {
   set('propPosY',    layer.posY)
   set('propPosZ',    layer.posZ)
 
-  // Animation buttons
+  // Animation buttons + params
+  const activeAnim = layer.animation || ''
   document.querySelectorAll('#animButtons .anim-btn').forEach(btn => {
     const anim = btn.getAttribute('data-anim') || ''
-    btn.classList.toggle('active', anim === (layer.animation || ''))
-    // Reset full-width only for the "none" button when others are visible
-    btn.classList.toggle('full', anim === '' && !layer.animation)
+    btn.classList.toggle('active', anim === activeAnim)
+    btn.classList.toggle('full', anim === '' && !activeAnim)
   })
+  const animParams = document.getElementById('animParams') as HTMLElement
+  if (animParams) animParams.style.display = activeAnim ? 'block' : 'none'
+  const ampRow = document.getElementById('animAmplitudeRow') as HTMLElement
+  const ampLabel = document.getElementById('animAmplitudeLabel') as HTMLElement
+  if (ampRow) {
+    const showAmp = activeAnim === 'float' || activeAnim === 'rotate'
+    ampRow.style.display = showAmp ? 'flex' : 'none'
+    if (ampLabel) ampLabel.textContent = activeAnim === 'rotate' ? 'Velocidad (ms/vuelta)' : 'Amplitud'
+  }
+  const set2 = (id: string, val: number) => { const el = document.getElementById(id) as HTMLInputElement; if (el) el.value = val.toString() }
+  set2('propAnimDuration', layer.animationDuration ?? (activeAnim === 'fade' ? 800 : activeAnim === 'scale' ? 600 : activeAnim === 'rotate' ? 6000 : 2000))
+  set2('propAnimDelay', layer.animationDelay ?? 0)
+  set2('propAnimAmplitude', layer.animationAmplitude ?? (activeAnim === 'rotate' ? 6000 : 0.04))
 
   updateSliderValues(layer)
 }
@@ -225,8 +240,12 @@ function updateSliderValues(layer: Layer) {
   v('valPosZ',    layer.posZ.toString())
   if (layer.type === 'texto') {
     v('valTamanoTexto',   `${(layer.tamanoTexto ?? 0.5).toFixed(2)}×`)
-    v('valExtrusionTexto', (layer.extrusionDepth ?? 0).toFixed(3))
+    v('valExtrusionTexto', (layer.extrusionDepth ?? 0).toFixed(2))
   }
+  const a = layer.animation || ''
+  v('valAnimDuration', `${layer.animationDuration ?? (a === 'fade' ? 800 : a === 'scale' ? 600 : a === 'rotate' ? 6000 : 2000)}ms`)
+  v('valAnimDelay',    `${layer.animationDelay ?? 0}ms`)
+  v('valAnimAmplitude', (layer.animationAmplitude ?? (a === 'rotate' ? 6000 : 0.04)).toString())
 }
 
 // ── Layer file upload ────────────────────────────────────────────────────────
@@ -319,6 +338,31 @@ function setupSliders() {
       if (active) layerManager.updateLayer(active.id, { colorTexto: colorPicker.value })
     })
   }
+
+  const fontSel = document.getElementById('propFontTexto') as HTMLSelectElement
+  if (fontSel) {
+    fontSel.addEventListener('change', () => {
+      const active = layerManager.getActiveLayer()
+      if (active) layerManager.updateLayer(active.id, { fontTexto: fontSel.value })
+    })
+  }
+
+  // Animation parameter sliders
+  const animSlider = (id: string, field: keyof Layer, dispId: string, fmt: (v: number) => string) => {
+    const el = document.getElementById(id) as HTMLInputElement
+    if (!el) return
+    el.addEventListener('input', () => {
+      const val = parseFloat(el.value)
+      const active = layerManager.getActiveLayer()
+      if (!active) return
+      const disp = document.getElementById(dispId)
+      if (disp) disp.textContent = fmt(val)
+      layerManager.updateLayer(active.id, { [field]: val } as Partial<Layer>)
+    })
+  }
+  animSlider('propAnimDuration',  'animationDuration',  'valAnimDuration',  v => `${v}ms`)
+  animSlider('propAnimDelay',     'animationDelay',     'valAnimDelay',     v => `${v}ms`)
+  animSlider('propAnimAmplitude', 'animationAmplitude', 'valAnimAmplitude', v => v.toString())
 }
 
 // ── Publish ──────────────────────────────────────────────────────────────────
@@ -414,10 +458,16 @@ function setupPublish() {
 function setupAnimationButtons() {
   document.querySelectorAll('#animButtons .anim-btn').forEach(btn => {
     btn.addEventListener('click', () => {
-      const anim = (btn.getAttribute('data-anim') || '') as Layer['animation']
+      const animVal = btn.getAttribute('data-anim') || ''
+      const anim = animVal as Layer['animation']
       const active = layerManager.getActiveLayer()
       if (!active) return
-      layerManager.updateLayer(active.id, { animation: anim || undefined })
+      // Set default duration for each animation type
+      const defDur = animVal === 'fade' ? 800 : animVal === 'scale' ? 600 : animVal === 'rotate' ? 6000 : 2000
+      layerManager.updateLayer(active.id, {
+        animation: anim || undefined,
+        animationDuration: active.animationDuration ?? defDur
+      })
     })
   })
 }

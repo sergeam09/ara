@@ -713,6 +713,7 @@
       if (capa.entrada === 'float')  anim += ` animation__float="property:position;from:${pos};to:${posX} ${(posY+amp).toFixed(4)} ${posZaf.toFixed(4)};dir:alternate;loop:true;dur:${dur};delay:${dly};easing:easeInOutSine"`;
       const scl = `${s} ${s} ${s}`;
 
+      const rot = `${capa.rotX||0} ${capa.rotY||0} ${capa.rotZ||0}`;
       switch (capa.tipo) {
         case 'video': {
           if (!['mp4','webm','mov'].includes(ext)) return '';
@@ -723,7 +724,7 @@
             ? `material="src:${src};transparent:true;alphaTest:0.05;opacity:${op}"`
             : `material="src:${src};opacity:${op}"`;
           return `<a-video id="arc-${sortedIdx}" src="${src}" width="${vw}" height="${vh}"
-            position="${pos}" scale="${scl}" loop="${loop}"
+            position="${pos}" rotation="${rot}" scale="${scl}" loop="${loop}"
             playsinline="true" webkit-playsinline="true" ${mat} ${anim}></a-video>`;
         }
         case 'image':
@@ -735,20 +736,20 @@
             ? `material="src:${src};transparent:true;alphaTest:0.05;opacity:${op}"`
             : `material="src:${src};opacity:${op}"`;
           return `<a-image id="arc-${sortedIdx}" src="${src}" width="${iw}" height="${ih}"
-            position="${pos}" scale="${scl}" ${mat} ${anim}></a-image>`;
+            position="${pos}" rotation="${rot}" scale="${scl}" ${mat} ${anim}></a-image>`;
         }
         case 'svg': {
           const svgAspect = capa.aspectRatio || 1;
           const sw = 1, sh = (1 / svgAspect).toFixed(4);
           return `<a-image id="arc-${sortedIdx}" src="${src}" width="${sw}" height="${sh}"
-            position="${pos}" scale="${scl}"
+            position="${pos}" rotation="${rot}" scale="${scl}"
             material="src:${src};transparent:true;alphaTest:0.01;opacity:${op}" ${anim}></a-image>`;
         }
         case 'glb':
         case 'gltf':
         case 'model':
           return `<a-gltf-model id="arc-${sortedIdx}" src="${src}"
-            position="${pos}" scale="${scl}" ${anim}></a-gltf-model>`;
+            position="${pos}" rotation="${rot}" scale="${scl}" ${anim}></a-gltf-model>`;
         case 'texto':
         case 'text': {
           const rawTxt = capa.texto || capa.archivo || 'Texto AR';
@@ -770,7 +771,7 @@
               const layOp   = isFront ? op : (op * 0.65).toFixed(2);
               const url     = textToDataURL(rawTxt, col, font);
               html += `<a-image src="${url}" width="${fw}" height="${fh}"
-                position="${posX} ${posY} ${zOff}" scale="${scl}"
+                position="${posX} ${posY} ${zOff}" rotation="${rot}" scale="${scl}"
                 material="transparent:true;alphaTest:0.01;opacity:${layOp}"></a-image>`;
             }
             return `<a-entity id="arc-${sortedIdx}" ${anim}>${html}</a-entity>`;
@@ -778,7 +779,7 @@
           // Flat text — single canvas-rendered plane, always visible
           const dataURL = textToDataURL(rawTxt, color, font);
           return `<a-image id="arc-${sortedIdx}" src="${dataURL}" width="${fw}" height="${fh}"
-            position="${pos}" scale="${scl}"
+            position="${pos}" rotation="${rot}" scale="${scl}"
             material="transparent:true;alphaTest:0.01;opacity:${op}" ${anim}></a-image>`;
         }
         default: return '';

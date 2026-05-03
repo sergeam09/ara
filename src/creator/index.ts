@@ -549,20 +549,19 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (canvasEl) {
     preview3D.init(canvasEl)
 
-    // When a layer is dragged in the 3D view, sync back to sliders + layer manager
-    preview3D.onLayerMoved = (id, posX, posY) => {
-      layerManager.updateLayer(id, { posX, posY })
-      // Sync slider values if this is the active layer
+    // When a layer is moved in 3D (drag or TransformControls), sync back to inputs
+    preview3D.onLayerMoved = (id, posX, posY, posZ) => {
+      const update: Partial<Layer> = { posX, posY }
+      if (posZ !== undefined) update.posZ = posZ
+      layerManager.updateLayer(id, update)
       const active = layerManager.getActiveLayer()
       if (active?.id === id) {
-        const sliderX = document.getElementById('propPosX') as HTMLInputElement
-        const sliderY = document.getElementById('propPosY') as HTMLInputElement
-        const valX    = document.getElementById('valPosX')
-        const valY    = document.getElementById('valPosY')
-        if (sliderX) sliderX.value = posX.toFixed(2)
-        if (sliderY) sliderY.value = posY.toFixed(2)
-        if (valX) valX.textContent = posX.toFixed(2)
-        if (valY) valY.textContent = posY.toFixed(2)
+        const inX = document.getElementById('propPosX') as HTMLInputElement
+        const inY = document.getElementById('propPosY') as HTMLInputElement
+        const inZ = document.getElementById('propPosZ') as HTMLInputElement
+        if (inX) inX.value = posX.toFixed(2)
+        if (inY) inY.value = posY.toFixed(2)
+        if (posZ !== undefined && inZ) inZ.value = posZ.toString()
       }
     }
   }
@@ -586,8 +585,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     renderLayersList(layers, activeId)
     const active = activeId ? layerManager.getLayer(activeId) : undefined
     updatePropsPanel(active)
-    // Sync all layers to preview (handles file changes, property changes)
     layers.forEach(l => preview3D.updateLayer(l, triggerWidth))
+    // Attach/detach TransformControls gizmo to the active layer
+    preview3D.selectLayer(activeId ?? null)
   })
 
   // Layer file input

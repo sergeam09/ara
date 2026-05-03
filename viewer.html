@@ -572,52 +572,43 @@
     buildAFrameScene();
   }
 
-  // Extruded 3D text via stacked a-text layers (no font loading needed)
-  AFRAME.registerComponent('ara-text3d', {
-    schema: {
-      value:   { type: 'string', default: 'Texto' },
-      color:   { type: 'color',  default: '#ffffff' },
-      size:    { type: 'number', default: 0.5 },
-      depth:   { type: 'number', default: 0 },
-      opacity: { type: 'number', default: 1 },
-      font:    { type: 'string', default: 'roboto' }
-    },
-    init() {
-      const d = this.data, el = this.el;
-      const fw = Math.max(1, d.size * 3).toFixed(2);
-      if (d.depth <= 0) {
-        el.setAttribute('text', `value: ${d.value}; color: ${d.color}; align: center; width: ${fw}; font: ${d.font}`);
-        return;
-      }
-      // Stack layers to simulate extrusion depth
-      const steps = Math.min(Math.max(2, Math.ceil(d.depth * 15)), 8);
-      for (let s = 0; s < steps; s++) {
-        const isFront = (s === steps - 1);
-        const zOff = (s / (steps - 1)) * d.depth * 0.05;
-        const child = document.createElement('a-text');
-        child.setAttribute('value', d.value);
-        child.setAttribute('align', 'center');
-        child.setAttribute('width', fw);
-        child.setAttribute('font', d.font);
-        child.setAttribute('position', `0 0 ${zOff.toFixed(5)}`);
-        if (isFront) {
-          child.setAttribute('color', d.color);
-          child.setAttribute('material', `opacity:${d.opacity};transparent:true`);
-        } else {
-          child.setAttribute('color', this.darken(d.color, 0.45));
-          child.setAttribute('material', `opacity:${(d.opacity * 0.65).toFixed(2)};transparent:true`);
-        }
-        el.appendChild(child);
-      }
-    },
-    darken(hex, f) {
-      try {
-        const n = parseInt(hex.replace('#',''), 16);
-        const r = Math.round(((n>>16)&255)*f), g = Math.round(((n>>8)&255)*f), b = Math.round((n&255)*f);
-        return '#'+[r,g,b].map(v=>v.toString(16).padStart(2,'0')).join('');
-      } catch { return hex; }
-    }
-  });
+  // ── Canvas text renderer — no font loading, no MSDF, works on all devices ──
+  const FONT_MAP = {
+    roboto:          'Roboto, Arial, sans-serif',
+    ubuntu:          'Ubuntu, sans-serif',
+    dejavu:          '"DejaVu Sans", Arial, sans-serif',
+    exo2bold:        '"Exo 2", sans-serif',
+    exo2semibold:    '"Exo 2", sans-serif',
+    kelsonsans:      'sans-serif',
+    sourcecodepro:   '"Source Code Pro", Courier, monospace',
+    aileronsemibold: 'Arial, sans-serif',
+  };
+
+  // Renders text to a PNG data URL on a 1024×256 canvas (4:1 ratio)
+  function textToDataURL(text, color, fontKey) {
+    const family = FONT_MAP[fontKey] || 'Arial, sans-serif';
+    const c = document.createElement('canvas');
+    c.width = 1024; c.height = 256;
+    const ctx = c.getContext('2d');
+    ctx.clearRect(0, 0, 1024, 256);
+    ctx.fillStyle = color || '#ffffff';
+    ctx.font = `bold 120px ${family}`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(text, 512, 128, 960);
+    return c.toDataURL('image/png');
+  }
+
+  // Darkens a hex color by factor f (0–1)
+  function darkenHex(hex, f) {
+    try {
+      const n = parseInt((hex || '#888888').replace('#',''), 16);
+      const r = Math.round(((n>>16)&255)*f);
+      const g = Math.round(((n>>8)&255)*f);
+      const b = Math.round((n&255)*f);
+      return '#'+[r,g,b].map(v=>v.toString(16).padStart(2,'0')).join('');
+    } catch { return hex; }
+  }
 
   function buildAFrameScene() {
     if (isLayered) { buildLayeredScene(); return; }
@@ -760,27 +751,35 @@
             position="${pos}" scale="${scl}" ${anim}></a-gltf-model>`;
         case 'texto':
         case 'text': {
-          // Sanitize text: escape chars that break A-Frame attribute strings
-          const txt   = (capa.texto || capa.archivo || 'Texto AR')
-            .replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/;/g, '&#59;');
-          const color = capa.colorTexto || '#e0e0e0';
-          const size  = parseFloat(capa.tamanoTexto) || 0.5;
-          const depth = parseFloat(capa.extrusionDepth) || 0;
-          // fw = text container width in A-Frame units (trigger = 1 unit wide)
-          const fw = Math.max(0.5, size * 2);
-          // wrapCount controls character size: charWidth = fw / wrapCount
-          // Target ~0.12 × size per char, so wrapCount ≈ fw / (size × 0.12)
-          const wc = Math.max(5, Math.round(fw / (size * 0.12)));
-          const font = capa.font || 'roboto';
+          const rawTxt = capa.texto || capa.archivo || 'Texto AR';
+          const color  = capa.colorTexto || '#ffffff';
+          const size   = parseFloat(capa.tamanoTexto) || 0.5;
+          const depth  = parseFloat(capa.extrusionDepth) || 0;
+          const font   = capa.font || 'roboto';
+          // Canvas texture (1024×256 = 4:1 ratio) — works on all devices, no font loading
+          const fw = Math.max(0.5, size * 2);  // A-Frame width in trigger units
+          const fh = (fw / 4).toFixed(4);       // height preserves 4:1 canvas ratio
           if (depth > 0) {
-            return `<a-entity id="arc-${sortedIdx}"
-              ara-text3d="value:${txt};color:${color};size:${size};depth:${depth};opacity:${op};font:${font}"
-              position="${pos}" ${anim}></a-entity>`;
+            // Extrusion: stack 4 planes at increasing Z offsets
+            const steps = Math.min(Math.max(2, Math.ceil(depth * 10)), 5);
+            let html = '';
+            for (let d = 0; d < steps; d++) {
+              const isFront = (d === steps - 1);
+              const zOff    = (posZaf + d * depth * 0.012).toFixed(5);
+              const col     = isFront ? color : darkenHex(color, 0.45);
+              const layOp   = isFront ? op : (op * 0.65).toFixed(2);
+              const url     = textToDataURL(rawTxt, col, font);
+              html += `<a-image src="${url}" width="${fw}" height="${fh}"
+                position="${posX} ${posY} ${zOff}" scale="${scl}"
+                material="transparent:true;alphaTest:0.01;opacity:${layOp}"></a-image>`;
+            }
+            return `<a-entity id="arc-${sortedIdx}" ${anim}>${html}</a-entity>`;
           }
-          // Use opacity attribute (not material override) so MSDF shader is preserved
-          return `<a-text id="arc-${sortedIdx}" value="${txt}" color="${color}" font="${font}"
-            position="${pos}" scale="${scl}" width="${fw}" wrap-count="${wc}" align="center"
-            opacity="${op}" side="double" ${anim}></a-text>`;
+          // Flat text — single canvas-rendered plane, always visible
+          const dataURL = textToDataURL(rawTxt, color, font);
+          return `<a-image id="arc-${sortedIdx}" src="${dataURL}" width="${fw}" height="${fh}"
+            position="${pos}" scale="${scl}"
+            material="transparent:true;alphaTest:0.01;opacity:${op}" ${anim}></a-image>`;
         }
         default: return '';
       }

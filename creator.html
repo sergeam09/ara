@@ -283,6 +283,19 @@
     .anim-btn.active { border-color: var(--accent); color: var(--accent); background: rgba(230,51,41,0.08); }
     .anim-btn.full { grid-column: 1 / -1; }
 
+    /* X/Y/Z position inputs */
+    .xyz-pos-block { margin: 10px 0 4px; }
+    .xyz-pos-label { font-size: 10px; font-weight: 700; letter-spacing: 0.08em; color: var(--text-muted); text-transform: uppercase; margin-bottom: 6px; display: block; }
+    .xyz-pos-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; }
+    .xyz-pos-col { display: flex; flex-direction: column; gap: 3px; }
+    .xyz-tag { display: block; text-align: center; font-size: 9px; font-weight: 800; padding: 2px 0; border-radius: 3px; font-family: monospace; letter-spacing: 0.05em; }
+    .xyz-tag.x-tag { background: #c0392b; color: #fff; }
+    .xyz-tag.y-tag { background: #27ae60; color: #fff; }
+    .xyz-tag.z-tag { background: #2980b9; color: #fff; }
+    .xyz-num { width: 100%; background: #1a1a1a; border: 1px solid #333; color: #e0e0e0; padding: 5px 4px; border-radius: 4px; font-size: 12px; text-align: center; font-family: monospace; box-sizing: border-box; }
+    .xyz-num:focus { outline: none; border-color: var(--accent); }
+    .xyz-num::-webkit-inner-spin-button, .xyz-num::-webkit-outer-spin-button { opacity: 1; }
+
     /* Projects modal */
     #projectsOverlay {
       display: none; position: fixed; inset: 0;
@@ -468,29 +481,28 @@
           <input type="range" class="prop-slider" id="propOpacity" min="0" max="100" step="5" value="100">
         </div>
 
-        <div class="prop-row">
-          <div class="prop-row-hd">
-            <span class="prop-label" style="margin:0;">Pos X</span>
-            <span class="prop-val" id="valPosX">0</span>
+        <!-- X/Y/Z position — Artivive-style -->
+        <div class="xyz-pos-block">
+          <span class="xyz-pos-label">Posición</span>
+          <div class="xyz-pos-grid">
+            <div class="xyz-pos-col">
+              <span class="xyz-tag x-tag">X</span>
+              <input type="number" class="xyz-num" id="propPosX" value="0" step="0.05" min="-2" max="2">
+            </div>
+            <div class="xyz-pos-col">
+              <span class="xyz-tag y-tag">Y</span>
+              <input type="number" class="xyz-num" id="propPosY" value="0" step="0.05" min="-2" max="2">
+            </div>
+            <div class="xyz-pos-col">
+              <span class="xyz-tag z-tag">Z</span>
+              <input type="number" class="xyz-num" id="propPosZ" value="0" step="1" min="0" max="200">
+            </div>
           </div>
-          <input type="range" class="prop-slider" id="propPosX" min="-2" max="2" step="0.05" value="0">
         </div>
-
-        <div class="prop-row">
-          <div class="prop-row-hd">
-            <span class="prop-label" style="margin:0;">Pos Y</span>
-            <span class="prop-val" id="valPosY">0</span>
-          </div>
-          <input type="range" class="prop-slider" id="propPosY" min="-2" max="2" step="0.05" value="0">
-        </div>
-
-        <div class="prop-row">
-          <div class="prop-row-hd">
-            <span class="prop-label" style="margin:0;">Profundidad Z (0=fondo)</span>
-            <span class="prop-val" id="valPosZ">0</span>
-          </div>
-          <input type="range" class="prop-slider" id="propPosZ" min="0" max="200" step="1" value="0">
-        </div>
+        <!-- hidden display spans kept for JS compatibility -->
+        <span id="valPosX" style="display:none"></span>
+        <span id="valPosY" style="display:none"></span>
+        <span id="valPosZ" style="display:none"></span>
 
         <!-- Animación -->
         <div class="prop-group" style="margin-top:14px;">

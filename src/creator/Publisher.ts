@@ -73,6 +73,9 @@ export class Publisher {
             id: i,
             tipo: layer.type,
             archivo: `layer-${i}.${ext}`,
+            aspectRatio: (layer.naturalWidth && layer.naturalHeight)
+              ? layer.naturalWidth / layer.naturalHeight
+              : undefined,
             posX: layer.posX * 0.5,
             posY: layer.posY * 0.5,
             posZ: layer.posZ || 0,

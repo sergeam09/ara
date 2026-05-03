@@ -289,11 +289,31 @@ function setupLayerFileInput() {
     fileInput.value = ''
   })
 
-  function applyLayerFile(file: File) {
+  async function applyLayerFile(file: File) {
     const active = layerManager.getActiveLayer()
     if (!active) return
-    layerManager.updateLayer(active.id, { file })
-    // updateLayer triggers subscriber → updatePropsPanel + preview3D.updateLayer
+    const dims = await detectFileDimensions(file)
+    layerManager.updateLayer(active.id, { file, naturalWidth: dims.w, naturalHeight: dims.h })
+  }
+
+  function detectFileDimensions(file: File): Promise<{ w: number; h: number }> {
+    return new Promise(resolve => {
+      if (file.type.startsWith('image/')) {
+        const img = new Image()
+        const url = URL.createObjectURL(file)
+        img.onload  = () => { URL.revokeObjectURL(url); resolve({ w: img.naturalWidth, h: img.naturalHeight }) }
+        img.onerror = () => { URL.revokeObjectURL(url); resolve({ w: 1, h: 1 }) }
+        img.src = url
+      } else if (file.type.startsWith('video/')) {
+        const vid = document.createElement('video')
+        const url = URL.createObjectURL(file)
+        vid.onloadedmetadata = () => { URL.revokeObjectURL(url); resolve({ w: vid.videoWidth, h: vid.videoHeight }) }
+        vid.onerror          = () => { URL.revokeObjectURL(url); resolve({ w: 1, h: 1 }) }
+        vid.src = url
+      } else {
+        resolve({ w: 1, h: 1 })
+      }
+    })
   }
 }
 

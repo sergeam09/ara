@@ -2,6 +2,8 @@ export interface Layer {
   id: string
   type: 'image' | 'video' | 'gif' | 'svg' | 'glb' | 'texto'
   file?: File
+  naturalWidth?: number
+  naturalHeight?: number
   posX: number
   posY: number
   posZ: number
@@ -58,6 +60,7 @@ export interface PublishConfig {
     animDuration?: number
     animDelay?: number
     animAmplitude?: number
+    aspectRatio?: number
     posX: number
     posY: number
     posZ: number

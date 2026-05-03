@@ -5,6 +5,7 @@ import { Layer } from '@/types'
 interface LayerEntry {
   mesh: THREE.Mesh
   objectURL?: string
+  videoEl?: HTMLVideoElement
 }
 
 export class Preview3D {
@@ -120,14 +121,36 @@ export class Preview3D {
     if (!this.scene) return
     this.removeLayer(layer.id)
 
-    const size = triggerWidth * layer.scale
-    const geo = new THREE.PlaneGeometry(size, size)
+    const aspect = (layer.naturalWidth && layer.naturalHeight)
+      ? layer.naturalWidth / layer.naturalHeight
+      : 1
+    const w = triggerWidth * layer.scale
+    const h = w / aspect
+    const geo = new THREE.PlaneGeometry(w, h)
     geo.rotateX(-Math.PI / 2)
 
     let mat: THREE.MeshLambertMaterial
     let objectURL: string | undefined
+    let videoEl: HTMLVideoElement | undefined
 
-    if (layer.file && layer.file.type.startsWith('image/')) {
+    if (layer.file && layer.file.type.startsWith('video/')) {
+      objectURL = URL.createObjectURL(layer.file)
+      videoEl = document.createElement('video')
+      videoEl.src = objectURL
+      videoEl.muted = true
+      videoEl.loop = true
+      videoEl.playsInline = true
+      videoEl.crossOrigin = 'anonymous'
+      videoEl.play().catch(() => {})
+      const texture = new THREE.VideoTexture(videoEl)
+      mat = new THREE.MeshLambertMaterial({
+        map: texture,
+        transparent: true,
+        opacity: layer.opacity,
+        side: THREE.DoubleSide,
+        depthWrite: false
+      })
+    } else if (layer.file && layer.file.type.startsWith('image/')) {
       objectURL = URL.createObjectURL(layer.file)
       const texture = new THREE.TextureLoader().load(objectURL)
       mat = new THREE.MeshLambertMaterial({
@@ -160,7 +183,7 @@ export class Preview3D {
     mesh.userData = { layerId: layer.id, isLayer: true }
     this.positionMesh(mesh, layer)
     this.scene.add(mesh)
-    this.layers.set(layer.id, { mesh, objectURL })
+    this.layers.set(layer.id, { mesh, objectURL, videoEl })
   }
 
   private positionMesh(mesh: THREE.Mesh, layer: Layer): void {
@@ -182,6 +205,7 @@ export class Preview3D {
     ;(entry.mesh.material as THREE.MeshLambertMaterial).map?.dispose()
     ;(entry.mesh.material as THREE.MeshLambertMaterial).dispose()
     entry.mesh.geometry.dispose()
+    if (entry.videoEl) { entry.videoEl.pause(); entry.videoEl.src = '' }
     if (entry.objectURL) URL.revokeObjectURL(entry.objectURL)
     this.layers.delete(id)
   }

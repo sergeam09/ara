@@ -720,36 +720,39 @@
       if (capa.entrada === 'scale')  anim  = `animation__in="property:scale;from:0 0 0;to:${s} ${s} ${s};dur:${dur};delay:${dly}"`;
       if (capa.entrada === 'rotate') anim += ` animation__rot="property:rotation;from:0 0 0;to:0 360 0;loop:true;dur:${dur};easing:linear"`;
       if (capa.entrada === 'float')  anim += ` animation__float="property:position;from:${pos};to:${posX} ${(posY+amp).toFixed(4)} ${posZaf.toFixed(4)};dir:alternate;loop:true;dur:${dur};delay:${dly};easing:easeInOutSine"`;
-      const scl   = `${s} ${s} ${s}`;
-      // Width/height sized relative to trigger width = 1 unit in MindAR
-      const pw = 1;
-      const ph = (1 / ratio).toFixed(4);
+      const scl = `${s} ${s} ${s}`;
 
       switch (capa.tipo) {
         case 'video': {
-          // MP4: opaco normal. WebM/MOV: con transparencia si tiene alpha real
           if (!['mp4','webm','mov'].includes(ext)) return '';
+          const vAspect = capa.aspectRatio || ratio;
+          const vw = 1, vh = (1 / vAspect).toFixed(4);
           const isAlpha = ['webm','mov'].includes(ext);
           const mat = isAlpha
             ? `material="src:${src};transparent:true;alphaTest:0.05;opacity:${op}"`
             : `material="src:${src};opacity:${op}"`;
-          return `<a-video id="arc-${sortedIdx}" src="${src}" width="${pw}" height="${ph}"
+          return `<a-video id="arc-${sortedIdx}" src="${src}" width="${vw}" height="${vh}"
             position="${pos}" scale="${scl}" loop="${loop}"
             playsinline="true" webkit-playsinline="true" ${mat} ${anim}></a-video>`;
         }
         case 'image':
         case 'gif': {
+          const iAspect = capa.aspectRatio || ratio;
+          const iw = 1, ih = (1 / iAspect).toFixed(4);
           const hasTrans = ['png','webp','apng','gif'].includes(ext);
           const mat = hasTrans
             ? `material="src:${src};transparent:true;alphaTest:0.05;opacity:${op}"`
             : `material="src:${src};opacity:${op}"`;
-          return `<a-image id="arc-${sortedIdx}" src="${src}" width="${pw}" height="${ph}"
+          return `<a-image id="arc-${sortedIdx}" src="${src}" width="${iw}" height="${ih}"
             position="${pos}" scale="${scl}" ${mat} ${anim}></a-image>`;
         }
-        case 'svg':
-          return `<a-image id="arc-${sortedIdx}" src="${src}" width="${pw}" height="${ph}"
+        case 'svg': {
+          const svgAspect = capa.aspectRatio || 1;
+          const sw = 1, sh = (1 / svgAspect).toFixed(4);
+          return `<a-image id="arc-${sortedIdx}" src="${src}" width="${sw}" height="${sh}"
             position="${pos}" scale="${scl}"
             material="src:${src};transparent:true;alphaTest:0.01;opacity:${op}" ${anim}></a-image>`;
+        }
         case 'glb':
         case 'gltf':
         case 'model':
@@ -757,20 +760,27 @@
             position="${pos}" scale="${scl}" ${anim}></a-gltf-model>`;
         case 'texto':
         case 'text': {
-          const txt   = (capa.texto || capa.archivo || 'Texto AR').replace(/"/g, '&quot;');
-          const color = capa.colorTexto || '#ffffff';
+          // Sanitize text: escape chars that break A-Frame attribute strings
+          const txt   = (capa.texto || capa.archivo || 'Texto AR')
+            .replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/;/g, '&#59;');
+          const color = capa.colorTexto || '#e0e0e0';
           const size  = parseFloat(capa.tamanoTexto) || 0.5;
           const depth = parseFloat(capa.extrusionDepth) || 0;
-          const fw    = Math.max(1, size * 3);
+          // fw = text container width in A-Frame units (trigger = 1 unit wide)
+          const fw = Math.max(0.5, size * 2);
+          // wrapCount controls character size: charWidth = fw / wrapCount
+          // Target ~0.12 × size per char, so wrapCount ≈ fw / (size × 0.12)
+          const wc = Math.max(5, Math.round(fw / (size * 0.12)));
           const font = capa.font || 'roboto';
           if (depth > 0) {
             return `<a-entity id="arc-${sortedIdx}"
               ara-text3d="value:${txt};color:${color};size:${size};depth:${depth};opacity:${op};font:${font}"
               position="${pos}" ${anim}></a-entity>`;
           }
+          // Use opacity attribute (not material override) so MSDF shader is preserved
           return `<a-text id="arc-${sortedIdx}" value="${txt}" color="${color}" font="${font}"
-            position="${pos}" scale="${scl}" width="${fw}" align="center"
-            material="opacity:${op};transparent:true" ${anim}></a-text>`;
+            position="${pos}" scale="${scl}" width="${fw}" wrap-count="${wc}" align="center"
+            opacity="${op}" side="double" ${anim}></a-text>`;
         }
         default: return '';
       }

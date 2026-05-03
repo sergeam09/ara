@@ -13,13 +13,21 @@ interface LayerEntry {
 
 const FONT_MAP: Record<string, string> = {
   roboto:          'Roboto, Arial, sans-serif',
-  ubuntu:          'Ubuntu, "Segoe UI", Tahoma, sans-serif',
-  dejavu:          '"DejaVu Sans", Verdana, Geneva, sans-serif',
-  exo2bold:        '"Exo 2", Impact, "Arial Black", sans-serif',
-  exo2semibold:    '"Exo 2", "Trebuchet MS", sans-serif',
-  kelsonsans:      'Tahoma, Geneva, sans-serif',
+  montserrat:      '"Montserrat", Arial, sans-serif',
+  oswald:          '"Oswald", "Arial Narrow", sans-serif',
+  bebas:           '"Bebas Neue", Impact, "Arial Black", sans-serif',
+  anton:           '"Anton", Impact, "Arial Black", sans-serif',
+  righteous:       '"Righteous", "Trebuchet MS", sans-serif',
+  playfair:        '"Playfair Display", Georgia, "Times New Roman", serif',
+  merriweather:    '"Merriweather", Georgia, serif',
+  dancingscript:   '"Dancing Script", cursive',
+  pacifico:        '"Pacifico", cursive',
+  permanentmarker: '"Permanent Marker", cursive',
+  caveat:          '"Caveat", cursive',
+  lobster:         '"Lobster", cursive',
+  greatvibes:      '"Great Vibes", cursive',
   sourcecodepro:   '"Source Code Pro", "Courier New", Courier, monospace',
-  aileronsemibold: '"Gill Sans", Optima, Helvetica, Arial, sans-serif',
+  spacemono:       '"Space Mono", "Courier New", monospace',
 }
 
 const DEG = THREE.MathUtils.degToRad
@@ -247,7 +255,7 @@ export class Preview3D {
       objectURL = URL.createObjectURL(layer.file)
       mat = new THREE.MeshLambertMaterial({ map: new THREE.TextureLoader().load(objectURL), transparent: true, opacity: layer.opacity, side: THREE.DoubleSide, depthWrite: false })
     } else if (layer.type === 'texto') {
-      mat = new THREE.MeshLambertMaterial({ map: this.makeTextTexture(layer.texto || 'Texto AR', layer.colorTexto || '#ffffff', layer.fontTexto || 'roboto', layer.extrusionDepth ?? 0), transparent: true, opacity: layer.opacity, side: THREE.DoubleSide, depthWrite: false })
+      mat = new THREE.MeshLambertMaterial({ map: this.makeTextTexture(layer.texto || 'Texto AR', layer.colorTexto || '#ffffff', layer.fontTexto || 'roboto'), transparent: true, opacity: layer.opacity, side: THREE.DoubleSide, depthWrite: false })
     } else {
       mat = new THREE.MeshLambertMaterial({ color: this.typeColor(layer.type), transparent: true, opacity: layer.file ? 0.45 : 0.3, side: THREE.DoubleSide, wireframe: !layer.file })
     }
@@ -468,7 +476,7 @@ export class Preview3D {
     return (Math.max(0, Math.min(200, layer.posZ)) / 200) * 25 + 1
   }
 
-  private makeTextTexture(text: string, color: string, fontName = 'roboto', extrusion = 0): THREE.CanvasTexture {
+  private makeTextTexture(text: string, color: string, fontName = 'roboto'): THREE.CanvasTexture {
     const family = FONT_MAP[fontName] || 'Arial, sans-serif'
     const canvas = document.createElement('canvas')
     canvas.width = 1024; canvas.height = 256
@@ -479,30 +487,17 @@ export class Preview3D {
     ctx.font = `bold 120px ${family}`
     ctx.textAlign = 'center'
     ctx.textBaseline = 'middle'
-
-    if (extrusion > 0) {
-      // Draw offset shadow copies to simulate 3D extrusion depth
-      const px = Math.max(2, Math.round(extrusion * 120)) // 0–0.15 depth → 0–18 px offset
-      const dark = this.darkenColor(color, 0.35)
-      for (let i = px; i > 0; i -= Math.max(1, Math.floor(px / 4))) {
-        ctx.fillStyle = dark
-        ctx.fillText(text, 512 + i * 0.6, 128 + i * 0.6, 960)
-      }
-    }
-
     ctx.fillStyle = color
     ctx.fillText(text, 512, 128, 960)
-    return new THREE.CanvasTexture(canvas)
-  }
-
-  private darkenColor(hex: string, f: number): string {
-    try {
-      const n = parseInt((hex || '#888888').replace('#', ''), 16)
-      const r = Math.round(((n >> 16) & 255) * f)
-      const g = Math.round(((n >>  8) & 255) * f)
-      const b = Math.round(( n        & 255) * f)
-      return '#' + [r, g, b].map(v => v.toString(16).padStart(2, '0')).join('')
-    } catch { return '#444444' }
+    const texture = new THREE.CanvasTexture(canvas)
+    document.fonts.load(`bold 120px ${family}`).then(() => {
+      ctx.clearRect(0, 0, 1024, 256)
+      ctx.font = `bold 120px ${family}`
+      ctx.fillStyle = color
+      ctx.fillText(text, 512, 128, 960)
+      texture.needsUpdate = true
+    }).catch(() => {})
+    return texture
   }
 
   private typeColor(type: Layer['type']): number {

@@ -187,8 +187,6 @@ function updatePropsPanel(layer: Layer | undefined) {
     if (colorEl) colorEl.value = layer.colorTexto || '#ffffff'
     const tamEl = document.getElementById('propTamanoTexto') as HTMLInputElement
     if (tamEl) tamEl.value = (layer.tamanoTexto ?? 0.5).toString()
-    const extEl = document.getElementById('propExtrusionTexto') as HTMLInputElement
-    if (extEl) extEl.value = (layer.extrusionDepth ?? 0).toString()
     const fontEl = document.getElementById('propFontTexto') as HTMLSelectElement
     if (fontEl) fontEl.value = layer.fontTexto || 'roboto'
   }
@@ -245,8 +243,7 @@ function updateSliderValues(layer: Layer) {
   v('valRotY',    `${Math.round(layer.rotY ?? 0)}°`)
   v('valRotZ',    `${Math.round(layer.rotZ ?? 0)}°`)
   if (layer.type === 'texto') {
-    v('valTamanoTexto',   `${(layer.tamanoTexto ?? 0.5).toFixed(2)}×`)
-    v('valExtrusionTexto', (layer.extrusionDepth ?? 0).toFixed(2))
+    v('valTamanoTexto', `${(layer.tamanoTexto ?? 0.5).toFixed(2)}×`)
   }
   const a = layer.animation || ''
   v('valAnimDuration', `${layer.animationDuration ?? (a === 'fade' ? 800 : a === 'scale' ? 600 : a === 'rotate' ? 6000 : 2000)}ms`)
@@ -347,7 +344,6 @@ function setupSliders() {
   slider('propPosZ',    v => ({ posZ: v }),           v => v.toString(),        'valPosZ')
 
   slider('propTamanoTexto', v => ({ tamanoTexto: v }), v => `${v.toFixed(2)}×`, 'valTamanoTexto')
-  slider('propExtrusionTexto', v => ({ extrusionDepth: v }), v => v.toFixed(3), 'valExtrusionTexto')
 
   // Rotation number inputs
   const rotInput = (id: string, field: 'rotX' | 'rotY' | 'rotZ') => {

@@ -6,7 +6,7 @@
   <title>ARA 5.0 — Augmented Reality Atelier</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>◈</text></svg>">
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&family=DM+Mono:wght@300;400;500&family=Roboto:wght@700&family=Ubuntu:wght@700&family=Exo+2:wght@700;800&family=Source+Code+Pro:wght@700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&family=DM+Mono:wght@300;400;500&family=Roboto:wght@700&family=Source+Code+Pro:wght@700&family=Oswald:wght@600&family=Bebas+Neue&family=Anton&family=Righteous&family=Playfair+Display:wght@700&family=Merriweather:wght@700&family=Dancing+Script:wght@700&family=Pacifico&family=Permanent+Marker&family=Caveat:wght@700&family=Lobster&family=Great+Vibes&family=Space+Mono:wght@700&display=swap" rel="stylesheet">
   <style>
     :root {
       --bg:       #0a0a0a;
@@ -439,14 +439,32 @@
           </div>
           <span class="prop-label" style="margin-top:10px;display:block;">Tipografía</span>
           <select class="prop-select" id="propFontTexto">
-            <option value="roboto">Roboto</option>
-            <option value="aileronsemibold">Aileron Semibold</option>
-            <option value="dejavu">DejaVu</option>
-            <option value="exo2bold">Exo 2 Bold</option>
-            <option value="exo2semibold">Exo 2 Semibold</option>
-            <option value="kelsonsans">Kelson Sans</option>
-            <option value="sourcecodepro">Source Code Pro (mono)</option>
-            <option value="ubuntu">Ubuntu</option>
+            <optgroup label="— Sans-serif">
+              <option value="roboto">Roboto</option>
+              <option value="montserrat">Montserrat Black</option>
+              <option value="oswald">Oswald</option>
+            </optgroup>
+            <optgroup label="— Display / Impacto">
+              <option value="bebas">Bebas Neue</option>
+              <option value="anton">Anton</option>
+              <option value="righteous">Righteous</option>
+            </optgroup>
+            <optgroup label="— Serif">
+              <option value="playfair">Playfair Display</option>
+              <option value="merriweather">Merriweather</option>
+            </optgroup>
+            <optgroup label="— Script / Caligrafía">
+              <option value="dancingscript">Dancing Script</option>
+              <option value="pacifico">Pacifico</option>
+              <option value="permanentmarker">Permanent Marker</option>
+              <option value="caveat">Caveat</option>
+              <option value="lobster">Lobster</option>
+              <option value="greatvibes">Great Vibes</option>
+            </optgroup>
+            <optgroup label="— Mono / Tech">
+              <option value="sourcecodepro">Source Code Pro</option>
+              <option value="spacemono">Space Mono</option>
+            </optgroup>
           </select>
           <div class="prop-row" style="margin-top:10px;">
             <div class="prop-row-hd">
@@ -455,13 +473,7 @@
             </div>
             <input type="range" class="prop-slider" id="propTamanoTexto" min="0.1" max="3" step="0.05" value="0.5">
           </div>
-          <div class="prop-row">
-            <div class="prop-row-hd">
-              <span class="prop-label" style="margin:0;">Extrusión 3D</span>
-              <span class="prop-val" id="valExtrusionTexto">0</span>
-            </div>
-            <input type="range" class="prop-slider" id="propExtrusionTexto" min="0" max="0.15" step="0.01" value="0">
-          </div>
+
         </div>
 
         <!-- Sliders -->

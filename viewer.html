@@ -575,13 +575,21 @@
   // ── Canvas text renderer — no font loading, no MSDF, works on all devices ──
   const FONT_MAP = {
     roboto:          'Roboto, Arial, sans-serif',
-    ubuntu:          'Ubuntu, sans-serif',
-    dejavu:          '"DejaVu Sans", Arial, sans-serif',
-    exo2bold:        '"Exo 2", sans-serif',
-    exo2semibold:    '"Exo 2", sans-serif',
-    kelsonsans:      'sans-serif',
-    sourcecodepro:   '"Source Code Pro", Courier, monospace',
-    aileronsemibold: 'Arial, sans-serif',
+    montserrat:      '"Montserrat", Arial, sans-serif',
+    oswald:          '"Oswald", "Arial Narrow", sans-serif',
+    bebas:           '"Bebas Neue", Impact, "Arial Black", sans-serif',
+    anton:           '"Anton", Impact, "Arial Black", sans-serif',
+    righteous:       '"Righteous", "Trebuchet MS", sans-serif',
+    playfair:        '"Playfair Display", Georgia, "Times New Roman", serif',
+    merriweather:    '"Merriweather", Georgia, serif',
+    dancingscript:   '"Dancing Script", cursive',
+    pacifico:        '"Pacifico", cursive',
+    permanentmarker: '"Permanent Marker", cursive',
+    caveat:          '"Caveat", cursive',
+    lobster:         '"Lobster", cursive',
+    greatvibes:      '"Great Vibes", cursive',
+    sourcecodepro:   '"Source Code Pro", "Courier New", Courier, monospace',
+    spacemono:       '"Space Mono", "Courier New", monospace',
   };
 
   // Renders text to a PNG data URL on a 1024×256 canvas (4:1 ratio)
@@ -591,10 +599,10 @@
     c.width = 1024; c.height = 256;
     const ctx = c.getContext('2d');
     ctx.clearRect(0, 0, 1024, 256);
-    ctx.fillStyle = color || '#ffffff';
     ctx.font = `bold 120px ${family}`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
+    ctx.fillStyle = color || '#ffffff';
     ctx.fillText(text, 512, 128, 960);
     return c.toDataURL('image/png');
   }

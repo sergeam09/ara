@@ -398,6 +398,11 @@
   let arContent = null;
 
   function processConfig(saved) {
+    if (saved.deleted) {
+      document.getElementById('startScreen').classList.add('hidden');
+      showErr('Este proyecto ha sido eliminado.<br>El enlace ya no está disponible.');
+      return;
+    }
     if (saved.capas && Array.isArray(saved.capas)) {
       CAPAS     = saved.capas;
       isLayered = true;
@@ -567,25 +572,34 @@
     buildAFrameScene();
   }
 
-  AFRAME.registerComponent('ar-smooth', {
-    schema: { factor: { default: 0.25 } },
-    init() {
-      this._sp = new THREE.Vector3();
-      this._sq = new THREE.Quaternion();
-      this._ready = false;
-      this.el.addEventListener('targetFound', () => { this._ready = false; });
+  // Extruded 3D text component (falls back to flat if font fails)
+  AFRAME.registerComponent('ara-text3d', {
+    schema: {
+      value:   { type: 'string', default: 'Texto' },
+      color:   { type: 'color',  default: '#ffffff' },
+      size:    { type: 'number', default: 0.08 },
+      depth:   { type: 'number', default: 0.01 },
+      opacity: { type: 'number', default: 1 }
     },
-    tick() {
-      const obj = this.el.object3D;
-      if (!obj.visible) return;
-      if (!this._ready) {
-        this._sp.copy(obj.position); this._sq.copy(obj.quaternion);
-        this._ready = true; return;
-      }
-      this._sp.lerp(obj.position, this.data.factor);
-      this._sq.slerp(obj.quaternion, this.data.factor);
-      obj.position.copy(this._sp);
-      obj.quaternion.copy(this._sq);
+    init() {
+      const d = this.data, el = this.el, T = AFRAME.THREE;
+      const useFlatFallback = () => {
+        el.setAttribute('text', `value: ${d.value}; color: ${d.color}; align: center; width: 2; wrapCount: 20`);
+      };
+      if (!T.FontLoader) { useFlatFallback(); return; }
+      const loader = new T.FontLoader();
+      loader.load('https://threejs.org/examples/fonts/helvetiker_bold.typeface.json',
+        (font) => {
+          try {
+            const geo = new T.TextGeometry(d.value, { font, size: d.size, height: d.depth, curveSegments: 4, bevelEnabled: false });
+            geo.center();
+            const mat = new T.MeshLambertMaterial({ color: new T.Color(d.color), transparent: d.opacity < 1, opacity: d.opacity });
+            el.setObject3D('mesh', new T.Mesh(geo, mat));
+          } catch { useFlatFallback(); }
+        },
+        null,
+        useFlatFallback
+      );
     }
   });
 
@@ -622,7 +636,7 @@
         <a-light type="ambient" intensity="1.2"></a-light>
         <a-light type="directional" intensity="0.8" position="1 3 2"></a-light>
         <a-camera position="0 0 0" look-controls="enabled:false"></a-camera>
-        <a-entity id="target" mindar-image-target="targetIndex:0;" ar-smooth>
+        <a-entity id="target" mindar-image-target="targetIndex:0;">
           ${entityHTML}
         </a-entity>
       </a-scene>`;
@@ -666,25 +680,28 @@
     const th = CFG.altoReal  || 20;
     const ratio = tw / th;
 
-    const entities = CAPAS.map((capa, i) => {
+    // Sort descending: higher posZ = background = rendered first = smaller A-Frame Z
+    const sortedCapas = [...CAPAS].sort((a, b) => (b.posZ ?? 0) - (a.posZ ?? 0));
+
+    const entities = sortedCapas.map((capa, sortedIdx) => {
       if (!capa.archivo && capa.tipo !== 'texto' && capa.tipo !== 'text') return '';
       const posX = capa.posX ?? 0;
       const posY = capa.posY ?? 0;
-      // Z corto: posZ en cm, dividir entre anchoReal para unidades MindAR
-      // Z negativo = hacia la cámara. Separación real sin parallax script
-      const posZ = -((capa.posZ ?? 0) / tw) - (i * 0.002);
-      const pos  = `${posX} ${posY} ${posZ.toFixed(4)}`;
+      // Always positive: layers are in FRONT of trigger surface (toward camera)
+      const posZaf = (sortedIdx * 0.005) + 0.002;
+      const pos  = `${posX} ${posY} ${posZaf.toFixed(4)}`;
       const s    = capa.escala   ?? 1;
       const op   = capa.opacidad ?? 1;
       const loop = capa.loop !== false;
       const src  = capa.archivo ? `${BP}${capa.archivo}` : '';
       const ext  = capa.archivo ? capa.archivo.split('.').pop().toLowerCase() : '';
       let anim = '';
-      if (capa.entrada === 'fade')  anim = `animation__in="property:material.opacity;from:0;to:${op};dur:800;startEvents:targetFound"`;
-      if (capa.entrada === 'scale') anim = `animation__in="property:scale;from:0 0 0;to:${s} ${s} ${s};dur:600;startEvents:targetFound"`;
-      const matOp = `material="opacity:${op}"`;
+      if (capa.entrada === 'fade')   anim  = `animation__in="property:material.opacity;from:0;to:${op};dur:800;startEvents:targetFound"`;
+      if (capa.entrada === 'scale')  anim  = `animation__in="property:scale;from:0 0 0;to:${s} ${s} ${s};dur:600;startEvents:targetFound"`;
+      if (capa.entrada === 'rotate') anim += ` animation__rot="property:rotation;to:0 360 0;loop:true;dur:6000;easing:linear"`;
+      if (capa.entrada === 'float')  anim += ` animation__float="property:position;from:${pos};to:${posX} ${(posY+0.04).toFixed(4)} ${posZaf.toFixed(4)};dir:alternate;loop:true;dur:2000;easing:easeInOutSine"`;
       const scl   = `${s} ${s} ${s}`;
-      // Proporciones reales del trigger
+      // Width/height sized relative to trigger width = 1 unit in MindAR
       const pw = 1;
       const ph = (1 / ratio).toFixed(4);
 
@@ -696,35 +713,41 @@
           const mat = isAlpha
             ? `material="src:${src};transparent:true;alphaTest:0.05;opacity:${op}"`
             : `material="src:${src};opacity:${op}"`;
-          return `<a-video id="arc-${i}" src="${src}" width="${pw}" height="${ph}"
+          return `<a-video id="arc-${sortedIdx}" src="${src}" width="${pw}" height="${ph}"
             position="${pos}" scale="${scl}" loop="${loop}"
             playsinline="true" webkit-playsinline="true" ${mat} ${anim}></a-video>`;
         }
         case 'image':
         case 'gif': {
-          const hasTrans = ['png','webp','apng'].includes(ext);
+          const hasTrans = ['png','webp','apng','gif'].includes(ext);
           const mat = hasTrans
             ? `material="src:${src};transparent:true;alphaTest:0.05;opacity:${op}"`
             : `material="src:${src};opacity:${op}"`;
-          return `<a-image id="arc-${i}" src="${src}" width="${pw}" height="${ph}"
+          return `<a-image id="arc-${sortedIdx}" src="${src}" width="${pw}" height="${ph}"
             position="${pos}" scale="${scl}" ${mat} ${anim}></a-image>`;
         }
         case 'svg':
-          return `<a-image id="arc-${i}" src="${src}" width="${pw}" height="${ph}"
+          return `<a-image id="arc-${sortedIdx}" src="${src}" width="${pw}" height="${ph}"
             position="${pos}" scale="${scl}"
             material="src:${src};transparent:true;alphaTest:0.01;opacity:${op}" ${anim}></a-image>`;
         case 'glb':
         case 'gltf':
         case 'model':
-          return `<a-gltf-model id="arc-${i}" src="${src}"
+          return `<a-gltf-model id="arc-${sortedIdx}" src="${src}"
             position="${pos}" scale="${scl}" ${anim}></a-gltf-model>`;
         case 'texto':
         case 'text': {
-          const txt   = (capa.texto || 'Texto').replace(/"/g, '&quot;');
+          const txt   = (capa.texto || capa.archivo || 'Texto AR').replace(/"/g, '&quot;');
           const color = capa.colorTexto || '#ffffff';
           const size  = parseFloat(capa.tamanoTexto) || 0.5;
+          const depth = parseFloat(capa.extrusionDepth) || 0;
           const fw    = Math.max(1, size * 3);
-          return `<a-text id="arc-${i}" value="${txt}" color="${color}"
+          if (depth > 0) {
+            return `<a-entity id="arc-${sortedIdx}"
+              ara-text3d="value:${txt};color:${color};size:${size};depth:${depth};opacity:${op}"
+              position="${pos}" ${anim}></a-entity>`;
+          }
+          return `<a-text id="arc-${sortedIdx}" value="${txt}" color="${color}"
             position="${pos}" scale="${scl}" width="${fw}" align="center"
             material="opacity:${op};transparent:true" ${anim}></a-text>`;
         }
@@ -741,7 +764,7 @@
         <a-light type="ambient" intensity="1.2"></a-light>
         <a-light type="directional" intensity="0.8" position="1 3 2"></a-light>
         <a-camera position="0 0 0" look-controls="enabled:false"></a-camera>
-        <a-entity id="target" mindar-image-target="targetIndex:0;" ar-smooth>
+        <a-entity id="target" mindar-image-target="targetIndex:0;">
           ${entities}
         </a-entity>
       </a-scene>`;

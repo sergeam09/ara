@@ -253,6 +253,65 @@
     }
     .btn-close-pub:hover { border-color: var(--accent); }
 
+    /* Color picker */
+    .prop-color-row { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
+    .prop-color-input {
+      width: 32px; height: 32px; border: 1px solid var(--border); border-radius: 6px;
+      padding: 2px; cursor: pointer; background: none;
+    }
+    .prop-color-label { font-size: 11px; color: var(--text2); flex: 1; }
+
+    /* Animation buttons */
+    .anim-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 5px; margin-top: 8px;
+    }
+    .anim-btn {
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 5px; padding: 7px 6px; font-size: 10px; font-weight: 600;
+      color: var(--text2); cursor: pointer; font-family: inherit; letter-spacing: 0.04em;
+      text-transform: uppercase; transition: all 0.15s;
+    }
+    .anim-btn:hover { border-color: var(--accent); color: var(--text); }
+    .anim-btn.active { border-color: var(--accent); color: var(--accent); background: rgba(230,51,41,0.08); }
+    .anim-btn.full { grid-column: 1 / -1; }
+
+    /* Projects modal */
+    #projectsOverlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.75); z-index: 500;
+      align-items: center; justify-content: center;
+    }
+    #projectsOverlay.show { display: flex; }
+    .projects-box {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 12px; padding: 24px; min-width: 360px; max-width: 480px;
+      width: 90%; max-height: 70vh; display: flex; flex-direction: column; gap: 12px;
+    }
+    .projects-title { font-size: 13px; font-weight: 800; margin-bottom: 4px; }
+    .projects-list { overflow-y: auto; display: flex; flex-direction: column; gap: 6px; flex: 1; }
+    .project-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 12px; background: var(--surface2);
+      border: 1px solid var(--border); border-radius: 7px;
+    }
+    .project-item-name { flex: 1; font-size: 12px; font-weight: 600; }
+    .project-item-date { font-size: 10px; color: var(--text2); }
+    .btn-del-project {
+      background: none; border: 1px solid #444; border-radius: 5px;
+      color: var(--text2); font-size: 10px; padding: 4px 8px; cursor: pointer;
+      font-family: inherit; transition: all 0.15s;
+    }
+    .btn-del-project:hover { border-color: #e63329; color: #e63329; }
+    .btn-projects {
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 6px; padding: 8px 12px; color: var(--text2);
+      font-family: inherit; font-size: 10px; font-weight: 700;
+      cursor: pointer; letter-spacing: 0.06em; text-transform: uppercase;
+      flex-shrink: 0; transition: all 0.15s;
+    }
+    .btn-projects:hover { border-color: var(--accent); color: var(--text); }
+    .projects-empty { font-size: 11px; color: var(--text2); text-align: center; padding: 24px; }
+
     ::-webkit-scrollbar { width: 4px; }
     ::-webkit-scrollbar-track { background: var(--surface); }
     ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
@@ -276,6 +335,7 @@
       <input type="number" class="dim-input" id="inputHeight" value="29.7" min="1" max="200" step="0.5">
       <label>cm</label>
     </div>
+    <button class="btn-projects" id="btnProjects">⊟ Proyectos</button>
     <button class="btn-publish" id="btnPublish">◈ Publicar</button>
   </header>
 
@@ -352,6 +412,24 @@
         <div class="prop-group" id="propTextoGroup" style="display:none;">
           <span class="prop-label">Texto AR</span>
           <textarea class="prop-textarea" id="propTexto" placeholder="Escribe aquí..."></textarea>
+          <div class="prop-color-row">
+            <input type="color" id="propColorTexto" value="#ffffff" class="prop-color-input" title="Color del texto">
+            <span class="prop-color-label">Color del texto</span>
+          </div>
+          <div class="prop-row" style="margin-top:8px;">
+            <div class="prop-row-hd">
+              <span class="prop-label" style="margin:0;">Tamaño</span>
+              <span class="prop-val" id="valTamanoTexto">0.5×</span>
+            </div>
+            <input type="range" class="prop-slider" id="propTamanoTexto" min="0.1" max="3" step="0.05" value="0.5">
+          </div>
+          <div class="prop-row">
+            <div class="prop-row-hd">
+              <span class="prop-label" style="margin:0;">Extrusión 3D</span>
+              <span class="prop-val" id="valExtrusionTexto">0</span>
+            </div>
+            <input type="range" class="prop-slider" id="propExtrusionTexto" min="0" max="0.1" step="0.005" value="0">
+          </div>
         </div>
 
         <!-- Sliders -->
@@ -395,6 +473,18 @@
           <input type="range" class="prop-slider" id="propPosZ" min="0" max="200" step="1" value="0">
         </div>
 
+        <!-- Animación -->
+        <div class="prop-group" style="margin-top:14px;">
+          <span class="prop-label">Animación</span>
+          <div class="anim-grid" id="animButtons">
+            <button class="anim-btn active full" data-anim="">Sin animación</button>
+            <button class="anim-btn" data-anim="fade">↑ Fade in</button>
+            <button class="anim-btn" data-anim="scale">⊕ Scale in</button>
+            <button class="anim-btn" data-anim="float">↕ Flotar</button>
+            <button class="anim-btn" data-anim="rotate">↻ Rotar</button>
+          </div>
+        </div>
+
       </div>
 
     </div>
@@ -404,6 +494,15 @@
       <div id="canvas3d"></div>
     </div>
 
+  </div>
+
+  <!-- PROJECTS MODAL -->
+  <div id="projectsOverlay">
+    <div class="projects-box">
+      <div class="projects-title">Proyectos publicados</div>
+      <div class="projects-list" id="projectsList"></div>
+      <button class="btn-sm" id="btnCloseProjects" style="align-self:flex-end;margin-top:4px;">Cerrar</button>
+    </div>
   </div>
 
   <!-- PUBLISH OVERLAY -->

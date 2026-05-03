@@ -129,6 +129,15 @@ export class Preview3D {
         side: THREE.DoubleSide,
         depthWrite: false
       })
+    } else if (layer.type === 'texto') {
+      const texture = this.makeTextTexture(layer.texto || 'Texto AR', layer.colorTexto || '#ffffff')
+      mat = new THREE.MeshLambertMaterial({
+        map: texture,
+        transparent: true,
+        opacity: layer.opacity,
+        side: THREE.DoubleSide,
+        depthWrite: false
+      })
     } else {
       mat = new THREE.MeshLambertMaterial({
         color: this.typeColor(layer.type),
@@ -241,6 +250,19 @@ export class Preview3D {
   }
 
   // ── Helpers ───────────────────────────────────────────────────────────────
+
+  private makeTextTexture(text: string, color: string): THREE.CanvasTexture {
+    const canvas = document.createElement('canvas')
+    canvas.width = 512; canvas.height = 128
+    const ctx = canvas.getContext('2d')!
+    ctx.clearRect(0, 0, 512, 128)
+    ctx.fillStyle = color
+    ctx.font = 'bold 56px sans-serif'
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'middle'
+    ctx.fillText(text, 256, 64, 480)
+    return new THREE.CanvasTexture(canvas)
+  }
 
   private typeColor(type: Layer['type']): number {
     const colors: Record<Layer['type'], number> = {

@@ -2,7 +2,23 @@ import { TriggerUploader } from './TriggerUploader'
 import { LayerManager } from './LayerManager'
 import { Preview3D } from './Preview3D'
 import { Publisher, PublishEvent } from './Publisher'
+import { deleteProject } from '@/utils/WorkerClient'
 import { Layer } from '@/types'
+
+interface SavedProject { slug: string; nombre: string; url: string; publishedAt: string }
+
+function trackProject(slug: string, nombre: string, url: string) {
+  const key = 'ara_projects'
+  const list: SavedProject[] = JSON.parse(localStorage.getItem(key) || '[]')
+  const existing = list.findIndex(p => p.slug === slug)
+  const entry = { slug, nombre, url, publishedAt: new Date().toISOString() }
+  if (existing >= 0) list[existing] = entry; else list.unshift(entry)
+  localStorage.setItem(key, JSON.stringify(list))
+}
+
+function loadProjects(): SavedProject[] {
+  return JSON.parse(localStorage.getItem('ara_projects') || '[]')
+}
 
 const triggerUploader = new TriggerUploader()
 const layerManager = new LayerManager()
@@ -167,6 +183,12 @@ function updatePropsPanel(layer: Layer | undefined) {
   if (isTexto) {
     const ta = document.getElementById('propTexto') as HTMLTextAreaElement
     ta.value = layer.texto || ''
+    const colorEl = document.getElementById('propColorTexto') as HTMLInputElement
+    if (colorEl) colorEl.value = layer.colorTexto || '#ffffff'
+    const tamEl = document.getElementById('propTamanoTexto') as HTMLInputElement
+    if (tamEl) tamEl.value = (layer.tamanoTexto ?? 0.5).toString()
+    const extEl = document.getElementById('propExtrusionTexto') as HTMLInputElement
+    if (extEl) extEl.value = (layer.extrusionDepth ?? 0).toString()
   }
 
   // Sliders
@@ -179,6 +201,14 @@ function updatePropsPanel(layer: Layer | undefined) {
   set('propPosX',    layer.posX)
   set('propPosY',    layer.posY)
   set('propPosZ',    layer.posZ)
+
+  // Animation buttons
+  document.querySelectorAll('#animButtons .anim-btn').forEach(btn => {
+    const anim = btn.getAttribute('data-anim') || ''
+    btn.classList.toggle('active', anim === (layer.animation || ''))
+    // Reset full-width only for the "none" button when others are visible
+    btn.classList.toggle('full', anim === '' && !layer.animation)
+  })
 
   updateSliderValues(layer)
 }
@@ -193,6 +223,10 @@ function updateSliderValues(layer: Layer) {
   v('valPosX',    layer.posX.toFixed(2))
   v('valPosY',    layer.posY.toFixed(2))
   v('valPosZ',    layer.posZ.toString())
+  if (layer.type === 'texto') {
+    v('valTamanoTexto',   `${(layer.tamanoTexto ?? 0.5).toFixed(2)}×`)
+    v('valExtrusionTexto', (layer.extrusionDepth ?? 0).toFixed(3))
+  }
 }
 
 // ── Layer file upload ────────────────────────────────────────────────────────
@@ -267,11 +301,22 @@ function setupSliders() {
   slider('propPosY',    v => ({ posY: v }),           v => v.toFixed(2),        'valPosY')
   slider('propPosZ',    v => ({ posZ: v }),           v => v.toString(),        'valPosZ')
 
+  slider('propTamanoTexto', v => ({ tamanoTexto: v }), v => `${v.toFixed(2)}×`, 'valTamanoTexto')
+  slider('propExtrusionTexto', v => ({ extrusionDepth: v }), v => v.toFixed(3), 'valExtrusionTexto')
+
   const textarea = document.getElementById('propTexto') as HTMLTextAreaElement
   if (textarea) {
     textarea.addEventListener('input', () => {
       const active = layerManager.getActiveLayer()
       if (active) layerManager.updateLayer(active.id, { texto: textarea.value })
+    })
+  }
+
+  const colorPicker = document.getElementById('propColorTexto') as HTMLInputElement
+  if (colorPicker) {
+    colorPicker.addEventListener('input', () => {
+      const active = layerManager.getActiveLayer()
+      if (active) layerManager.updateLayer(active.id, { colorTexto: colorPicker.value })
     })
   }
 }
@@ -348,6 +393,8 @@ function setupPublish() {
             <a href="${shortUrl}" target="_blank" style="font-size:13px;font-weight:700;">${shortUrl}</a>
             <div style="font-size:9px;color:#555;margin-top:4px;word-break:break-all;">${event.url}</div>
           `
+          const slug2 = nombre.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '')
+          trackProject(slug2, nombre, shortUrl)
           btnClose.style.display = 'block'
         } else {
           msg.textContent = `Error: ${event.message}`
@@ -360,6 +407,68 @@ function setupPublish() {
       btn.disabled = false
     }
   })
+}
+
+// ── Animation buttons ────────────────────────────────────────────────────────
+
+function setupAnimationButtons() {
+  document.querySelectorAll('#animButtons .anim-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const anim = (btn.getAttribute('data-anim') || '') as Layer['animation']
+      const active = layerManager.getActiveLayer()
+      if (!active) return
+      layerManager.updateLayer(active.id, { animation: anim || undefined })
+    })
+  })
+}
+
+// ── Projects panel ───────────────────────────────────────────────────────────
+
+function setupProjects() {
+  const overlay   = document.getElementById('projectsOverlay') as HTMLElement
+  const list      = document.getElementById('projectsList') as HTMLElement
+  const btnOpen   = document.getElementById('btnProjects') as HTMLElement
+  const btnClose  = document.getElementById('btnCloseProjects') as HTMLElement
+
+  const render = () => {
+    const projects = loadProjects()
+    if (projects.length === 0) {
+      list.innerHTML = '<div class="projects-empty">No hay proyectos publicados todavía.</div>'
+      return
+    }
+    list.innerHTML = projects.map(p => `
+      <div class="project-item" data-slug="${p.slug}">
+        <div>
+          <div class="project-item-name">${p.nombre}</div>
+          <div class="project-item-date">${new Date(p.publishedAt).toLocaleDateString()}</div>
+        </div>
+        <a href="${p.url}" target="_blank" class="btn-sm" style="text-decoration:none;">Ver</a>
+        <button class="btn-del-project" data-slug="${p.slug}">Borrar</button>
+      </div>`).join('')
+
+    list.querySelectorAll('.btn-del-project').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const slug = btn.getAttribute('data-slug')!
+        if (!confirm(`¿Borrar "${slug}"? El link dejará de funcionar.`)) return
+        btn.textContent = 'Borrando...'
+        ;(btn as HTMLButtonElement).disabled = true
+        try {
+          await deleteProject(slug)
+          const stored: SavedProject[] = JSON.parse(localStorage.getItem('ara_projects') || '[]')
+          localStorage.setItem('ara_projects', JSON.stringify(stored.filter(p => p.slug !== slug)))
+          render()
+        } catch {
+          alert('Error al borrar el proyecto')
+          ;(btn as HTMLButtonElement).disabled = false
+          btn.textContent = 'Borrar'
+        }
+      })
+    })
+  }
+
+  btnOpen.addEventListener('click', () => { render(); overlay.classList.add('show') })
+  btnClose.addEventListener('click', () => overlay.classList.remove('show'))
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.classList.remove('show') })
 }
 
 // ── Init ─────────────────────────────────────────────────────────────────────
@@ -417,6 +526,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Sliders
   setupSliders()
 
+  // Animation buttons
+  setupAnimationButtons()
+
   // Publish
   setupPublish()
+
+  // Projects
+  setupProjects()
 })

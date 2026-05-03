@@ -257,7 +257,7 @@
     ::-webkit-scrollbar-track { background: var(--surface); }
     ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
     ::-webkit-scrollbar-thumb:hover { background: var(--text2); }
-  </style>
+  </style>
   <script type="module" crossorigin src="/ara/creator.js"></script>
 </head>
 <body>
@@ -326,6 +326,9 @@
       <!-- Properties panel (only shown when a layer is active) -->
       <div class="panel-section" id="layerPropsPanel">
         <div class="section-title" id="propTitle">Propiedades</div>
+        <div style="font-size:9px;color:#444;margin-bottom:10px;line-height:1.5;">
+          ↕ Arrastra la capa en el preview para moverla · Scroll = zoom · Clic derecho = paneo
+        </div>
 
         <!-- File upload (for non-texto) -->
         <div class="prop-group" id="propFileGroup">

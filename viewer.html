@@ -8,7 +8,7 @@
   <title>ARA — Experiencia AR</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>◈</text></svg>">
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@700&family=Montserrat:wght@900&family=Oswald:wght@600&family=Bebas+Neue&family=Anton&family=Righteous&family=Playfair+Display:wght@700&family=Merriweather:wght@700&family=Dancing+Script:wght@700&family=Pacifico&family=Permanent+Marker&family=Caveat:wght@700&family=Lobster&family=Great+Vibes&family=Source+Code+Pro:wght@700&family=Space+Mono:wght@700&display=swap" rel="stylesheet">
   <!-- Image tracking -->
   <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
@@ -577,10 +577,10 @@
     roboto:          'Roboto, Arial, sans-serif',
     montserrat:      '"Montserrat", Arial, sans-serif',
     oswald:          '"Oswald", "Arial Narrow", sans-serif',
-    bebas:           '"Bebas Neue", Impact, "Arial Black", sans-serif',
-    anton:           '"Anton", Impact, "Arial Black", sans-serif',
-    righteous:       '"Righteous", "Trebuchet MS", sans-serif',
-    playfair:        '"Playfair Display", Georgia, "Times New Roman", serif',
+    bebas:           '"Bebas Neue", Impact, sans-serif',
+    anton:           '"Anton", Impact, sans-serif',
+    righteous:       '"Righteous", sans-serif',
+    playfair:        '"Playfair Display", Georgia, serif',
     merriweather:    '"Merriweather", Georgia, serif',
     dancingscript:   '"Dancing Script", cursive',
     pacifico:        '"Pacifico", cursive',
@@ -588,18 +588,18 @@
     caveat:          '"Caveat", cursive',
     lobster:         '"Lobster", cursive',
     greatvibes:      '"Great Vibes", cursive',
-    sourcecodepro:   '"Source Code Pro", "Courier New", Courier, monospace',
-    spacemono:       '"Space Mono", "Courier New", monospace',
+    sourcecodepro:   '"Source Code Pro", monospace',
+    spacemono:       '"Space Mono", monospace',
   };
 
-  // Renders text to a PNG data URL on a 1024×256 canvas (4:1 ratio)
-  function textToDataURL(text, color, fontKey) {
+  async function textToDataURL(text, color, fontKey) {
     const family = FONT_MAP[fontKey] || 'Arial, sans-serif';
+    try { await document.fonts.load(`700 120px ${family}`) } catch(e) {}
     const c = document.createElement('canvas');
     c.width = 1024; c.height = 256;
     const ctx = c.getContext('2d');
     ctx.clearRect(0, 0, 1024, 256);
-    ctx.font = `bold 120px ${family}`;
+    ctx.font = `700 120px ${family}`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillStyle = color || '#ffffff';
@@ -689,7 +689,7 @@
     }, 600);
   }
 
-  function buildLayeredScene() {
+  async function buildLayeredScene() {
     const BP = `${BASE}/proyectos/${PROJECT}/`;
     const tw = CFG.anchoReal || 20; // ancho real del trigger en cm
     const th = CFG.altoReal  || 20;
@@ -698,7 +698,7 @@
     // Sort ascending: lower posZ = background = rendered first = smaller A-Frame Z
     const sortedCapas = [...CAPAS].sort((a, b) => (a.posZ ?? 0) - (b.posZ ?? 0));
 
-    const entities = sortedCapas.map((capa, sortedIdx) => {
+    const entities = (await Promise.all(sortedCapas.map(async (capa, sortedIdx) => {
       if (!capa.archivo && capa.tipo !== 'texto' && capa.tipo !== 'text') return '';
       const posX = capa.posX ?? 0;
       const posY = capa.posY ?? 0;
@@ -719,8 +719,8 @@
       // No startEvents — animations autoplay; targetFound listener below replays them
       if (capa.entrada === 'fade')   anim  = `animation__in="property:material.opacity;from:0;to:${op};dur:${dur};delay:${dly}"`;
       if (capa.entrada === 'scale')  anim  = `animation__in="property:scale;from:0 0 0;to:${s} ${s} ${s};dur:${dur};delay:${dly}"`;
-      if (capa.entrada === 'rotate') anim += ` animation__rot="property:rotation;from:0 0 0;to:0 360 0;loop:true;dur:${dur};easing:linear"`;
-      if (capa.entrada === 'float')  anim += ` animation__float="property:position;from:${pos};to:${posX} ${(posY+amp).toFixed(4)} ${posZaf.toFixed(4)};dir:alternate;loop:true;dur:${dur};delay:${dly};easing:easeInOutSine"`;
+      if (capa.entrada === 'float')  anim += ` animation__float="property:position;from:${posX} ${posY} ${posZaf.toFixed(4)};to:${posX} ${(posY + amp).toFixed(4)} ${posZaf.toFixed(4)};dir:alternate;loop:true;dur:${dur};delay:${dly};easing:easeInOutSine"`;
+      if (capa.entrada === 'rotate') anim += ` animation__rot="property:rotation;from:${capa.rotX||0} 0 ${capa.rotZ||0};to:${capa.rotX||0} 360 ${capa.rotZ||0};loop:true;dur:${dur};easing:linear"`;
       const scl = `${s} ${s} ${s}`;
 
       const rot = `${capa.rotX||0} ${capa.rotY||0} ${capa.rotZ||0}`;
@@ -779,7 +779,7 @@
               const zOff    = (posZaf + d * depth * 0.012).toFixed(5);
               const col     = isFront ? color : darkenHex(color, 0.45);
               const layOp   = isFront ? op : (op * 0.65).toFixed(2);
-              const url     = textToDataURL(rawTxt, col, font);
+              const url     = await textToDataURL(rawTxt, col, font);
               html += `<a-image src="${url}" width="${fw}" height="${fh}"
                 position="${posX} ${posY} ${zOff}" rotation="${rot}" scale="${scl}"
                 material="transparent:true;alphaTest:0.01;opacity:${layOp}"></a-image>`;
@@ -787,14 +787,14 @@
             return `<a-entity id="arc-${sortedIdx}" ${anim}>${html}</a-entity>`;
           }
           // Flat text — single canvas-rendered plane, always visible
-          const dataURL = textToDataURL(rawTxt, color, font);
+          const dataURL = await textToDataURL(rawTxt, color, font);
           return `<a-image id="arc-${sortedIdx}" src="${dataURL}" width="${fw}" height="${fh}"
             position="${pos}" rotation="${rot}" scale="${scl}"
             material="transparent:true;alphaTest:0.01;opacity:${op}" ${anim}></a-image>`;
         }
         default: return '';
       }
-    }).join('\n          ');
+    }))).join('\n          ');
 
     const sceneDiv = document.getElementById('arScene');
     sceneDiv.innerHTML = `

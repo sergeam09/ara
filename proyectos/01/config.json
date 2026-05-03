@@ -8,11 +8,11 @@
   "capas": [
     {
       "id": 0,
-      "tipo": "texto",
-      "archivo": "",
+      "tipo": "image",
+      "archivo": "layer-0.png",
       "posX": 0,
       "posY": 0,
-      "posZ": 12,
+      "posZ": 4,
       "escala": 1,
       "opacidad": 1,
       "delay": 0,
@@ -24,7 +24,7 @@
       "archivo": "layer-1.png",
       "posX": 0,
       "posY": 0,
-      "posZ": 4,
+      "posZ": 25,
       "escala": 1,
       "opacidad": 1,
       "delay": 0,

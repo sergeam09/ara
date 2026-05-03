@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ARA 5.0 — Augmented Reality Atelier</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>◈</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg:       #0a0a0a;
+      --surface:  #111111;
+      --surface2: #1a1a1a;
+      --accent:   #e63329;
+      --text:     #f0f0f0;
+      --text2:    #666666;
+      --border:   #2a2a2a;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      width: 100%; height: 100%;
+      font-family: 'Montserrat', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 13px;
+    }
+
+    body { display: flex; flex-direction: column; overflow: hidden; }
+
+    /* HEADER */
+    header {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 24px; padding: 14px 20px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0; z-index: 100;
+    }
+
+    .header-left { display: flex; align-items: center; gap: 12px; min-width: 0; }
+
+    .logo-mark {
+      width: 30px; height: 30px;
+      background: linear-gradient(135deg, var(--accent), #ff5a4d);
+      border-radius: 7px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 15px; color: white; font-weight: 900; flex-shrink: 0;
+    }
+
+    .logo-text { font-size: 17px; font-weight: 900; letter-spacing: -0.02em; }
+
+    .header-input {
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 6px; padding: 7px 11px;
+      color: var(--text); font-family: inherit; font-size: 12px;
+      outline: none; transition: all 0.2s; width: 200px;
+    }
+    .header-input:focus { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(230,51,41,0.1); }
+
+    .header-dims { display: flex; align-items: center; gap: 6px; }
+    .header-dims label { font-size: 10px; color: var(--text2); font-weight: 600; letter-spacing: 0.06em; }
+    .dim-input {
+      width: 58px; background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 5px; padding: 6px 8px; color: var(--text); font-family: inherit;
+      font-size: 11px; outline: none; text-align: center;
+    }
+    .dim-input:focus { border-color: var(--accent); }
+    .header-dims span { font-size: 10px; color: var(--text2); }
+
+    .btn-publish {
+      background: var(--accent); color: white; border: none;
+      padding: 9px 18px; border-radius: 6px;
+      font-family: inherit; font-size: 11px; font-weight: 700;
+      letter-spacing: 0.08em; text-transform: uppercase;
+      cursor: pointer; transition: all 0.2s; flex-shrink: 0;
+    }
+    .btn-publish:hover { background: #ff5a4d; transform: translateY(-1px); }
+    .btn-publish:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+    /* MAIN LAYOUT */
+    .main { display: flex; flex: 1; min-height: 0; }
+
+    /* LEFT PANEL */
+    .panel-left {
+      width: 260px; background: var(--surface);
+      border-right: 1px solid var(--border);
+      display: flex; flex-direction: column;
+      overflow-y: auto; flex-shrink: 0;
+    }
+
+    .panel-section { padding: 14px 12px; border-bottom: 1px solid var(--border); }
+
+    .section-title {
+      font-size: 9px; color: var(--text2); font-weight: 700;
+      letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 10px;
+    }
+
+    /* TRIGGER */
+    .upload-zone {
+      border: 1.5px dashed var(--border); border-radius: 8px;
+      padding: 22px 12px; text-align: center; cursor: pointer;
+      transition: all 0.2s; background: rgba(230,51,41,0.02);
+    }
+    .upload-zone:hover { border-color: var(--accent); background: rgba(230,51,41,0.06); }
+    .upload-zone input[type="file"] { display: none; }
+    .upload-icon { font-size: 22px; margin-bottom: 5px; display: block; }
+    .upload-text { font-size: 10px; color: var(--text2); line-height: 1.4; }
+
+    .trigger-loaded { display: none; border: 1.5px solid var(--border); border-radius: 8px; overflow: hidden; }
+    .trigger-loaded.show { display: block; }
+    .trigger-thumb { width: 100%; height: 90px; object-fit: cover; display: block; background: #000; }
+    .trigger-info {
+      padding: 8px 10px;
+      display: flex; align-items: center; justify-content: space-between; gap: 6px;
+    }
+    .trigger-name { font-size: 10px; color: var(--text); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; }
+    .btn-sm {
+      background: none; border: 1px solid var(--border);
+      border-radius: 4px; padding: 3px 8px;
+      font-size: 9px; color: var(--text2); cursor: pointer;
+      font-family: inherit; transition: all 0.2s; white-space: nowrap; flex-shrink: 0;
+    }
+    .btn-sm:hover { border-color: var(--accent); color: var(--accent); }
+
+    /* LAYERS */
+    .layers-list { display: flex; flex-direction: column; gap: 5px; }
+    .layers-empty { font-size: 10px; color: var(--text2); text-align: center; padding: 14px 8px; opacity: 0.6; }
+
+    .layer-item {
+      display: flex; align-items: center; gap: 7px;
+      padding: 8px 9px; background: var(--surface2);
+      border: 1px solid var(--border); border-radius: 6px;
+      cursor: pointer; transition: all 0.2s;
+    }
+    .layer-item:hover { border-color: #3a3a3a; }
+    .layer-item.active { background: rgba(230,51,41,0.08); border-color: var(--accent); }
+
+    .layer-num {
+      width: 18px; height: 18px; border-radius: 3px;
+      background: rgba(230,51,41,0.15); border: 1px solid rgba(230,51,41,0.3);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 8px; font-weight: 700; color: var(--accent); flex-shrink: 0;
+    }
+    .layer-type-icon { font-size: 11px; flex-shrink: 0; }
+    .layer-label {
+      font-size: 10px; color: var(--text); flex: 1;
+      min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .layer-label.empty { color: var(--text2); font-style: italic; }
+    .layer-del {
+      background: none; border: none; color: rgba(255,255,255,0.2);
+      font-size: 11px; cursor: pointer; padding: 2px 5px;
+      border-radius: 3px; transition: all 0.2s; flex-shrink: 0;
+    }
+    .layer-del:hover { color: var(--accent); background: rgba(230,51,41,0.12); }
+
+    /* ADD LAYER BUTTONS */
+    .add-layer-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; margin-top: 10px; }
+    .btn-add-type {
+      padding: 7px 4px; background: var(--surface2);
+      border: 1px solid var(--border); border-radius: 5px;
+      color: var(--text2); font-size: 9px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.04em;
+      cursor: pointer; transition: all 0.2s; font-family: inherit; text-align: center;
+    }
+    .btn-add-type:hover { border-color: var(--accent); color: var(--accent); }
+
+    /* PROPS PANEL */
+    #layerPropsPanel { display: none; }
+
+    .prop-group { margin-bottom: 12px; }
+    .prop-label {
+      font-size: 9px; color: var(--text2); font-weight: 700;
+      letter-spacing: 0.08em; text-transform: uppercase;
+      margin-bottom: 5px; display: block;
+    }
+
+    .file-drop {
+      border: 1.5px dashed var(--border); border-radius: 6px;
+      padding: 14px; text-align: center; cursor: pointer;
+      transition: all 0.2s; background: rgba(230,51,41,0.02);
+    }
+    .file-drop:hover { border-color: var(--accent); background: rgba(230,51,41,0.06); }
+    .file-drop-icon { font-size: 20px; margin-bottom: 4px; }
+    .file-drop-text { font-size: 10px; color: var(--text2); }
+
+    .file-loaded {
+      display: flex; align-items: center; gap: 7px;
+      border: 1px solid #2e2e2e; border-radius: 6px; padding: 7px 9px;
+    }
+    .file-loaded-icon { font-size: 14px; }
+    .file-loaded-name { font-size: 10px; color: var(--text); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    .prop-textarea {
+      width: 100%; background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 5px; padding: 7px 9px; color: var(--text);
+      font-family: inherit; font-size: 11px; outline: none;
+      resize: vertical; min-height: 60px; transition: border-color 0.2s;
+    }
+    .prop-textarea:focus { border-color: var(--accent); }
+
+    .prop-row { display: flex; flex-direction: column; gap: 4px; margin-bottom: 10px; }
+    .prop-row-hd { display: flex; justify-content: space-between; align-items: center; }
+    .prop-val { font-size: 9px; color: var(--accent); font-weight: 700; font-family: 'DM Mono', monospace; }
+
+    .prop-slider {
+      width: 100%; height: 3px; appearance: none;
+      background: var(--border); border: none; border-radius: 2px;
+      outline: none; cursor: pointer;
+    }
+    .prop-slider::-webkit-slider-thumb {
+      appearance: none; width: 12px; height: 12px;
+      border-radius: 50%; background: var(--accent); cursor: pointer;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.4);
+    }
+    .prop-slider::-moz-range-thumb {
+      width: 12px; height: 12px; border-radius: 50%;
+      background: var(--accent); border: none; cursor: pointer;
+    }
+
+    /* CENTER CANVAS */
+    .canvas-container {
+      flex: 1; background: var(--bg);
+      display: flex; align-items: center; justify-content: center;
+      overflow: hidden;
+    }
+    #canvas3d { width: 100%; height: 100%; }
+
+    /* PUBLISH OVERLAY */
+    #publishOverlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.88); z-index: 1000;
+      align-items: center; justify-content: center;
+    }
+    #publishOverlay.show { display: flex; }
+    .publish-box {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 12px; padding: 28px 32px;
+      min-width: 320px; max-width: 420px; width: 90%; text-align: center;
+    }
+    .publish-title { font-size: 14px; font-weight: 800; margin-bottom: 16px; }
+    .pub-bar { width: 100%; height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; margin-bottom: 12px; }
+    .pub-fill { height: 100%; background: var(--accent); border-radius: 2px; transition: width 0.4s ease; width: 0%; }
+    .pub-msg { font-size: 11px; color: var(--text2); margin-bottom: 8px; min-height: 16px; }
+    .pub-result { font-size: 12px; margin-top: 12px; word-break: break-all; }
+    .pub-result a { color: var(--accent); }
+    .btn-close-pub {
+      margin-top: 14px; background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 6px; padding: 8px 18px; color: var(--text);
+      font-family: inherit; font-size: 11px; cursor: pointer; display: none;
+    }
+    .btn-close-pub:hover { border-color: var(--accent); }
+
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: var(--surface); }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--text2); }
+  </style>
+  <script type="module" src="/src/creator/index.ts"></script>
+</head>
+<body>
+
+  <!-- HEADER -->
+  <header>
+    <div class="header-left">
+      <div class="logo-mark">◈</div>
+      <div class="logo-text">ARA 5.0</div>
+      <input type="text" class="header-input" id="inputNombre" placeholder="Nombre del proyecto">
+    </div>
+    <div class="header-dims">
+      <label>W</label>
+      <input type="number" class="dim-input" id="inputWidth" value="21" min="1" max="200" step="0.5">
+      <span>×</span>
+      <input type="number" class="dim-input" id="inputHeight" value="29.7" min="1" max="200" step="0.5">
+      <label>cm</label>
+    </div>
+    <button class="btn-publish" id="btnPublish">◈ Publicar</button>
+  </header>
+
+  <!-- MAIN -->
+  <div class="main">
+
+    <!-- LEFT PANEL -->
+    <div class="panel-left">
+
+      <!-- Trigger section -->
+      <div class="panel-section">
+        <div class="section-title">Imagen Trigger</div>
+
+        <!-- Estado vacío -->
+        <div class="upload-zone" id="triggerUploadZone">
+          <input type="file" id="fileTrigger" accept="image/*">
+          <span class="upload-icon">◈</span>
+          <div class="upload-text">Clic o arrastra imagen<br><span style="opacity:0.5;">JPG, PNG, WebP</span></div>
+        </div>
+
+        <!-- Estado cargado -->
+        <div class="trigger-loaded" id="triggerLoaded">
+          <img class="trigger-thumb" id="triggerThumb" src="" alt="">
+          <div class="trigger-info">
+            <span class="trigger-name" id="triggerName">—</span>
+            <button class="btn-sm" id="btnChangeTrigger">Cambiar</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Layers section -->
+      <div class="panel-section">
+        <div class="section-title" id="layersTitle">Capas (0)</div>
+        <div class="layers-empty" id="layersEmpty">Sin capas — elige un tipo</div>
+        <div id="layersList" class="layers-list"></div>
+
+        <!-- Botones de tipo de capa -->
+        <div class="add-layer-grid">
+          <button class="btn-add-type" data-type="image">◈ Imagen</button>
+          <button class="btn-add-type" data-type="video">▶ Video</button>
+          <button class="btn-add-type" data-type="texto">T Texto</button>
+          <button class="btn-add-type" data-type="gif">⟳ GIF</button>
+          <button class="btn-add-type" data-type="glb">⬡ 3D</button>
+          <button class="btn-add-type" data-type="svg">⬟ SVG</button>
+        </div>
+      </div>
+
+      <!-- Properties panel (only shown when a layer is active) -->
+      <div class="panel-section" id="layerPropsPanel">
+        <div class="section-title" id="propTitle">Propiedades</div>
+
+        <!-- File upload (for non-texto) -->
+        <div class="prop-group" id="propFileGroup">
+          <span class="prop-label">Archivo</span>
+          <!-- Vacío -->
+          <div class="file-drop" id="propFileDrop">
+            <div class="file-drop-icon">↑</div>
+            <div class="file-drop-text">Seleccionar archivo</div>
+          </div>
+          <!-- Cargado -->
+          <div class="file-loaded" id="propFileLoaded" style="display:none;">
+            <span class="file-loaded-icon" id="propFileIcon">◈</span>
+            <span class="file-loaded-name" id="propFileName">—</span>
+            <button class="btn-sm" id="btnChangeFile">Cambiar</button>
+          </div>
+          <!-- Input oculto -->
+          <input type="file" id="layerFileInput" style="display:none;">
+        </div>
+
+        <!-- Texto (solo para tipo texto) -->
+        <div class="prop-group" id="propTextoGroup" style="display:none;">
+          <span class="prop-label">Texto AR</span>
+          <textarea class="prop-textarea" id="propTexto" placeholder="Escribe aquí..."></textarea>
+        </div>
+
+        <!-- Sliders -->
+        <div class="prop-row">
+          <div class="prop-row-hd">
+            <span class="prop-label" style="margin:0;">Escala</span>
+            <span class="prop-val" id="valScale">1.0×</span>
+          </div>
+          <input type="range" class="prop-slider" id="propScale" min="0.1" max="5" step="0.1" value="1">
+        </div>
+
+        <div class="prop-row">
+          <div class="prop-row-hd">
+            <span class="prop-label" style="margin:0;">Opacidad</span>
+            <span class="prop-val" id="valOpacity">100%</span>
+          </div>
+          <input type="range" class="prop-slider" id="propOpacity" min="0" max="100" step="5" value="100">
+        </div>
+
+        <div class="prop-row">
+          <div class="prop-row-hd">
+            <span class="prop-label" style="margin:0;">Pos X</span>
+            <span class="prop-val" id="valPosX">0</span>
+          </div>
+          <input type="range" class="prop-slider" id="propPosX" min="-2" max="2" step="0.05" value="0">
+        </div>
+
+        <div class="prop-row">
+          <div class="prop-row-hd">
+            <span class="prop-label" style="margin:0;">Pos Y</span>
+            <span class="prop-val" id="valPosY">0</span>
+          </div>
+          <input type="range" class="prop-slider" id="propPosY" min="-2" max="2" step="0.05" value="0">
+        </div>
+
+        <div class="prop-row">
+          <div class="prop-row-hd">
+            <span class="prop-label" style="margin:0;">Profundidad Z</span>
+            <span class="prop-val" id="valPosZ">0</span>
+          </div>
+          <input type="range" class="prop-slider" id="propPosZ" min="0" max="200" step="1" value="0">
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- CENTER CANVAS -->
+    <div class="canvas-container">
+      <div id="canvas3d"></div>
+    </div>
+
+  </div>
+
+  <!-- PUBLISH OVERLAY -->
+  <div id="publishOverlay">
+    <div class="publish-box">
+      <div class="publish-title">Publicando proyecto...</div>
+      <div class="pub-bar"><div class="pub-fill" id="pubFill"></div></div>
+      <div class="pub-msg" id="pubMsg">Iniciando...</div>
+      <div class="pub-result" id="pubResult"></div>
+      <button class="btn-close-pub" id="btnClosePub">Cerrar</button>
+    </div>
+  </div>
+
+</body>
+</html>

@@ -39,7 +39,7 @@
       "rotZ": 0,
       "escala": 1,
       "opacidad": 1,
-      "entrada": "float",
+      "entrada": "rotate",
       "animDuration": 2000,
       "delay": 0,
       "loop": true

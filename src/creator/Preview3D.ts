@@ -519,10 +519,19 @@ export class Preview3D {
       if (l.animation === 'float') {
         const amp = (l.animationAmplitude ?? 0.04) * (this.triggerW / 2)
         const dur = (l.animationDuration ?? 2000) / 1000
-        mesh.position.y = entry.baseElevation + amp * Math.sin((2 * Math.PI * t) / dur)
+        const axis = l.animationAxis || 'z'
+        const bx = l.posX * (this.triggerW / 2)
+        const bz = l.posY * (this.triggerW / 2)
+        const wave = amp * Math.sin((2 * Math.PI * t) / dur)
+        mesh.position.y = axis === 'y' ? entry.baseElevation + wave : entry.baseElevation
+        mesh.position.x = axis === 'x' ? bx + wave : bx
+        mesh.position.z = axis === 'z' ? bz + wave : bz
       } else if (l.animation === 'rotate') {
         const dur = (l.animationDuration ?? 6000) / 1000
-        mesh.rotation.y = (2 * Math.PI * t) / dur
+        const axis = l.animationAxis || 'y'
+        mesh.rotation.x = axis === 'x' ? (2 * Math.PI * t) / dur : DEG(l.rotX ?? 0)
+        mesh.rotation.y = axis === 'y' ? (2 * Math.PI * t) / dur : DEG(l.rotY ?? 0)
+        mesh.rotation.z = axis === 'z' ? (2 * Math.PI * t) / dur : DEG(l.rotZ ?? 0)
       }
     })
 

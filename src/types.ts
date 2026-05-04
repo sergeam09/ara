@@ -10,6 +10,7 @@ export interface Layer {
   scale: number
   opacity: number
   animation?: 'fade' | 'scale' | 'float' | 'rotate'
+  animationAxis?: 'x' | 'y' | 'z'
   animationDuration?: number
   animationDelay?: number
   animationAmplitude?: number
@@ -63,6 +64,7 @@ export interface PublishConfig {
     animDuration?: number
     animDelay?: number
     animAmplitude?: number
+    animationAxis?: 'x' | 'y' | 'z'
     aspectRatio?: number
     rotX?: number
     rotY?: number

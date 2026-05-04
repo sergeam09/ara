@@ -221,6 +221,17 @@ function updatePropsPanel(layer: Layer | undefined) {
     ampRow.style.display = showAmp ? 'flex' : 'none'
     if (ampLabel) ampLabel.textContent = activeAnim === 'rotate' ? 'Velocidad (ms/vuelta)' : 'Amplitud'
   }
+  const axisRow = document.getElementById('animAxisRow') as HTMLElement
+  if (axisRow) {
+    const showAxis = activeAnim === 'float' || activeAnim === 'rotate'
+    axisRow.style.display = showAxis ? 'block' : 'none'
+    if (showAxis) {
+      const currentAxis = layer.animationAxis || 'z'
+      document.querySelectorAll('#animAxisRow [data-axis]').forEach(b => {
+        b.classList.toggle('active', b.getAttribute('data-axis') === currentAxis)
+      })
+    }
+  }
   const set2 = (id: string, val: number) => { const el = document.getElementById(id) as HTMLInputElement; if (el) el.value = val.toString() }
   set2('propAnimDuration', layer.animationDuration ?? (activeAnim === 'fade' ? 800 : activeAnim === 'scale' ? 600 : activeAnim === 'rotate' ? 6000 : 2000))
   set2('propAnimDelay', layer.animationDelay ?? 0)
@@ -499,12 +510,24 @@ function setupAnimationButtons() {
       const anim = animVal as Layer['animation']
       const active = layerManager.getActiveLayer()
       if (!active) return
-      // Set default duration for each animation type
       const defDur = animVal === 'fade' ? 800 : animVal === 'scale' ? 600 : animVal === 'rotate' ? 6000 : 2000
       layerManager.updateLayer(active.id, {
         animation: anim || undefined,
         animationDuration: active.animationDuration ?? defDur
       })
+      const axisRow = document.getElementById('animAxisRow') as HTMLElement
+      if (axisRow) axisRow.style.display = (animVal === 'float' || animVal === 'rotate') ? 'block' : 'none'
+    })
+  })
+
+  document.querySelectorAll('#animAxisRow [data-axis]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const axis = btn.getAttribute('data-axis') as 'x' | 'y' | 'z'
+      const active = layerManager.getActiveLayer()
+      if (!active) return
+      layerManager.updateLayer(active.id, { animationAxis: axis })
+      document.querySelectorAll('#animAxisRow [data-axis]').forEach(b => b.classList.remove('active'))
+      btn.classList.add('active')
     })
   })
 }

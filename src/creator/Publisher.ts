@@ -88,6 +88,7 @@ export class Publisher {
             animDuration: layer.animationDuration,
             animDelay: layer.animationDelay,
             animAmplitude: layer.animationAmplitude,
+            animationAxis: layer.animationAxis,
             delay: 0,
             loop: true
           })
@@ -113,6 +114,7 @@ export class Publisher {
             animDuration: layer.animationDuration,
             animDelay: layer.animationDelay,
             animAmplitude: layer.animationAmplitude,
+            animationAxis: layer.animationAxis,
             delay: 0,
             loop: true
           })

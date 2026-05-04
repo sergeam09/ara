@@ -723,12 +723,13 @@
         anim = `animation__float="property:position;from:${posX.toFixed(4)} ${posY.toFixed(4)} ${posZaf.toFixed(4)};to:${tx} ${ty} ${tz};dir:alternate;loop:true;dur:${dur};delay:${dly};easing:easeInOutSine"`;
       }
       if (capa.entrada === 'rotate') {
+        const axis = capa.animationAxis ?? 'y'
         const toRot = axis === 'x'
           ? `${(capa.rotX||0)+360} ${capa.rotY||0} ${capa.rotZ||0}`
-          : axis === 'y'
+          : axis === 'z'
           ? `${capa.rotX||0} ${capa.rotY||0} ${(capa.rotZ||0)+360}`
-          : `${capa.rotX||0} ${(capa.rotY||0)+360} ${capa.rotZ||0}`;
-        anim = `animation__rot="property:rotation;from:${capa.rotX||0} ${capa.rotY||0} ${capa.rotZ||0};to:${toRot};loop:true;dur:${dur};easing:linear"`;
+          : `${capa.rotX||0} ${(capa.rotY||0)+360} ${capa.rotZ||0}`
+        anim = `animation__rot="property:rotation;from:${capa.rotX||0} ${capa.rotY||0} ${capa.rotZ||0};to:${toRot};loop:true;dur:${dur};easing:linear"`
       }
       const scl = `${s} ${s} ${s}`;
 

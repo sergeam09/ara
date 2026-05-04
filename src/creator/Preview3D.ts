@@ -48,6 +48,7 @@ export class Preview3D {
   private triggerW = 150
   private triggerH = 100
   private clock = new THREE.Clock()
+  private selectedLayerId: string | null = null
 
   // Drag state (free XZ drag)
   private dragging = false
@@ -183,6 +184,7 @@ export class Preview3D {
 
   selectLayer(id: string | null): void {
     if (!this.transformControls || !this.scene) return
+    this.selectedLayerId = id
     // Remove old box helper
     if (this.boxHelper) { this.scene.remove(this.boxHelper); this.boxHelper = null }
     if (this.dimLabel) this.dimLabel.style.display = 'none'
@@ -191,6 +193,9 @@ export class Preview3D {
 
     const entry = this.layers.get(id)
     if (!entry) { this.transformControls.detach(); return }
+
+    // GLB placeholder (no children yet) — loader.load() callback will attach when ready
+    if (entry.layer.type === 'glb' && entry.mesh.children.length === 0) return
 
     this.transformControls.attach(entry.mesh)
 
@@ -285,7 +290,7 @@ export class Preview3D {
           this.scene.add(model)
           const existing = this.layers.get(layer.id)
           if (existing) existing.mesh = model
-          if (wasSelected) {
+          if (this.selectedLayerId === layer.id) {
             this.transformControls?.attach(model)
             if (this.boxHelper) { this.scene!.remove(this.boxHelper) }
             this.boxHelper = new THREE.BoxHelper(model, 0xe63329)

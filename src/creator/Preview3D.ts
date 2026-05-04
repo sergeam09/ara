@@ -69,6 +69,7 @@ export class Preview3D {
   onLayerTransformed: ((id: string, update: Partial<Layer>) => void) | null = null
   // Fired when a layer mesh is clicked in the viewport
   onLayerSelected: ((id: string) => void) | null = null
+  onGlbDimensions: ((id: string, dims: { ancho: number, alto: number, prof: number }) => void) | null = null
 
   init(container: HTMLElement): void {
     this.container = container
@@ -284,6 +285,14 @@ export class Preview3D {
           model.position.z += layer.posY * half
           model.rotation.set(DEG(layer.rotX ?? 0), DEG(layer.rotY ?? 0), DEG(layer.rotZ ?? 0))
           this.scene.add(model)
+          box.setFromObject(model)
+          const sizeScaled = box.getSize(new THREE.Vector3())
+          const dims = {
+            ancho: parseFloat((sizeScaled.x * 100).toFixed(1)),
+            alto: parseFloat((sizeScaled.y * 100).toFixed(1)),
+            prof: parseFloat((sizeScaled.z * 100).toFixed(1))
+          }
+          if (this.onGlbDimensions) this.onGlbDimensions(layer.id, dims)
           const existing = this.layers.get(layer.id)
           if (existing) existing.mesh = model
           if (wasSelected) {

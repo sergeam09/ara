@@ -656,6 +656,23 @@ document.addEventListener('DOMContentLoaded', async () => {
     preview3D.onLayerSelected = (id) => {
       layerManager.selectLayer(id)
     }
+    preview3D.onGlbDimensions = (id, dims) => {
+      const active = layerManager.getActiveLayer()
+      if (!active || active.id !== id) return
+      const anchoEl = document.getElementById('propGlbAncho') as HTMLInputElement
+      const altoEl = document.getElementById('propGlbAlto') as HTMLInputElement
+      const profEl = document.getElementById('propGlbProf') as HTMLInputElement
+      if (anchoEl && !anchoEl.value) anchoEl.value = dims.ancho.toString()
+      if (altoEl && !altoEl.value) altoEl.value = dims.alto.toString()
+      if (profEl && !profEl.value) profEl.value = dims.prof.toString()
+      layerManager.updateLayer(id, {
+        anchoReal: active.anchoReal ?? dims.ancho,
+        altoReal: active.altoReal ?? dims.alto,
+        profReal: active.profReal ?? dims.prof
+      })
+      const glbPanel = document.getElementById('glbMedidasPanel') as HTMLElement
+      if (glbPanel) glbPanel.style.display = 'block'
+    }
   }
 
   // Modo AR buttons

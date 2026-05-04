@@ -16,7 +16,13 @@
       "Bash(git pull *)",
       "Bash(cp dist/creator.html index.html)",
       "Bash(cp dist/creator.js creator.js)",
-      "Bash(git stash *)"
+      "Bash(git stash *)",
+      "mcp__Claude_in_Chrome__list_connected_browsers",
+      "mcp__Claude_in_Chrome__navigate",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:5173/)",
+      "mcp__Claude_in_Chrome__javascript_tool",
+      "mcp__Claude_in_Chrome__tabs_create_mcp",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:5173/creator.html)"
     ]
   }
 }

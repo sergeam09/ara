@@ -317,7 +317,9 @@ export class Preview3D {
     this.layers.set(layer.id, { mesh, objectURL, videoEl, layer: { ...layer }, baseElevation })
 
     if (wasSelected) {
-      this.transformControls?.attach(mesh)
+      if (layer.type !== 'glb' && layer.type !== 'gltf' && layer.type !== 'model' && mesh) {
+        this.transformControls?.attach(mesh)
+      }
       // Refresh box helper
       if (this.boxHelper) { this.scene.remove(this.boxHelper) }
       this.boxHelper = new THREE.BoxHelper(mesh, 0xe63329)

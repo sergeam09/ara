@@ -745,7 +745,7 @@ export class Preview3D {
         return texture;
     }
     typeColor(type) {
-        const c = { image: 0x4488ff, video: 0xe63329, gif: 0xff9900, glb: 0xaa44ff, svg: 0x00cc88, texto: 0xffffff };
+        const c = { image: 0x4488ff, video: 0xe63329, gif: 0xff9900, glb: 0xaa44ff, gltf: 0xaa44ff, model: 0xaa44ff, svg: 0x00cc88, texto: 0xffffff };
         return c[type] ?? 0x666666;
     }
     dispose() {

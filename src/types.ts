@@ -1,6 +1,6 @@
 export interface Layer {
   id: string
-  type: 'image' | 'video' | 'gif' | 'svg' | 'glb' | 'texto'
+  type: 'image' | 'video' | 'gif' | 'svg' | 'glb' | 'gltf' | 'model' | 'texto'
   file?: File
   naturalWidth?: number
   naturalHeight?: number

@@ -25,13 +25,15 @@ let triggerWidth = 150;
 let triggerHeight = 100;
 let arModo = 'image';
 const TYPE_ICONS = {
-    image: '◈', video: '▶', gif: '⟳', glb: '⬡', texto: 'T', svg: '⬟'
+    image: '◈', video: '▶', gif: '⟳', glb: '⬡', gltf: '⬡', model: '⬡', texto: 'T', svg: '⬟'
 };
 const TYPE_ACCEPT = {
     image: 'image/jpeg,image/png,image/webp',
     gif: 'image/gif,image/apng',
     video: 'video/mp4,video/webm,video/quicktime',
     glb: '.glb,.gltf',
+    gltf: '.glb,.gltf',
+    model: '.glb,.gltf',
     svg: 'image/svg+xml',
     texto: ''
 };
@@ -220,8 +222,8 @@ function updatePropsPanel(layer) {
     // GLB medidas reales
     const glbPanel = document.getElementById('glbMedidasPanel');
     if (glbPanel)
-        glbPanel.style.display = layer.type === 'glb' ? 'block' : 'none';
-    if (layer.type === 'glb') {
+        glbPanel.style.display = (layer.type === 'glb' || layer.type === 'gltf' || layer.type === 'model') ? 'block' : 'none';
+    if (layer.type === 'glb' || layer.type === 'gltf' || layer.type === 'model') {
         const anchoEl = document.getElementById('propGlbAncho');
         const altoEl = document.getElementById('propGlbAlto');
         const profEl = document.getElementById('propGlbProf');

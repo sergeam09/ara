@@ -28,6 +28,7 @@ export interface Layer {
 export interface Project {
   nombre: string
   slug: string
+  modo?: 'image' | 'world'
   trigger?: File
   triggerW?: number
   triggerH?: number
@@ -46,7 +47,7 @@ export interface GridDimensions {
 }
 
 export interface PublishConfig {
-  modo: 'image'
+  modo: 'image' | 'world'
   trigger: string
   mind: string
   anchoReal: number

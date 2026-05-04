@@ -27,6 +27,7 @@ const publisher = new Publisher()
 
 let triggerWidth = 150
 let triggerHeight = 100
+let arModo: 'image' | 'world' = 'image'
 
 const TYPE_ICONS: Record<Layer['type'], string> = {
   image: '◈', video: '▶', gif: '⟳', glb: '⬡', texto: 'T', svg: '⬟'
@@ -460,7 +461,8 @@ function setupPublish() {
       await publisher.publishProject({
         nombre,
         slug: nombre.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, ''),
-        trigger: triggerUploader.getTriggerFile()!,
+        modo: arModo,
+        trigger: arModo === 'image' ? triggerUploader.getTriggerFile() ?? undefined : undefined,
         triggerW: triggerWidth,
         triggerH: triggerHeight,
         layers,
@@ -612,6 +614,28 @@ document.addEventListener('DOMContentLoaded', async () => {
       layerManager.selectLayer(id)
     }
   }
+
+  // Modo AR buttons
+  document.getElementById('modoImage')?.addEventListener('click', () => {
+    arModo = 'image'
+    document.getElementById('modoImage')?.classList.add('active')
+    document.getElementById('modoWorld')?.classList.remove('active')
+    const ts = document.getElementById('triggerSection')
+    if (ts) {
+      ts.querySelectorAll<HTMLElement>('.upload-zone,.trigger-loaded').forEach(el => el.style.display = '')
+      document.getElementById('worldModeMsg')!.style.display = 'none'
+    }
+  })
+  document.getElementById('modoWorld')?.addEventListener('click', () => {
+    arModo = 'world'
+    document.getElementById('modoWorld')?.classList.add('active')
+    document.getElementById('modoImage')?.classList.remove('active')
+    const ts = document.getElementById('triggerSection')
+    if (ts) {
+      ts.querySelectorAll<HTMLElement>('.upload-zone,.trigger-loaded').forEach(el => el.style.display = 'none')
+      document.getElementById('worldModeMsg')!.style.display = 'block'
+    }
+  })
 
   // Trigger
   setupTriggerUpload()

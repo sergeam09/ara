@@ -500,6 +500,7 @@
   async function init() {
     setSplash('Preparando experiencia...');
     if (isSurface) { initModelViewer(); return; }
+    if (CFG.modo === 'world') { await initWorldAR(); return; }
     await initMindAR();
   }
 
@@ -689,16 +690,13 @@
     }, 600);
   }
 
-  async function buildLayeredScene() {
+  async function buildCapasEntities() {
     const BP = `${BASE}/proyectos/${PROJECT}/`;
-    const tw = CFG.anchoReal || 20; // ancho real del trigger en cm
+    const tw = CFG.anchoReal || 20;
     const th = CFG.altoReal  || 20;
     const ratio = tw / th;
-
-    // Sort ascending: lower posZ = background = rendered first = smaller A-Frame Z
     const sortedCapas = [...CAPAS].sort((a, b) => (a.posZ ?? 0) - (b.posZ ?? 0));
-
-    const entities = (await Promise.all(sortedCapas.map(async (capa, sortedIdx) => {
+    return (await Promise.all(sortedCapas.map(async (capa, sortedIdx) => {
       if (!capa.archivo && capa.tipo !== 'texto' && capa.tipo !== 'text') return '';
       const posX = (capa.posX ?? 0) * ratio;
       const posY = (capa.posY ?? 0) * (1 / ratio);
@@ -806,7 +804,10 @@
         default: return '';
       }
     }))).join('\n          ');
+  }
 
+  async function buildLayeredScene() {
+    const entities = await buildCapasEntities();
     const sceneDiv = document.getElementById('arScene');
     sceneDiv.innerHTML = `
       <a-scene mindar-image="imageTargetSrc:${PATHS.mind};autoStart:true;uiScanning:false;uiLoading:false;filterMinCF:0.001;filterBeta:0.001;"
@@ -841,7 +842,6 @@
           document.getElementById('scan').classList.remove('show');
           const pg = document.getElementById('ping'); pg.classList.add('go'); setTimeout(()=>pg.classList.remove('go'),700);
           scene.querySelectorAll('video').forEach(v => { try { const p=v.play(); if(p) p.catch(()=>{ v.muted=true; v.play(); }); } catch(e){} });
-          // Restart all animations on re-detection
           scene.querySelectorAll('[id^="arc-"]').forEach(el => {
             if (!el.components) return;
             ['animation__in','animation__float','animation__rot'].forEach(name => {
@@ -856,6 +856,56 @@
         });
       }
       setTimeout(() => hideSplash(), 10000);
+    }, 600);
+  }
+
+  // WORLD AR — WebXR sin trigger
+  async function initWorldAR() {
+    setSplash('Preparando World AR...');
+    const entities = await buildCapasEntities();
+    const sceneDiv = document.getElementById('arScene');
+
+    const supportsAR = !!(navigator.xr) && await navigator.xr.isSessionSupported('immersive-ar').catch(() => false);
+
+    sceneDiv.innerHTML = `
+      <a-scene
+        ${supportsAR ? 'webxr="requiredFeatures: hit-test; optionalFeatures: dom-overlay,dom-overlay-root: #overlay"' : 'embedded'}
+        renderer="colorManagement:true;physicallyCorrectLights:true"
+        vr-mode-ui="enabled:false"
+        device-orientation-permission-ui="enabled:false"
+        loading-screen="enabled:false"
+        style="width:100vw;height:100vh;">
+        <a-light type="ambient" intensity="1.2"></a-light>
+        <a-light type="directional" intensity="0.8" position="1 3 2"></a-light>
+        <a-camera position="0 0 0" look-controls="enabled:${!supportsAR}"></a-camera>
+        <a-entity id="worldAnchor" position="0 0 -1">
+          ${entities}
+        </a-entity>
+      </a-scene>`;
+
+    sceneDiv.classList.add('show');
+    document.getElementById('hud').classList.add('show');
+    if (EDIT_MODE) {
+      document.getElementById('btnEdit').style.display = 'inline-block';
+      document.getElementById('btnVerPublico').style.display = 'inline-block';
+    }
+
+    setTimeout(() => {
+      const scene = sceneDiv.querySelector('a-scene');
+      if (!scene) return;
+      scene.addEventListener('loaded', () => hideSplash());
+      scene.addEventListener('arError', () => hideSplash()); // degradar gracefully
+      if (supportsAR) {
+        // Reposicionar el ancla al tocar una superficie detectada via hit-test
+        scene.addEventListener('click', (e) => {
+          const anchor = document.getElementById('worldAnchor');
+          const pt = e.detail && e.detail.intersection && e.detail.intersection.point;
+          if (anchor && pt) {
+            anchor.setAttribute('position', `${pt.x.toFixed(3)} ${pt.y.toFixed(3)} ${pt.z.toFixed(3)}`);
+          }
+        });
+      }
+      setTimeout(() => hideSplash(), 8000);
     }, 600);
   }
 

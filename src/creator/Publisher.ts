@@ -21,8 +21,10 @@ export class Publisher {
     }
 
     try {
+      const modo = project.modo || 'image'
+
       // Validation
-      if (!project.trigger) {
+      if (modo === 'image' && !project.trigger) {
         throw new Error('No trigger image selected')
       }
 
@@ -39,27 +41,30 @@ export class Publisher {
 
       emit({ type: 'progress', message: 'Starting publication...', percent: 5 })
 
-      // 1. Compile trigger
-      emit({ type: 'progress', message: 'Compiling trigger image...', percent: 10 })
-      const mindData = await compileTriggerImage(project.trigger, (progress: CompileProgress) => {
-        emit({ type: 'progress', message: 'Compiling trigger...', percent: 10 + progress.percent * 0.15 })
-      })
-      emit({ type: 'progress', message: '✓ Trigger compiled', percent: 25 })
+      let triggerExt = 'jpg'
+      if (modo === 'image' && project.trigger) {
+        // 1. Compile trigger
+        emit({ type: 'progress', message: 'Compiling trigger image...', percent: 10 })
+        const mindData = await compileTriggerImage(project.trigger, (progress: CompileProgress) => {
+          emit({ type: 'progress', message: 'Compiling trigger...', percent: 10 + progress.percent * 0.15 })
+        })
+        emit({ type: 'progress', message: '✓ Trigger compiled', percent: 25 })
 
-      // 2. Upload trigger
-      emit({ type: 'progress', message: 'Uploading trigger image...', percent: 30 })
-      const triggerExt = project.trigger.name.split('.').pop()?.toLowerCase() || 'jpg'
-      const triggerB64 = await fileToBase64(project.trigger)
-      await uploadFile(`proyectos/${slug}/trigger.${triggerExt}`, triggerB64, 'trigger image')
-      emit({ type: 'progress', message: '✓ Trigger uploaded', percent: 40 })
+        // 2. Upload trigger
+        emit({ type: 'progress', message: 'Uploading trigger image...', percent: 30 })
+        triggerExt = project.trigger.name.split('.').pop()?.toLowerCase() || 'jpg'
+        const triggerB64 = await fileToBase64(project.trigger)
+        await uploadFile(`proyectos/${slug}/trigger.${triggerExt}`, triggerB64, 'trigger image')
+        emit({ type: 'progress', message: '✓ Trigger uploaded', percent: 40 })
 
-      // 3. Upload mind file
-      emit({ type: 'progress', message: 'Uploading compiled trigger...', percent: 45 })
-      await uploadFile(`proyectos/${slug}/trigger.mind`, mindData, 'compiled trigger')
-      emit({ type: 'progress', message: '✓ Compiled trigger uploaded', percent: 55 })
+        // 3. Upload mind file
+        emit({ type: 'progress', message: 'Uploading compiled trigger...', percent: 45 })
+        await uploadFile(`proyectos/${slug}/trigger.mind`, mindData, 'compiled trigger')
+        emit({ type: 'progress', message: '✓ Compiled trigger uploaded', percent: 55 })
+      }
 
       // 4. Upload layers
-      emit({ type: 'progress', message: 'Uploading layers...', percent: 60 })
+      emit({ type: 'progress', message: 'Uploading layers...', percent: modo === 'world' ? 10 : 60 })
       const capasConfig: PublishConfig['capas'] = []
 
       for (let i = 0; i < validLayers.length; i++) {
@@ -121,14 +126,14 @@ export class Publisher {
         }
       }
 
-      emit({ type: 'progress', message: `✓ ${validLayers.length} layers uploaded`, percent: 75 })
+      emit({ type: 'progress', message: `✓ ${validLayers.length} layers uploaded`, percent: modo === 'world' ? 70 : 75 })
 
       // 5. Generate and upload config
       emit({ type: 'progress', message: 'Generating configuration...', percent: 80 })
       const config: PublishConfig = {
-        modo: 'image',
-        trigger: `trigger.${triggerExt}`,
-        mind: 'trigger.mind',
+        modo,
+        trigger: modo === 'image' ? `trigger.${triggerExt}` : '',
+        mind: modo === 'image' ? 'trigger.mind' : '',
         anchoReal: project.anchoReal || 21,
         altoReal: project.altoReal || 29.7,
         unidad: 'cm',

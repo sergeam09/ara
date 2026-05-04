@@ -366,9 +366,19 @@
     <!-- LEFT PANEL -->
     <div class="panel-left">
 
-      <!-- Trigger section -->
+      <!-- Modo AR selector -->
       <div class="panel-section">
+        <div class="prop-label" style="margin-bottom:6px;">Modo AR</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+          <button class="anim-btn active" id="modoImage">📷 Con Trigger</button>
+          <button class="anim-btn" id="modoWorld">🌐 Sin Trigger</button>
+        </div>
+      </div>
+
+      <!-- Trigger section -->
+      <div class="panel-section" id="triggerSection">
         <div class="section-title">Imagen Trigger</div>
+        <div id="worldModeMsg" style="display:none;font-size:11px;color:var(--text2);padding:8px 0;line-height:1.6;">Modo world: el contenido se coloca en el espacio real frente al usuario</div>
 
         <!-- Estado vacío -->
         <div class="upload-zone" id="triggerUploadZone">

@@ -3,7 +3,7 @@
   "trigger": "",
   "mind": "",
   "anchoReal": 21,
-  "altoReal": 21,
+  "altoReal": 29.7,
   "unidad": "cm",
   "capas": [
     {
@@ -17,7 +17,7 @@
       "rotX": 0,
       "rotY": 0,
       "rotZ": 0,
-      "escala": 4.9,
+      "escala": 4.1,
       "opacidad": 1,
       "entrada": "rotate",
       "animDuration": 6000,

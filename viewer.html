@@ -722,18 +722,19 @@
         const tz = axis === 'z' ? (posZaf + amp).toFixed(4) : posZaf.toFixed(4)
         anim = `animation__float="property:position;from:${posX.toFixed(4)} ${posY.toFixed(4)} ${posZaf.toFixed(4)};to:${tx} ${ty} ${tz};dir:alternate;loop:true;dur:${dur};delay:${dly};easing:easeInOutSine"`
       }
+      const baseRotX = CFG.modo === 'world' ? (capa.rotX||0) - 90 : (capa.rotX||0);
       if (capa.entrada === 'rotate') {
         const axis = capa.animationAxis ?? 'y'
         const toRot = axis === 'x'
-          ? `${(capa.rotX||0)+360} ${capa.rotY||0} ${capa.rotZ||0}`
+          ? `${baseRotX+360} ${capa.rotY||0} ${capa.rotZ||0}`
           : axis === 'z'
-          ? `${capa.rotX||0} ${capa.rotY||0} ${(capa.rotZ||0)+360}`
-          : `${capa.rotX||0} ${(capa.rotY||0)+360} ${capa.rotZ||0}`
-        anim = `animation__rot="property:rotation;from:${capa.rotX||0} ${capa.rotY||0} ${capa.rotZ||0};to:${toRot};loop:true;dur:${dur};easing:linear"`
+          ? `${baseRotX} ${capa.rotY||0} ${(capa.rotZ||0)+360}`
+          : `${baseRotX} ${(capa.rotY||0)+360} ${capa.rotZ||0}`
+        anim = `animation__rot="property:rotation;from:${baseRotX} ${capa.rotY||0} ${capa.rotZ||0};to:${toRot};loop:true;dur:${dur};easing:linear"`
       }
       const scl = `${s} ${s} ${s}`;
 
-      const rot = `${capa.rotX||0} ${capa.rotY||0} ${capa.rotZ||0}`;
+      const rot = `${baseRotX} ${capa.rotY||0} ${capa.rotZ||0}`;
       switch (capa.tipo) {
         case 'video': {
           if (!['mp4','webm','mov'].includes(ext)) return '';
@@ -776,9 +777,8 @@
             const targetD = (capa.profReal || capa.anchoReal) * factor
             sclFinal = `${targetW} ${targetH} ${targetD}`
           }
-          const rot3d = `${(capa.rotX||0) - 90} ${capa.rotY||0} ${capa.rotZ||0}`
           return `<a-gltf-model id="arc-${sortedIdx}" src="${src}"
-            position="${pos}" rotation="${rot3d}" scale="${sclFinal}" shadow="cast:true;receive:false" ${anim}></a-gltf-model>`;
+            position="${pos}" rotation="${rot}" scale="${sclFinal}" shadow="cast:true;receive:false" ${anim}></a-gltf-model>`;
         }
         case 'texto':
         case 'text': {

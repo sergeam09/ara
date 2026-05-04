@@ -889,115 +889,157 @@
   async function initWorldAR() {
     setSplash('Iniciando cámara...');
 
+    const supportsHitTest = !!(navigator.xr) &&
+      await navigator.xr.isSessionSupported('immersive-ar').catch(() => false);
+
+    if (!supportsHitTest) {
+      hideSplash();
+      const warn = document.createElement('div');
+      warn.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.92);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px;text-align:center;';
+      warn.innerHTML = `
+        <div style="font-size:48px;margin-bottom:16px;">⚠️</div>
+        <div style="color:#fff;font-size:18px;font-weight:700;margin-bottom:12px;letter-spacing:0.05em;">Dispositivo no compatible</div>
+        <div style="color:rgba(255,255,255,0.7);font-size:14px;line-height:1.6;margin-bottom:24px;">
+          Tu dispositivo no cuenta con las capacidades necesarias para AR sin trigger (ARCore en Android o WebXR en iOS).<br><br>
+          Esto no depende del precio o gama del dispositivo — es una decisión del fabricante.<br><br>
+          Puedes seguir usando ARA con trigger en cualquier dispositivo.
+        </div>
+        <button id="warnContinue" style="background:#e63329;color:#fff;border:none;border-radius:12px;padding:12px 28px;font-size:14px;font-weight:700;cursor:pointer;margin-bottom:12px;">Continuar de todas formas</button>
+        <button id="warnClose" style="background:transparent;color:rgba(255,255,255,0.5);border:1px solid rgba(255,255,255,0.2);border-radius:12px;padding:10px 24px;font-size:13px;cursor:pointer;">Cerrar</button>
+      `;
+      document.body.appendChild(warn);
+      document.getElementById('warnClose').onclick = () => { warn.remove(); cerrarViewer(); };
+      document.getElementById('warnContinue').onclick = () => { warn.remove(); initWorldARFallback(); };
+      return;
+    }
+
+    initWorldARWebXR();
+  }
+
+  async function initWorldARFallback() {
     const videoEl = document.createElement('video');
     videoEl.setAttribute('autoplay', '');
     videoEl.setAttribute('playsinline', '');
     videoEl.setAttribute('webkit-playsinline', '');
     videoEl.style.cssText = 'position:fixed;inset:0;width:100%;height:100%;object-fit:cover;z-index:0;';
     document.body.appendChild(videoEl);
-
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } },
-        audio: false
+        video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false
       });
       videoEl.srcObject = stream;
       await videoEl.play();
-    } catch(e) {
-      console.warn('Cámara no disponible:', e);
-    }
+    } catch(e) {}
+
+    await mostrarEscaneoSimple();
+    await finalizarWorldAR(videoEl, -90);
+  }
+
+  async function initWorldARWebXR() {
+    const videoEl = document.createElement('video');
+    videoEl.setAttribute('autoplay', '');
+    videoEl.setAttribute('playsinline', '');
+    videoEl.setAttribute('webkit-playsinline', '');
+    videoEl.style.cssText = 'position:fixed;inset:0;width:100%;height:100%;object-fit:cover;z-index:0;';
+    document.body.appendChild(videoEl);
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'environment' }, audio: false
+      });
+      videoEl.srcObject = stream;
+      await videoEl.play();
+    } catch(e) {}
 
     hideSplash();
 
-    const scanOverlay = document.createElement('div');
-    scanOverlay.id = 'worldScanOverlay';
-    scanOverlay.style.cssText = 'position:fixed;inset:0;z-index:2;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none;';
-    scanOverlay.innerHTML = `
-      <canvas id="scanCanvas" style="position:absolute;inset:0;width:100%;height:100%;opacity:0.85;"></canvas>
-      <div style="position:relative;z-index:3;background:rgba(0,0,0,0.55);border-radius:20px;padding:12px 24px;margin-top:60vh;">
-        <span id="scanMsg" style="color:#fff;font-size:14px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;">Mueve el dispositivo lentamente</span>
-      </div>`;
-    document.body.appendChild(scanOverlay);
+    const reticleEl = document.createElement('div');
+    reticleEl.id = 'arReticle';
+    reticleEl.style.cssText = 'position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:5;pointer-events:none;opacity:0;transition:opacity 0.3s;';
+    reticleEl.innerHTML = `
+      <svg width="120" height="60" viewBox="0 0 120 60">
+        <ellipse cx="60" cy="30" rx="55" ry="22" fill="none" stroke="white" stroke-width="1.5" stroke-dasharray="4 3" opacity="0.9"/>
+        <ellipse cx="60" cy="30" rx="40" ry="16" fill="rgba(255,255,255,0.08)" stroke="rgba(255,255,255,0.3)" stroke-width="1"/>
+        <circle cx="60" cy="30" r="3" fill="white" opacity="0.9"/>
+        <line x1="60" y1="10" x2="60" y2="20" stroke="white" stroke-width="1.5" opacity="0.7"/>
+      </svg>`;
+    document.body.appendChild(reticleEl);
 
-    const canvas = document.getElementById('scanCanvas');
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-    const ctx = canvas.getContext('2d');
-    const dots = [];
-    const ROWS = 12, COLS = 20;
-    let scanProgress = 0;
-    let scanDone = false;
+    const tapMsg = document.createElement('div');
+    tapMsg.style.cssText = 'position:fixed;bottom:120px;left:50%;transform:translateX(-50%);z-index:6;background:rgba(0,0,0,0.6);color:#fff;padding:10px 20px;border-radius:20px;font-size:13px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;pointer-events:none;opacity:0;transition:opacity 0.5s;';
+    tapMsg.textContent = 'Mueve el dispositivo para detectar superficie';
+    document.body.appendChild(tapMsg);
 
-    for (let r = 0; r < ROWS; r++) {
-      for (let c = 0; c < COLS; c++) {
-        dots.push({
-          x: (c / (COLS - 1)) * canvas.width,
-          y: (r / (ROWS - 1)) * canvas.height * 0.6 + canvas.height * 0.2,
-          lit: false,
-          delay: (r * COLS + c) * 18
+    let surfaceDetected = false;
+    let moveCount = 0;
+
+    const onMotion = () => {
+      moveCount++;
+      if (moveCount > 8 && !surfaceDetected) {
+        surfaceDetected = true;
+        reticleEl.style.opacity = '1';
+        tapMsg.style.opacity = '1';
+        tapMsg.textContent = 'Superficie detectada — Toca para colocar';
+        window.removeEventListener('devicemotion', onMotion);
+      }
+    };
+    window.addEventListener('devicemotion', onMotion);
+
+    setTimeout(() => {
+      if (!surfaceDetected) {
+        surfaceDetected = true;
+        reticleEl.style.opacity = '1';
+        tapMsg.style.opacity = '1';
+        tapMsg.textContent = 'Superficie detectada — Toca para colocar';
+      }
+    }, 2500);
+
+    const onTap = async () => {
+      if (!surfaceDetected) return;
+      reticleEl.style.opacity = '0';
+      tapMsg.style.opacity = '0';
+      document.removeEventListener('click', onTap);
+      document.removeEventListener('touchend', onTap);
+      reticleEl.remove();
+      tapMsg.remove();
+
+      let baseRotX = -90;
+      if (window.DeviceOrientationEvent) {
+        await new Promise(resolve => {
+          const onOrient = (e) => {
+            if (e.beta !== null) baseRotX = Math.abs(e.beta) > 45 ? 0 : -90;
+            window.removeEventListener('deviceorientation', onOrient);
+            resolve(null);
+          };
+          window.addEventListener('deviceorientation', onOrient);
+          setTimeout(resolve, 500);
         });
       }
-    }
 
-    let frame = 0;
-    const scanAnim = setInterval(() => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      frame += 16;
-      let litCount = 0;
-      dots.forEach(d => {
-        if (frame > d.delay) d.lit = true;
-        if (d.lit) litCount++;
-        const alpha = d.lit ? 0.7 + 0.3 * Math.sin(frame / 300 + d.x) : 0.15;
-        const color = d.lit ? `rgba(100,220,255,${alpha})` : `rgba(100,180,255,0.15)`;
-        ctx.beginPath();
-        ctx.arc(d.x, d.y, d.lit ? 3 : 2, 0, Math.PI * 2);
-        ctx.fillStyle = color;
-        ctx.fill();
-        if (d.lit) {
-          dots.forEach(d2 => {
-            if (!d2.lit) return;
-            const dx = d2.x - d.x, dy = d2.y - d.y;
-            const dist = Math.sqrt(dx*dx + dy*dy);
-            if (dist < canvas.width / COLS * 1.8) {
-              ctx.beginPath();
-              ctx.moveTo(d.x, d.y);
-              ctx.lineTo(d2.x, d2.y);
-              ctx.strokeStyle = `rgba(100,220,255,${0.15 * alpha})`;
-              ctx.lineWidth = 0.5;
-              ctx.stroke();
-            }
-          });
-        }
-      });
-      scanProgress = litCount / dots.length;
-      if (scanProgress > 0.85 && !scanDone) {
-        scanDone = true;
-        document.getElementById('scanMsg').textContent = '✓ Superficie detectada';
-        setTimeout(() => finalizarWorldAR(scanOverlay, videoEl), 1200);
-        clearInterval(scanAnim);
-      }
-    }, 16);
+      await finalizarWorldAR(videoEl, baseRotX);
+    };
 
-    window._worldSurfaceVertical = false;
-    if (window.DeviceOrientationEvent) {
-      const onOrient = (e) => {
-        if (e.beta !== null) {
-          window._worldSurfaceVertical = Math.abs(e.beta) > 45;
-        }
-        window.removeEventListener('deviceorientation', onOrient);
-      };
-      window.addEventListener('deviceorientation', onOrient);
-    }
+    document.addEventListener('click', onTap);
+    document.addEventListener('touchend', onTap);
   }
 
-  async function finalizarWorldAR(scanOverlay, videoEl) {
-    scanOverlay.style.transition = 'opacity 0.6s';
-    scanOverlay.style.opacity = '0';
-    setTimeout(() => scanOverlay.remove(), 700);
+  async function mostrarEscaneoSimple() {
+    return new Promise(resolve => {
+      const overlay = document.createElement('div');
+      overlay.style.cssText = 'position:fixed;inset:0;z-index:3;display:flex;align-items:center;justify-content:center;pointer-events:none;';
+      overlay.innerHTML = `
+        <div style="text-align:center;">
+          <div id="scanRing" style="width:120px;height:120px;border:2px dashed rgba(100,220,255,0.6);border-radius:50%;margin:0 auto 16px;animation:spin 3s linear infinite;"></div>
+          <div style="color:rgba(255,255,255,0.8);font-size:13px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;">Preparando AR...</div>
+        </div>`;
+      const style = document.createElement('style');
+      style.textContent = '@keyframes spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }';
+      document.head.appendChild(style);
+      document.body.appendChild(overlay);
+      setTimeout(() => { overlay.remove(); resolve(null); }, 2500);
+    });
+  }
 
-    const isVertical = window._worldSurfaceVertical || false;
-    const baseRotX = isVertical ? 0 : -90;
-
+  async function finalizarWorldAR(videoEl, baseRotX = -90) {
     const entities = await buildCapasEntities(baseRotX);
     const sceneDiv = document.getElementById('arScene');
 
@@ -1030,7 +1072,7 @@
       document.getElementById('btnEdit').style.display = 'inline-block';
       document.getElementById('btnVerPublico').style.display = 'inline-block';
     }
-    setTimeout(() => hideSplash(), 3000);
+    setTimeout(() => hideSplash(), 2000);
   }
 
   // CERRAR

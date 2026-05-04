@@ -222,7 +222,7 @@ function updatePropsPanel(layer) {
     // GLB medidas reales
     const glbPanel = document.getElementById('glbMedidasPanel');
     if (glbPanel)
-        glbPanel.style.display = 'block';
+        glbPanel.style.display = (layer.type === 'glb' || layer.type === 'gltf' || layer.type === 'model') ? 'block' : 'none';
     if (layer.type === 'glb' || layer.type === 'gltf' || layer.type === 'model') {
         const anchoEl = document.getElementById('propGlbAncho');
         const altoEl = document.getElementById('propGlbAlto');

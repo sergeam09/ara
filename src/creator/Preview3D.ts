@@ -317,9 +317,7 @@ export class Preview3D {
     this.layers.set(layer.id, { mesh, objectURL, videoEl, layer: { ...layer }, baseElevation })
 
     if (wasSelected) {
-      if (layer.type !== 'glb' && layer.type !== 'gltf' && layer.type !== 'model' && mesh) {
-        this.transformControls?.attach(mesh)
-      }
+      this.transformControls?.attach(mesh)
       // Refresh box helper
       if (this.boxHelper) { this.scene.remove(this.boxHelper) }
       this.boxHelper = new THREE.BoxHelper(mesh, 0xe63329)
@@ -564,13 +562,6 @@ export class Preview3D {
 
   private animate = (): void => {
     this.animId = requestAnimationFrame(this.animate)
-    try {
-      if (this.transformControls && this.transformControls.object) {
-        if (!this.transformControls.object.parent) {
-          this.transformControls.detach()
-        }
-      }
-    } catch(e) {}
     this.controls?.update()
     if (this.boxHelper) this.boxHelper.update()
     const t = this.clock.getElapsedTime()

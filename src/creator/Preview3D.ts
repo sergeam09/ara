@@ -192,16 +192,14 @@ export class Preview3D {
     const entry = this.layers.get(id)
     if (!entry) { this.transformControls.detach(); return }
 
-    if (entry.mesh && entry.mesh.parent) {
+    if (entry.mesh && entry.mesh.parent && entry.mesh.visible) {
       this.transformControls.attach(entry.mesh)
+      // Box helper — red wireframe around selected layer
+      this.boxHelper = new THREE.BoxHelper(entry.mesh, 0xe63329)
+      this.scene.add(this.boxHelper)
+      // Dimension annotation
+      this.showDimLabel(entry.mesh, entry.layer)
     }
-
-    // Box helper — red wireframe around selected layer
-    this.boxHelper = new THREE.BoxHelper(entry.mesh, 0xe63329)
-    this.scene.add(this.boxHelper)
-
-    // Dimension annotation
-    this.showDimLabel(entry.mesh, entry.layer)
   }
 
   private showDimLabel(mesh: THREE.Object3D, layer: Layer): void {
@@ -452,7 +450,7 @@ export class Preview3D {
     const newPos = pt.clone().sub(this.dragOffset)
     entry.mesh.position.x = newPos.x
     entry.mesh.position.z = newPos.z
-    if (this.boxHelper) this.boxHelper.update()
+    if (this.boxHelper && this.boxHelper.parent) this.boxHelper.update()
 
     const halfW = this.triggerW / 2
     const posX = newPos.x / halfW
@@ -561,9 +559,7 @@ export class Preview3D {
   private animate = (): void => {
     this.animId = requestAnimationFrame(this.animate)
     this.controls?.update()
-    if (this.boxHelper && this.boxHelper.parent) {
-      this.boxHelper.update()
-    }
+    if (this.boxHelper && this.boxHelper.parent) this.boxHelper.update()
     const t = this.clock.getElapsedTime()
 
     this.layers.forEach(entry => {

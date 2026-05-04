@@ -264,6 +264,7 @@ export class Preview3D {
         objectURL = URL.createObjectURL(layer.file)
         const baseElevation = this.calcElevation(layer)
         const placeholder = new THREE.Mesh()
+        placeholder.visible = false
         placeholder.userData = { layerId: layer.id, isLayer: true }
         this.layers.set(layer.id, { mesh: placeholder, objectURL, layer: { ...layer }, baseElevation })
         const loader = new GLTFLoader()
@@ -560,7 +561,9 @@ export class Preview3D {
   private animate = (): void => {
     this.animId = requestAnimationFrame(this.animate)
     this.controls?.update()
-    if (this.boxHelper) this.boxHelper.update()
+    if (this.boxHelper && this.boxHelper.parent) {
+      this.boxHelper.update()
+    }
     const t = this.clock.getElapsedTime()
 
     this.layers.forEach(entry => {

@@ -41,7 +41,7 @@
       "opacidad": 0.6,
       "entrada": "float",
       "animDuration": 2000,
-      "animationAxis": "y",
+      "animationAxis": "z",
       "delay": 0,
       "loop": true
     }

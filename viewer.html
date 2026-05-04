@@ -768,7 +768,7 @@
         case 'gltf':
         case 'model':
           return `<a-gltf-model id="arc-${sortedIdx}" src="${src}"
-            position="${pos}" rotation="${rot}" scale="${scl}" ${anim}></a-gltf-model>`;
+            position="${pos}" rotation="${rot}" scale="${scl}" cast-shadow="true" ${anim}></a-gltf-model>`;
         case 'texto':
         case 'text': {
           const rawTxt = capa.texto || capa.archivo || 'Texto AR';
@@ -887,13 +887,15 @@
     sceneDiv.innerHTML = `
       <a-scene
         embedded
+        shadow="type:pcfsoft;autoUpdate:true"
         renderer="colorManagement:true;physicallyCorrectLights:true;alpha:true"
         vr-mode-ui="enabled:false"
         device-orientation-permission-ui="enabled:false"
         loading-screen="enabled:false"
         style="width:100vw;height:100vh;position:fixed;inset:0;z-index:1;background:transparent;">
-        <a-light type="ambient" intensity="1.5"></a-light>
-        <a-light type="directional" intensity="1" position="1 3 2"></a-light>
+        <a-light type="ambient" intensity="1.2"></a-light>
+        <a-light type="directional" intensity="1" position="1 3 2" cast-shadow="true" shadow-camera-near="0.1" shadow-camera-far="10" shadow-camera-left="-5" shadow-camera-right="5" shadow-camera-top="5" shadow-camera-bottom="-5"></a-light>
+        <a-plane position="0 -0.01 -1.5" rotation="-90 0 0" width="20" height="20" material="color:#fff;opacity:0;transparent:true" receive-shadow="true"></a-plane>
         <a-camera position="0 1.6 0" look-controls="enabled:true" wasd-controls="enabled:false"></a-camera>
         <a-entity id="worldAnchor" position="0 0 -1.5">
           ${entities}

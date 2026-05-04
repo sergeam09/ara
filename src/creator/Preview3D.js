@@ -102,12 +102,6 @@ export class Preview3D {
             writable: true,
             value: new THREE.Clock()
         });
-        Object.defineProperty(this, "selectedLayerId", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: null
-        });
         // Drag state (free XZ drag)
         Object.defineProperty(this, "dragging", {
             enumerable: true,
@@ -443,7 +437,6 @@ export class Preview3D {
     selectLayer(id) {
         if (!this.transformControls || !this.scene)
             return;
-        this.selectedLayerId = id;
         // Remove old box helper
         if (this.boxHelper) {
             this.scene.remove(this.boxHelper);
@@ -460,9 +453,6 @@ export class Preview3D {
             this.transformControls.detach();
             return;
         }
-        // GLB placeholder (no children yet) — loader.load() callback will attach when ready
-        if (entry.layer.type === 'glb' && entry.mesh.children.length === 0)
-            return;
         this.transformControls.attach(entry.mesh);
         // Box helper — red wireframe around selected layer
         this.boxHelper = new THREE.BoxHelper(entry.mesh, 0xe63329);
@@ -555,7 +545,7 @@ export class Preview3D {
                     const existing = this.layers.get(layer.id);
                     if (existing)
                         existing.mesh = model;
-                    if (this.selectedLayerId === layer.id) {
+                    if (wasSelected) {
                         this.transformControls?.attach(model);
                         if (this.boxHelper) {
                             this.scene.remove(this.boxHelper);

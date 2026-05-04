@@ -766,9 +766,11 @@
         }
         case 'glb':
         case 'gltf':
-        case 'model':
+        case 'model': {
+          const rot3d = `${capa.rotX||0} ${capa.rotY||0} ${capa.rotZ||0}`;
           return `<a-gltf-model id="arc-${sortedIdx}" src="${src}"
-            position="${pos}" rotation="${rot}" scale="${scl}" cast-shadow="true" ${anim}></a-gltf-model>`;
+            position="${pos}" rotation="${rot3d}" scale="${scl}" shadow="cast:true;receive:false" ${anim}></a-gltf-model>`;
+        }
         case 'texto':
         case 'text': {
           const rawTxt = capa.texto || capa.archivo || 'Texto AR';
@@ -888,14 +890,14 @@
       <a-scene
         embedded
         shadow="type:pcfsoft;autoUpdate:true"
-        renderer="colorManagement:true;physicallyCorrectLights:true;alpha:true"
+        renderer="colorManagement:true;physicallyCorrectLights:true;alpha:true;shadowMapEnabled:true;shadowMapType:2"
         vr-mode-ui="enabled:false"
         device-orientation-permission-ui="enabled:false"
         loading-screen="enabled:false"
         style="width:100vw;height:100vh;position:fixed;inset:0;z-index:1;background:transparent;">
         <a-light type="ambient" intensity="1.2"></a-light>
-        <a-light type="directional" intensity="1" position="1 3 2" cast-shadow="true" shadow-camera-near="0.1" shadow-camera-far="10" shadow-camera-left="-5" shadow-camera-right="5" shadow-camera-top="5" shadow-camera-bottom="-5"></a-light>
-        <a-plane position="0 -0.01 -1.5" rotation="-90 0 0" width="20" height="20" material="color:#fff;opacity:0;transparent:true" receive-shadow="true"></a-plane>
+        <a-light type="directional" intensity="1.5" position="1 4 2" light="castShadow:true;shadowMapWidth:1024;shadowMapHeight:1024;shadowCameraTop:5;shadowCameraBottom:-5;shadowCameraLeft:-5;shadowCameraRight:5"></a-light>
+        <a-plane position="0 -0.01 -1.5" rotation="-90 0 0" width="20" height="20" material="color:#ffffff;opacity:0.01;transparent:true;depthWrite:false" shadow="receive:true;cast:false"></a-plane>
         <a-camera position="0 1.6 0" look-controls="enabled:true" wasd-controls="enabled:false"></a-camera>
         <a-entity id="worldAnchor" position="0 0 -1.5">
           ${entities}

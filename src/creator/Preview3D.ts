@@ -564,6 +564,13 @@ export class Preview3D {
 
   private animate = (): void => {
     this.animId = requestAnimationFrame(this.animate)
+    try {
+      if (this.transformControls && this.transformControls.object) {
+        if (!this.transformControls.object.parent) {
+          this.transformControls.detach()
+        }
+      }
+    } catch(e) {}
     this.controls?.update()
     if (this.boxHelper) this.boxHelper.update()
     const t = this.clock.getElapsedTime()

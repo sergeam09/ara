@@ -304,8 +304,10 @@ function setupLayerFileInput() {
         const active = layerManager.getActiveLayer();
         if (!active)
             return;
+        const ext = file.name.split('.').pop()?.toLowerCase() || '';
+        const typeFromExt = (ext === 'glb' || ext === 'gltf') ? { type: 'glb' } : {};
         const dims = await detectFileDimensions(file);
-        layerManager.updateLayer(active.id, { file, naturalWidth: dims.w, naturalHeight: dims.h });
+        layerManager.updateLayer(active.id, { ...typeFromExt, file, naturalWidth: dims.w, naturalHeight: dims.h });
     }
     function detectFileDimensions(file) {
         return new Promise(resolve => {

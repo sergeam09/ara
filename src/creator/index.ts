@@ -325,8 +325,10 @@ function setupLayerFileInput() {
   async function applyLayerFile(file: File) {
     const active = layerManager.getActiveLayer()
     if (!active) return
+    const ext = file.name.split('.').pop()?.toLowerCase() || ''
+    const typeFromExt: Partial<Layer> = (ext === 'glb' || ext === 'gltf') ? { type: 'glb' } : {}
     const dims = await detectFileDimensions(file)
-    layerManager.updateLayer(active.id, { file, naturalWidth: dims.w, naturalHeight: dims.h })
+    layerManager.updateLayer(active.id, { ...typeFromExt, file, naturalWidth: dims.w, naturalHeight: dims.h })
   }
 
   function detectFileDimensions(file: File): Promise<{ w: number; h: number }> {

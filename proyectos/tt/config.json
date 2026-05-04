@@ -1,0 +1,32 @@
+{
+  "modo": "image",
+  "trigger": "trigger.jpg",
+  "mind": "trigger.mind",
+  "anchoReal": 21,
+  "altoReal": 29.7,
+  "unidad": "cm",
+  "capas": [
+    {
+      "id": 0,
+      "tipo": "texto",
+      "archivo": "",
+      "texto": "HOLA",
+      "colorTexto": "#ff0000",
+      "tamanoTexto": 1.5,
+      "extrusionDepth": 0,
+      "font": "lobster",
+      "posX": 0,
+      "posY": 0,
+      "posZ": 200,
+      "rotX": 0,
+      "rotY": 0,
+      "rotZ": 0,
+      "escala": 1,
+      "opacidad": 1,
+      "entrada": "float",
+      "animDuration": 2000,
+      "delay": 0,
+      "loop": true
+    }
+  ]
+}

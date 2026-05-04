@@ -192,7 +192,9 @@ export class Preview3D {
     const entry = this.layers.get(id)
     if (!entry) { this.transformControls.detach(); return }
 
-    this.transformControls.attach(entry.mesh)
+    if (entry.mesh && entry.mesh.parent) {
+      this.transformControls.attach(entry.mesh)
+    }
 
     // Box helper — red wireframe around selected layer
     this.boxHelper = new THREE.BoxHelper(entry.mesh, 0xe63329)

@@ -1,10 +1,11 @@
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import { TransformControls } from 'three/examples/jsm/controls/TransformControls.js'
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import { Layer } from '@/types'
 
 interface LayerEntry {
-  mesh: THREE.Mesh
+  mesh: THREE.Object3D
   objectURL?: string
   videoEl?: HTMLVideoElement
   layer: Layer
@@ -201,7 +202,7 @@ export class Preview3D {
     this.showDimLabel(entry.mesh, entry.layer)
   }
 
-  private showDimLabel(mesh: THREE.Mesh, layer: Layer): void {
+  private showDimLabel(mesh: THREE.Object3D, layer: Layer): void {
     if (!this.dimLabel) return
     const bbox = new THREE.Box3().setFromObject(mesh)
     const size = bbox.getSize(new THREE.Vector3())
@@ -257,7 +258,47 @@ export class Preview3D {
     } else if (layer.type === 'texto') {
       mat = new THREE.MeshLambertMaterial({ map: this.makeTextTexture(layer.texto || 'Texto AR', layer.colorTexto || '#ffffff', layer.fontTexto || 'roboto'), transparent: true, opacity: layer.opacity, side: THREE.DoubleSide, depthWrite: false })
     } else {
-      mat = new THREE.MeshLambertMaterial({ color: this.typeColor(layer.type), transparent: true, opacity: layer.file ? 0.45 : 0.3, side: THREE.DoubleSide, wireframe: !layer.file })
+      if (layer.type === 'glb' && layer.file) {
+        objectURL = URL.createObjectURL(layer.file)
+        const baseElevation = this.calcElevation(layer)
+        const placeholder = new THREE.Mesh()
+        placeholder.userData = { layerId: layer.id, isLayer: true }
+        this.layers.set(layer.id, { mesh: placeholder, objectURL, layer: { ...layer }, baseElevation })
+        const loader = new GLTFLoader()
+        loader.load(objectURL, (gltf) => {
+          if (!this.scene || !this.layers.has(layer.id)) return
+          const model = gltf.scene
+          model.userData = { layerId: layer.id, isLayer: true }
+          const box = new THREE.Box3().setFromObject(model)
+          const size = box.getSize(new THREE.Vector3())
+          const maxDim = Math.max(size.x, size.y, size.z)
+          const targetSize = (layer.scale ?? 1) * (this.triggerW * 0.5)
+          model.scale.setScalar(targetSize / maxDim)
+          box.setFromObject(model)
+          const center = box.getCenter(new THREE.Vector3())
+          model.position.sub(center)
+          const half = this.triggerW / 2
+          model.position.x += layer.posX * half
+          model.position.y += baseElevation
+          model.position.z += layer.posY * half
+          model.rotation.set(DEG(layer.rotX ?? 0), DEG(layer.rotY ?? 0), DEG(layer.rotZ ?? 0))
+          this.scene.add(model)
+          const existing = this.layers.get(layer.id)
+          if (existing) existing.mesh = model
+          if (wasSelected) {
+            this.transformControls?.attach(model)
+            if (this.boxHelper) { this.scene!.remove(this.boxHelper) }
+            this.boxHelper = new THREE.BoxHelper(model, 0xe63329)
+            this.scene.add(this.boxHelper)
+            this.showDimLabel(model, layer)
+          }
+        }, undefined, (err) => {
+          console.error('GLB load error:', err)
+        })
+        return
+      } else {
+        mat = new THREE.MeshLambertMaterial({ color: this.typeColor(layer.type), transparent: true, opacity: layer.file ? 0.45 : 0.3, side: THREE.DoubleSide, wireframe: !layer.file })
+      }
     }
 
     const mesh = new THREE.Mesh(geo, mat)
@@ -289,10 +330,17 @@ export class Preview3D {
       this.transformControls?.detach()
       if (this.boxHelper) { this.scene.remove(this.boxHelper); this.boxHelper = null }
     }
-    this.scene.remove(entry.mesh)
-    ;(entry.mesh.material as THREE.MeshLambertMaterial).map?.dispose()
-    ;(entry.mesh.material as THREE.MeshLambertMaterial).dispose()
-    entry.mesh.geometry.dispose()
+    if (entry.mesh) {
+      this.scene.remove(entry.mesh)
+      entry.mesh.traverse((child) => {
+        if ((child as THREE.Mesh).isMesh) {
+          const m = child as THREE.Mesh
+          if (m.geometry) m.geometry.dispose()
+          if (Array.isArray(m.material)) m.material.forEach(mat => mat.dispose())
+          else if (m.material) (m.material as THREE.Material).dispose()
+        }
+      })
+    }
     if (entry.videoEl) { entry.videoEl.pause(); entry.videoEl.src = '' }
     if (entry.objectURL) URL.revokeObjectURL(entry.objectURL)
     this.layers.delete(id)

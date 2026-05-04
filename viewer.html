@@ -690,7 +690,7 @@
     }, 600);
   }
 
-  async function buildCapasEntities() {
+  async function buildCapasEntities(baseRotX = -90) {
     const BP = `${BASE}/proyectos/${PROJECT}/`;
     const tw = CFG.anchoReal || 20;
     const th = CFG.altoReal  || 20;
@@ -722,31 +722,46 @@
         const tz = axis === 'z' ? (posZaf + amp).toFixed(4) : posZaf.toFixed(4)
         anim = `animation__float="property:position;from:${posX.toFixed(4)} ${posY.toFixed(4)} ${posZaf.toFixed(4)};to:${tx} ${ty} ${tz};dir:alternate;loop:true;dur:${dur};delay:${dly};easing:easeInOutSine"`
       }
-      const baseRotX = CFG.modo === 'world' ? (capa.rotX||0) - 90 : (capa.rotX||0);
+      const correctedRotX = CFG.modo === 'world' ? (capa.rotX||0) + baseRotX : (capa.rotX||0);
       if (capa.entrada === 'rotate') {
         const axis = capa.animationAxis ?? 'y'
         const toRot = axis === 'x'
-          ? `${baseRotX+360} ${capa.rotY||0} ${capa.rotZ||0}`
+          ? `${correctedRotX+360} ${capa.rotY||0} ${capa.rotZ||0}`
           : axis === 'z'
-          ? `${baseRotX} ${capa.rotY||0} ${(capa.rotZ||0)+360}`
-          : `${baseRotX} ${(capa.rotY||0)+360} ${capa.rotZ||0}`
-        anim = `animation__rot="property:rotation;from:${baseRotX} ${capa.rotY||0} ${capa.rotZ||0};to:${toRot};loop:true;dur:${dur};easing:linear"`
+          ? `${correctedRotX} ${capa.rotY||0} ${(capa.rotZ||0)+360}`
+          : `${correctedRotX} ${(capa.rotY||0)+360} ${capa.rotZ||0}`
+        anim = `animation__rot="property:rotation;from:${correctedRotX} ${capa.rotY||0} ${capa.rotZ||0};to:${toRot};loop:true;dur:${dur};easing:linear"`
       }
       const scl = `${s} ${s} ${s}`;
 
-      const rot = `${baseRotX} ${capa.rotY||0} ${capa.rotZ||0}`;
+      const rot = `${correctedRotX} ${capa.rotY||0} ${capa.rotZ||0}`;
       switch (capa.tipo) {
         case 'video': {
           if (!['mp4','webm','mov'].includes(ext)) return '';
           const vAspect = capa.aspectRatio || ratio;
           const vw = 1, vh = (1 / vAspect).toFixed(4);
           const isAlpha = ['webm','mov'].includes(ext);
+          const videoId = `wv-${sortedIdx}`;
+          const assets = document.querySelector('a-assets') || (() => {
+            const a = document.createElement('a-assets');
+            document.querySelector('a-scene')?.appendChild(a);
+            return a;
+          })();
+          const vTag = document.createElement('video');
+          vTag.id = videoId;
+          vTag.src = src;
+          vTag.setAttribute('autoplay', '');
+          vTag.setAttribute('loop', '');
+          vTag.setAttribute('playsinline', '');
+          vTag.setAttribute('webkit-playsinline', '');
+          vTag.setAttribute('crossorigin', 'anonymous');
+          vTag.muted = true;
+          assets.appendChild(vTag);
           const mat = isAlpha
-            ? `material="src:${src};transparent:true;alphaTest:0.05;opacity:${op}"`
-            : `material="src:${src};opacity:${op}"`;
-          return `<a-video id="arc-${sortedIdx}" src="${src}" width="${vw}" height="${vh}"
-            position="${pos}" rotation="${rot}" scale="${scl}" loop="${loop}"
-            playsinline="true" webkit-playsinline="true" ${mat} ${anim}></a-video>`;
+            ? `material="src:#${videoId};transparent:true;alphaTest:0.05;opacity:${op}"`
+            : `material="src:#${videoId};opacity:${op}"`;
+          return `<a-plane id="arc-${sortedIdx}" width="${vw}" height="${vh}"
+            position="${pos}" rotation="${rot}" scale="${scl}" ${mat} ${anim}></a-plane>`;
         }
         case 'image':
         case 'gif': {
@@ -769,13 +784,13 @@
         case 'glb':
         case 'gltf':
         case 'model': {
-          let sclFinal = scl
-          if (capa.anchoReal && capa.altoReal) {
-            const factor = capa.unidadReal === 'm' ? 1 : 0.01
-            const targetW = capa.anchoReal * factor
-            const targetH = capa.altoReal * factor
-            const targetD = (capa.profReal || capa.anchoReal) * factor
-            sclFinal = `${targetW} ${targetH} ${targetD}`
+          let sclFinal = scl;
+          if (capa.anchoReal) {
+            const factor = capa.unidadReal === 'm' ? 1 : 0.01;
+            const w = (capa.anchoReal * factor).toFixed(4);
+            const h = ((capa.altoReal || capa.anchoReal) * factor).toFixed(4);
+            const d = ((capa.profReal || capa.anchoReal) * factor).toFixed(4);
+            sclFinal = `${w} ${h} ${d}`;
           }
           return `<a-gltf-model id="arc-${sortedIdx}" src="${src}"
             position="${pos}" rotation="${rot}" scale="${sclFinal}" shadow="cast:true;receive:false" ${anim}></a-gltf-model>`;
@@ -870,9 +885,9 @@
     }, 600);
   }
 
-  // WORLD AR — getUserMedia + A-Frame embedded con fondo transparente
+  // WORLD AR — getUserMedia + A-Frame embedded con escaneo de superficie
   async function initWorldAR() {
-    setSplash('Preparando AR...');
+    setSplash('Iniciando cámara...');
 
     const videoEl = document.createElement('video');
     videoEl.setAttribute('autoplay', '');
@@ -892,7 +907,98 @@
       console.warn('Cámara no disponible:', e);
     }
 
-    const entities = await buildCapasEntities();
+    hideSplash();
+
+    const scanOverlay = document.createElement('div');
+    scanOverlay.id = 'worldScanOverlay';
+    scanOverlay.style.cssText = 'position:fixed;inset:0;z-index:2;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none;';
+    scanOverlay.innerHTML = `
+      <canvas id="scanCanvas" style="position:absolute;inset:0;width:100%;height:100%;opacity:0.85;"></canvas>
+      <div style="position:relative;z-index:3;background:rgba(0,0,0,0.55);border-radius:20px;padding:12px 24px;margin-top:60vh;">
+        <span id="scanMsg" style="color:#fff;font-size:14px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;">Mueve el dispositivo lentamente</span>
+      </div>`;
+    document.body.appendChild(scanOverlay);
+
+    const canvas = document.getElementById('scanCanvas');
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    const ctx = canvas.getContext('2d');
+    const dots = [];
+    const ROWS = 12, COLS = 20;
+    let scanProgress = 0;
+    let scanDone = false;
+
+    for (let r = 0; r < ROWS; r++) {
+      for (let c = 0; c < COLS; c++) {
+        dots.push({
+          x: (c / (COLS - 1)) * canvas.width,
+          y: (r / (ROWS - 1)) * canvas.height * 0.6 + canvas.height * 0.2,
+          lit: false,
+          delay: (r * COLS + c) * 18
+        });
+      }
+    }
+
+    let frame = 0;
+    const scanAnim = setInterval(() => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      frame += 16;
+      let litCount = 0;
+      dots.forEach(d => {
+        if (frame > d.delay) d.lit = true;
+        if (d.lit) litCount++;
+        const alpha = d.lit ? 0.7 + 0.3 * Math.sin(frame / 300 + d.x) : 0.15;
+        const color = d.lit ? `rgba(100,220,255,${alpha})` : `rgba(100,180,255,0.15)`;
+        ctx.beginPath();
+        ctx.arc(d.x, d.y, d.lit ? 3 : 2, 0, Math.PI * 2);
+        ctx.fillStyle = color;
+        ctx.fill();
+        if (d.lit) {
+          dots.forEach(d2 => {
+            if (!d2.lit) return;
+            const dx = d2.x - d.x, dy = d2.y - d.y;
+            const dist = Math.sqrt(dx*dx + dy*dy);
+            if (dist < canvas.width / COLS * 1.8) {
+              ctx.beginPath();
+              ctx.moveTo(d.x, d.y);
+              ctx.lineTo(d2.x, d2.y);
+              ctx.strokeStyle = `rgba(100,220,255,${0.15 * alpha})`;
+              ctx.lineWidth = 0.5;
+              ctx.stroke();
+            }
+          });
+        }
+      });
+      scanProgress = litCount / dots.length;
+      if (scanProgress > 0.85 && !scanDone) {
+        scanDone = true;
+        document.getElementById('scanMsg').textContent = '✓ Superficie detectada';
+        setTimeout(() => finalizarWorldAR(scanOverlay, videoEl), 1200);
+        clearInterval(scanAnim);
+      }
+    }, 16);
+
+    window._worldSurfaceVertical = false;
+    if (window.DeviceOrientationEvent) {
+      const onOrient = (e) => {
+        if (e.beta !== null) {
+          window._worldSurfaceVertical = Math.abs(e.beta) > 45;
+        }
+        window.removeEventListener('deviceorientation', onOrient);
+      };
+      window.addEventListener('deviceorientation', onOrient);
+    }
+  }
+
+  async function finalizarWorldAR(scanOverlay, videoEl) {
+    scanOverlay.style.transition = 'opacity 0.6s';
+    scanOverlay.style.opacity = '0';
+    setTimeout(() => scanOverlay.remove(), 700);
+
+    const isVertical = window._worldSurfaceVertical || false;
+    const baseRotX = isVertical ? 0 : -90;
+
+    const entities = await buildCapasEntities(baseRotX);
     const sceneDiv = document.getElementById('arScene');
 
     sceneDiv.innerHTML = `
@@ -906,7 +1012,7 @@
         style="width:100vw;height:100vh;position:fixed;inset:0;z-index:1;background:transparent;">
         <a-light type="ambient" intensity="0.8"></a-light>
         <a-light type="directional" intensity="1.5" position="2 6 3" light="castShadow:true;shadowMapWidth:2048;shadowMapHeight:2048;shadowCameraTop:5;shadowCameraBottom:-5;shadowCameraLeft:-5;shadowCameraRight:5;shadowBias:-0.001"></a-light>
-        <a-plane position="0 0 -1.5" rotation="-90 0 0" width="20" height="20" shadow="receive:true;cast:false" material="shader:shadow;opacity:0.5"></a-plane>
+        <a-plane position="0 0 -1.5" rotation="-90 0 0" width="20" height="20" shadow="receive:true;cast:false" material="shader:shadow;opacity:0.4"></a-plane>
         <a-camera position="0 1.6 0" look-controls="enabled:true" wasd-controls="enabled:false"></a-camera>
         <a-entity id="worldAnchor" position="0 0 -1.5">
           ${entities}
@@ -914,12 +1020,8 @@
       </a-scene>`;
 
     setTimeout(() => {
-      const canvas = sceneDiv.querySelector('canvas')
-      if (canvas) {
-        canvas.style.cssText = 'position:fixed;inset:0;z-index:1;width:100%;height:100%;'
-        const gl = canvas.getContext('webgl') || canvas.getContext('webgl2')
-        if (gl) gl.clearColor(0, 0, 0, 0)
-      }
+      const canvas = sceneDiv.querySelector('canvas');
+      if (canvas) canvas.style.cssText = 'position:fixed;inset:0;z-index:1;width:100%;height:100%;';
     }, 500);
 
     sceneDiv.classList.add('show');

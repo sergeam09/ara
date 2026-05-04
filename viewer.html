@@ -700,13 +700,10 @@
 
     const entities = (await Promise.all(sortedCapas.map(async (capa, sortedIdx) => {
       if (!capa.archivo && capa.tipo !== 'texto' && capa.tipo !== 'text') return '';
-      const posX = capa.posX ?? 0;
-      const posY = capa.posY ?? 0;
-      // Use actual posZ (0=background, 200=foreground) for real depth separation.
-      // Maps to 0.003–0.303 A-Frame units in front of trigger surface.
-      // sortedIdx * 0.002 prevents z-fighting between same-posZ layers.
+      const posX = (capa.posX ?? 0) * ratio;
+      const posY = (capa.posY ?? 0) * (1 / ratio);
       const posZaf = (capa.posZ ?? 1) / 200 * 0.5 + (sortedIdx * 0.005) + 0.01;
-      const pos  = `${posX} ${posY} ${posZaf.toFixed(4)}`;
+      const pos  = `${posX.toFixed(4)} ${posY.toFixed(4)} ${posZaf.toFixed(4)}`;
       const s    = capa.escala   ?? 1;
       const op   = capa.opacidad ?? 1;
       const loop = capa.loop !== false;
@@ -714,12 +711,12 @@
       const ext  = capa.archivo ? capa.archivo.split('.').pop().toLowerCase() : '';
       const dur  = capa.animDuration  ?? (capa.entrada === 'fade' ? 800 : capa.entrada === 'scale' ? 600 : capa.entrada === 'rotate' ? 6000 : 2000);
       const dly  = capa.animDelay    ?? 0;
-      const amp  = capa.animAmplitude ?? 0.07;
+      const amp  = (capa.animAmplitude ?? 0.07) * ratio;
       let anim = '';
       // No startEvents — animations autoplay; targetFound listener below replays them
       if (capa.entrada === 'fade')   anim  = `animation__in="property:material.opacity;from:0;to:${op};dur:${dur};delay:${dly}"`;
       if (capa.entrada === 'scale')  anim  = `animation__in="property:scale;from:0 0 0;to:${s} ${s} ${s};dur:${dur};delay:${dly}"`;
-      if (capa.entrada === 'float')  anim += ` animation__float="property:position;from:${posX} ${posY} ${posZaf.toFixed(4)};to:${posX} ${posY} ${(posZaf + amp * 0.3).toFixed(4)};dir:alternate;loop:true;dur:${dur};delay:${dly};easing:easeInOutSine"`;
+      if (capa.entrada === 'float')  anim += ` animation__float="property:position;from:${posX.toFixed(4)} ${posY.toFixed(4)} ${posZaf.toFixed(4)};to:${posX.toFixed(4)} ${posY.toFixed(4)} ${(posZaf + amp * 0.5).toFixed(4)};dir:alternate;loop:true;dur:${dur};delay:${dly};easing:easeInOutSine"`;
       if (capa.entrada === 'rotate') anim += ` animation__rot="property:rotation;from:${capa.rotX||0} 0 ${capa.rotZ||0};to:${capa.rotX||0} 360 ${capa.rotZ||0};loop:true;dur:${dur};easing:linear"`;
       const scl = `${s} ${s} ${s}`;
 

@@ -442,7 +442,7 @@ function setupPublish() {
   btn.addEventListener('click', async () => {
     const nombre = (document.getElementById('inputNombre') as HTMLInputElement).value.trim()
     if (!nombre) { alert('Ingresa un nombre para el proyecto'); return }
-    if (!triggerUploader.getTriggerFile()) { alert('Selecciona una imagen trigger'); return }
+    if (arModo === 'image' && !triggerUploader.getTriggerFile()) { alert('Selecciona una imagen trigger'); return }
     const layers = layerManager.getAllLayers()
     const validLayers = layers.filter(l => l.file || l.type === 'texto')
     if (validLayers.length === 0) { alert('Agrega al menos una capa con archivo o texto'); return }

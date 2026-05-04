@@ -23,6 +23,10 @@ export interface Layer {
   extrusionDepth?: number
   fontTexto?: string
   alignTexto?: 'left' | 'center' | 'right'
+  anchoReal?: number
+  altoReal?: number
+  profReal?: number
+  unidadReal?: 'cm' | 'm'
 }
 
 export interface Project {

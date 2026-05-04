@@ -711,16 +711,16 @@
       const dly  = capa.animationDelay   ?? capa.animDelay    ?? 0;
       const ampRaw = capa.animationAmplitude ?? capa.animAmplitude ?? 0.07;
       const amp  = ampRaw * ratio;
-      const axis = capa.animationAxis ?? 'y';
       let anim = '';
       // No startEvents — animations autoplay; targetFound listener below replays them
       if (capa.entrada === 'fade')   anim  = `animation__in="property:material.opacity;from:0;to:${op};dur:${dur};delay:${dly}"`;
       if (capa.entrada === 'scale')  anim  = `animation__in="property:scale;from:0 0 0;to:${s} ${s} ${s};dur:${dur};delay:${dly}"`;
       if (capa.entrada === 'float') {
-        const tx = axis === 'x' ? (posX + amp).toFixed(4) : posX.toFixed(4);
-        const ty = axis === 'z' ? (posY + amp).toFixed(4) : posY.toFixed(4);
-        const tz = axis === 'y' ? (posZaf + amp).toFixed(4) : posZaf.toFixed(4);
-        anim = `animation__float="property:position;from:${posX.toFixed(4)} ${posY.toFixed(4)} ${posZaf.toFixed(4)};to:${tx} ${ty} ${tz};dir:alternate;loop:true;dur:${dur};delay:${dly};easing:easeInOutSine"`;
+        const axis = capa.animationAxis ?? 'z'
+        const tx = axis === 'x' ? (posX + amp).toFixed(4) : posX.toFixed(4)
+        const ty = axis === 'y' ? (posY + amp).toFixed(4) : posY.toFixed(4)
+        const tz = axis === 'z' ? (posZaf + amp).toFixed(4) : posZaf.toFixed(4)
+        anim = `animation__float="property:position;from:${posX.toFixed(4)} ${posY.toFixed(4)} ${posZaf.toFixed(4)};to:${tx} ${ty} ${tz};dir:alternate;loop:true;dur:${dur};delay:${dly};easing:easeInOutSine"`
       }
       if (capa.entrada === 'rotate') {
         const axis = capa.animationAxis ?? 'y'
@@ -768,9 +768,17 @@
         case 'glb':
         case 'gltf':
         case 'model': {
-          const rot3d = `${capa.rotX||0} ${capa.rotY||0} ${capa.rotZ||0}`;
+          let sclFinal = scl
+          if (capa.anchoReal && capa.altoReal) {
+            const factor = capa.unidadReal === 'm' ? 1 : 0.01
+            const targetW = capa.anchoReal * factor
+            const targetH = capa.altoReal * factor
+            const targetD = (capa.profReal || capa.anchoReal) * factor
+            sclFinal = `${targetW} ${targetH} ${targetD}`
+          }
+          const rot3d = `${(capa.rotX||0) - 90} ${capa.rotY||0} ${capa.rotZ||0}`
           return `<a-gltf-model id="arc-${sortedIdx}" src="${src}"
-            position="${pos}" rotation="${rot3d}" scale="${scl}" shadow="cast:true;receive:false" ${anim}></a-gltf-model>`;
+            position="${pos}" rotation="${rot3d}" scale="${sclFinal}" shadow="cast:true;receive:false" ${anim}></a-gltf-model>`;
         }
         case 'texto':
         case 'text': {
@@ -891,14 +899,14 @@
       <a-scene
         embedded
         shadow="type:pcfsoft;autoUpdate:true"
-        renderer="colorManagement:true;physicallyCorrectLights:true;alpha:true;shadowMapEnabled:true;shadowMapType:2"
+        renderer="colorManagement:true;physicallyCorrectLights:true;shadowMapEnabled:true"
         vr-mode-ui="enabled:false"
         device-orientation-permission-ui="enabled:false"
         loading-screen="enabled:false"
         style="width:100vw;height:100vh;position:fixed;inset:0;z-index:1;background:transparent;">
-        <a-light type="ambient" intensity="1.2"></a-light>
-        <a-light type="directional" intensity="1.5" position="1 4 2" light="castShadow:true;shadowMapWidth:1024;shadowMapHeight:1024;shadowCameraTop:5;shadowCameraBottom:-5;shadowCameraLeft:-5;shadowCameraRight:5"></a-light>
-        <a-plane position="0 -0.01 -1.5" rotation="-90 0 0" width="20" height="20" material="color:#ffffff;opacity:0.01;transparent:true;depthWrite:false" shadow="receive:true;cast:false"></a-plane>
+        <a-light type="ambient" intensity="0.8"></a-light>
+        <a-light type="directional" intensity="1.5" position="2 6 3" light="castShadow:true;shadowMapWidth:2048;shadowMapHeight:2048;shadowCameraTop:5;shadowCameraBottom:-5;shadowCameraLeft:-5;shadowCameraRight:5;shadowBias:-0.001"></a-light>
+        <a-plane position="0 0 -1.5" rotation="-90 0 0" width="20" height="20" shadow="receive:true;cast:false" material="shader:shadow;opacity:0.5"></a-plane>
         <a-camera position="0 1.6 0" look-controls="enabled:true" wasd-controls="enabled:false"></a-camera>
         <a-entity id="worldAnchor" position="0 0 -1.5">
           ${entities}
@@ -906,12 +914,11 @@
       </a-scene>`;
 
     setTimeout(() => {
-      const canvas = sceneDiv.querySelector('canvas');
+      const canvas = sceneDiv.querySelector('canvas')
       if (canvas) {
-        canvas.style.background = 'transparent';
-        canvas.style.position = 'fixed';
-        canvas.style.inset = '0';
-        canvas.style.zIndex = '1';
+        canvas.style.cssText = 'position:fixed;inset:0;z-index:1;width:100%;height:100%;'
+        const gl = canvas.getContext('webgl') || canvas.getContext('webgl2')
+        if (gl) gl.clearColor(0, 0, 0, 0)
       }
     }, 500);
 

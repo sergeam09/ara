@@ -217,6 +217,25 @@ function updatePropsPanel(layer) {
     set2('propAnimDuration', layer.animationDuration ?? (activeAnim === 'fade' ? 800 : activeAnim === 'scale' ? 600 : activeAnim === 'rotate' ? 6000 : 2000));
     set2('propAnimDelay', layer.animationDelay ?? 0);
     set2('propAnimAmplitude', layer.animationAmplitude ?? (activeAnim === 'rotate' ? 6000 : 0.04));
+    // GLB medidas reales
+    const glbPanel = document.getElementById('glbMedidasPanel');
+    if (glbPanel)
+        glbPanel.style.display = layer.type === 'glb' ? 'block' : 'none';
+    if (layer.type === 'glb') {
+        const anchoEl = document.getElementById('propGlbAncho');
+        const altoEl = document.getElementById('propGlbAlto');
+        const profEl = document.getElementById('propGlbProf');
+        if (anchoEl)
+            anchoEl.value = (layer.anchoReal ?? '').toString();
+        if (altoEl)
+            altoEl.value = (layer.altoReal ?? '').toString();
+        if (profEl)
+            profEl.value = (layer.profReal ?? '').toString();
+        const unidad = layer.unidadReal || 'cm';
+        document.querySelectorAll('[data-unidad]').forEach(btn => {
+            btn.classList.toggle('active', btn.getAttribute('data-unidad') === unidad);
+        });
+    }
     updateSliderValues(layer);
 }
 function updateSliderValues(layer) {
@@ -372,6 +391,29 @@ function setupSliders() {
                 layerManager.updateLayer(active.id, { fontTexto: fontSel.value });
         });
     }
+    document.getElementById('propGlbAncho')?.addEventListener('change', (e) => {
+        const v = parseFloat(e.target.value);
+        if (!isNaN(v))
+            layerManager.updateLayer(layerManager.getActiveLayer().id, { anchoReal: v });
+    });
+    document.getElementById('propGlbAlto')?.addEventListener('change', (e) => {
+        const v = parseFloat(e.target.value);
+        if (!isNaN(v))
+            layerManager.updateLayer(layerManager.getActiveLayer().id, { altoReal: v });
+    });
+    document.getElementById('propGlbProf')?.addEventListener('change', (e) => {
+        const v = parseFloat(e.target.value);
+        if (!isNaN(v))
+            layerManager.updateLayer(layerManager.getActiveLayer().id, { profReal: v });
+    });
+    document.querySelectorAll('[data-unidad]').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('[data-unidad]').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            const u = btn.getAttribute('data-unidad');
+            layerManager.updateLayer(layerManager.getActiveLayer().id, { unidadReal: u });
+        });
+    });
     // Animation parameter sliders
     const animSlider = (id, field, dispId, fmt) => {
         const el = document.getElementById(id);

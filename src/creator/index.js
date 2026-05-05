@@ -235,9 +235,12 @@ function updatePropsPanel(layer) {
             if (profEl)
                 profEl.value = layer.profReal != null ? layer.profReal.toString() : '';
             const unidad = layer.unidadReal || 'cm';
-            document.querySelectorAll('[data-unidad]').forEach(btn => {
+            document.querySelectorAll('.unit-btn[data-unidad]').forEach(btn => {
                 btn.classList.toggle('active', btn.getAttribute('data-unidad') === unidad);
             });
+            const lblEl = document.getElementById('lblUnidad');
+            if (lblEl)
+                lblEl.textContent = unidad;
         }
     }
     updateSliderValues(layer);
@@ -396,6 +399,7 @@ function setupSliders() {
         });
     }
     // Cuando el usuario edita una medida, las otras dos se ajustan proporcionalmente
+    // y el modelo 3D se reescala en vivo (evento 'input' = update instantáneo)
     const scaleProporcionalmente = (axis, newVal) => {
         const active = layerManager.getActiveLayer();
         if (!active)
@@ -415,36 +419,46 @@ function setupSliders() {
             return;
         }
         const ratio = axis === 'ancho' ? newVal / a : axis === 'alto' ? newVal / b : newVal / c;
-        layerManager.updateLayer(active.id, {
-            anchoReal: parseFloat((a * ratio).toFixed(2)),
-            altoReal: parseFloat((b * ratio).toFixed(2)),
-            profReal: parseFloat((c * ratio).toFixed(2))
-        });
-        const after = layerManager.getActiveLayer();
-        if (after)
-            updatePropsPanel(after);
+        const newAncho = parseFloat((a * ratio).toFixed(2));
+        const newAlto = parseFloat((b * ratio).toFixed(2));
+        const newProf = parseFloat((c * ratio).toFixed(2));
+        layerManager.updateLayer(active.id, { anchoReal: newAncho, altoReal: newAlto, profReal: newProf });
+        // Actualizar SOLO los otros dos campos (sin tocar el que el usuario está escribiendo)
+        if (axis !== 'ancho') {
+            const el = document.getElementById('propGlbAncho');
+            if (el)
+                el.value = newAncho.toString();
+        }
+        if (axis !== 'alto') {
+            const el = document.getElementById('propGlbAlto');
+            if (el)
+                el.value = newAlto.toString();
+        }
+        if (axis !== 'prof') {
+            const el = document.getElementById('propGlbProf');
+            if (el)
+                el.value = newProf.toString();
+        }
     };
-    document.getElementById('propGlbAncho')?.addEventListener('change', (e) => {
+    const onMedidaInput = (axis, e) => {
         const v = parseFloat(e.target.value);
         if (!isNaN(v) && v > 0)
-            scaleProporcionalmente('ancho', v);
-    });
-    document.getElementById('propGlbAlto')?.addEventListener('change', (e) => {
-        const v = parseFloat(e.target.value);
-        if (!isNaN(v) && v > 0)
-            scaleProporcionalmente('alto', v);
-    });
-    document.getElementById('propGlbProf')?.addEventListener('change', (e) => {
-        const v = parseFloat(e.target.value);
-        if (!isNaN(v) && v > 0)
-            scaleProporcionalmente('prof', v);
-    });
-    document.querySelectorAll('[data-unidad]').forEach(btn => {
+            scaleProporcionalmente(axis, v);
+    };
+    document.getElementById('propGlbAncho')?.addEventListener('input', e => onMedidaInput('ancho', e));
+    document.getElementById('propGlbAlto')?.addEventListener('input', e => onMedidaInput('alto', e));
+    document.getElementById('propGlbProf')?.addEventListener('input', e => onMedidaInput('prof', e));
+    // Selector de unidad cm/m
+    document.querySelectorAll('.unit-btn[data-unidad]').forEach(btn => {
         btn.addEventListener('click', () => {
-            document.querySelectorAll('[data-unidad]').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
             const u = btn.getAttribute('data-unidad');
-            layerManager.updateLayer(layerManager.getActiveLayer().id, { unidadReal: u });
+            document.querySelectorAll('.unit-btn[data-unidad]').forEach(b => b.classList.toggle('active', b === btn));
+            const lblEl = document.getElementById('lblUnidad');
+            if (lblEl)
+                lblEl.textContent = u;
+            const active = layerManager.getActiveLayer();
+            if (active)
+                layerManager.updateLayer(active.id, { unidadReal: u });
         });
     });
     // Animation parameter sliders

@@ -541,12 +541,14 @@ export class Preview3D {
                     entry.mesh = model;
                     entry.glbLoaded = true;
                 }
-                // Fire dimensions callback with raw dimensions (before scaling)
-                this.onGlbDimensions?.(layer.id, {
-                    ancho: parseFloat((rawSize.x * 100).toFixed(1)),
-                    alto: parseFloat((rawSize.y * 100).toFixed(1)),
-                    prof: parseFloat((rawSize.z * 100).toFixed(1))
-                });
+                // Fire dimensions callback ONLY on first load (when no real dims set yet)
+                if (layer.anchoReal == null && layer.altoReal == null && layer.profReal == null) {
+                    this.onGlbDimensions?.(layer.id, {
+                        ancho: parseFloat((rawSize.x * 100).toFixed(1)),
+                        alto: parseFloat((rawSize.y * 100).toFixed(1)),
+                        prof: parseFloat((rawSize.z * 100).toFixed(1))
+                    });
+                }
                 // If still active layer, now attach TransformControls safely
                 if (this.activeLayerId === layer.id && this.transformControls && this.scene) {
                     this.transformControls.attach(model);

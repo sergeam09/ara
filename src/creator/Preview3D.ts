@@ -243,18 +243,21 @@ export class Preview3D {
         const rawBbox = new THREE.Box3().setFromObject(gltf.scene)
         const rawSize = rawBbox.getSize(new THREE.Vector3())
 
-        // Scale: use real cm dimensions if set (any of the 3 axes), otherwise scale slider
-        const unitFactor = layer.unidadReal === 'm' ? 1 : 0.01
+        // Scale: defaultScale fills half the trigger regardless of GLTF units.
+        // When user sets real dimensions, apply a ratio over the raw cm measurement.
+        // rawSize is in GLTF meters → rawSize * 100 = cm equivalent.
+        const rawMaxDim = Math.max(rawSize.x, rawSize.y, rawSize.z) || 1
+        const defaultScale = ((layer.scale ?? 1) * triggerWidth * 0.5) / rawMaxDim
+        const toCm = (v: number) => layer.unidadReal === 'm' ? v * 100 : v
         let scaleFactor: number
         if (layer.anchoReal && layer.anchoReal > 0 && rawSize.x > 0) {
-          scaleFactor = (layer.anchoReal * unitFactor) / rawSize.x
+          scaleFactor = defaultScale * (toCm(layer.anchoReal) / (rawSize.x * 100))
         } else if (layer.altoReal && layer.altoReal > 0 && rawSize.y > 0) {
-          scaleFactor = (layer.altoReal * unitFactor) / rawSize.y
+          scaleFactor = defaultScale * (toCm(layer.altoReal) / (rawSize.y * 100))
         } else if (layer.profReal && layer.profReal > 0 && rawSize.z > 0) {
-          scaleFactor = (layer.profReal * unitFactor) / rawSize.z
+          scaleFactor = defaultScale * (toCm(layer.profReal) / (rawSize.z * 100))
         } else {
-          const maxDim = Math.max(rawSize.x, rawSize.y, rawSize.z) || 1
-          scaleFactor = ((layer.scale ?? 1) * (triggerWidth * 0.5)) / maxDim
+          scaleFactor = defaultScale
         }
         model.scale.setScalar(scaleFactor)
 

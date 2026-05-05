@@ -5,12 +5,22 @@ export class SceneBuilder {
         const triggerPath = `${contentPath}/trigger.${triggerExt}`;
         // Sort layers by posZ DESCENDING: highest posZ (farthest from camera) renders first = stays behind
         const capas = [...config.capas].sort((a, b) => b.posZ - a.posZ);
+        // Trigger real width in cm (for scaling GLB to real-world size in image tracking)
+        const triggerCm = config.anchoReal || 21;
         let entities = '';
         for (let idx = 0; idx < capas.length; idx++) {
             const capa = capas[idx];
             const layerPath = `${contentPath}/${capa.archivo}`;
             const pos = `${capa.posX} ${capa.posY} ${this.calcZ(idx, capas.length)}`;
-            const scl = `${capa.escala} ${capa.escala} ${capa.escala}`;
+            // GLB with real dimensions: scale = (anchoReal / triggerCm) / (anchoRaw / 100)
+            // MindAR: 1 A-Frame unit = trigger width. GLTF: 1 unit = 1m = 100cm.
+            let sclVal = capa.escala;
+            const isGlb = capa.tipo === 'glb' || capa.tipo === 'gltf';
+            if (isGlb && capa.anchoReal && capa.anchoRaw && capa.anchoRaw > 0) {
+                const toCm = (v) => capa.unidadReal === 'm' ? v * 100 : v;
+                sclVal = (toCm(capa.anchoReal) * 100) / (triggerCm * capa.anchoRaw);
+            }
+            const scl = `${sclVal} ${sclVal} ${sclVal}`;
             const alpha = `transparent:true;alphaTest:0.01;opacity:${capa.opacidad}`;
             if (capa.tipo === 'video') {
                 const ext = capa.archivo.split('.').pop()?.toLowerCase() || '';

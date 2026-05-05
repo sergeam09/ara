@@ -27,6 +27,9 @@ export interface Layer {
   altoReal?: number
   profReal?: number
   unidadReal?: 'cm' | 'm'
+  anchoRaw?: number   // raw GLB dimension in cm (never changed by user)
+  altoRaw?: number
+  profRaw?: number
 }
 
 export interface Project {
@@ -82,5 +85,12 @@ export interface PublishConfig {
     entrada?: string
     delay?: number
     loop?: boolean
+    anchoReal?: number
+    altoReal?: number
+    profReal?: number
+    anchoRaw?: number
+    altoRaw?: number
+    profRaw?: number
+    unidadReal?: 'cm' | 'm'
   }>
 }

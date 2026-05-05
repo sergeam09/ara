@@ -704,11 +704,14 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (anchoEl) anchoEl.value = dims.ancho.toString()
       if (altoEl)  altoEl.value  = dims.alto.toString()
       if (profEl)  profEl.value  = dims.prof.toString()
-      // Guardar en el layer
+      // Guardar en el layer: anchoReal (editable) + anchoRaw (fijo, dimensión original del GLB)
       layerManager.updateLayer(id, {
         anchoReal: dims.ancho,
         altoReal:  dims.alto,
-        profReal:  dims.prof
+        profReal:  dims.prof,
+        anchoRaw:  dims.ancho,
+        altoRaw:   dims.alto,
+        profRaw:   dims.prof
       })
     }
   }

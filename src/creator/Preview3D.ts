@@ -290,8 +290,8 @@ export class Preview3D {
           })
         }
 
-        // If still active layer, now attach TransformControls safely
-        if (this.activeLayerId === layer.id && this.transformControls && this.scene) {
+        // If still active layer AND model is still in scene (not removed by subscriber reload)
+        if (this.activeLayerId === layer.id && this.transformControls && this.scene && model.parent) {
           this.transformControls.attach(model)
           this.boxHelper = new THREE.BoxHelper(model, 0xe63329)
           this.scene.add(this.boxHelper)

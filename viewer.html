@@ -732,7 +732,14 @@
           : `${correctedRotX} ${(capa.rotY||0)+360} ${capa.rotZ||0}`
         anim = `animation__rot="property:rotation;from:${correctedRotX} ${capa.rotY||0} ${capa.rotZ||0};to:${toRot};loop:true;dur:${dur};easing:linear"`
       }
-      const scl = `${s} ${s} ${s}`;
+      // For GLB in world mode: scale = anchoReal / anchoRaw (both cm)
+      // A-Frame world mode: 1 unit = 1 meter. GLB 1 unit = 1m. So scale = anchoReal_cm / anchoRaw_cm
+      let sWorld = s;
+      if ((capa.tipo === 'glb' || capa.tipo === 'gltf') && capa.anchoReal && capa.anchoRaw && capa.anchoRaw > 0) {
+        const realCm = capa.unidadReal === 'm' ? capa.anchoReal * 100 : capa.anchoReal;
+        sWorld = realCm / capa.anchoRaw;
+      }
+      const scl = `${sWorld} ${sWorld} ${sWorld}`;
 
       const rot = `${correctedRotX} ${capa.rotY||0} ${capa.rotZ||0}`;
       switch (capa.tipo) {
@@ -885,32 +892,138 @@
     }, 600);
   }
 
-  // WORLD AR — getUserMedia + A-Frame embedded con escaneo de superficie
+  // WORLD AR — WebXR hit test real (ARCore/ARKit) con fallback a scan animado
   async function initWorldAR() {
-    setSplash('Iniciando cámara...');
+    setSplash('Iniciando AR...');
+    hideSplash();
 
+    // Intenta WebXR hit test (Android ARCore / iOS WebXR)
+    const xrSupported = navigator.xr
+      && await navigator.xr.isSessionSupported('immersive-ar').catch(() => false);
+
+    if (xrSupported) {
+      await initXRHitTest();
+    } else {
+      await initFakeScan();
+    }
+  }
+
+  // ── WebXR Hit Test real ────────────────────────────────────────────────────
+  async function initXRHitTest() {
+    let session;
+    try {
+      session = await navigator.xr.requestSession('immersive-ar', {
+        requiredFeatures: ['hit-test'],
+        optionalFeatures: ['dom-overlay', 'light-estimation'],
+        domOverlay: { root: document.body }
+      });
+    } catch(e) {
+      console.warn('XR session failed, fallback:', e);
+      await initFakeScan();
+      return;
+    }
+
+    // WebGL context for XR
+    const xrCanvas = document.createElement('canvas');
+    xrCanvas.style.cssText = 'position:fixed;inset:0;z-index:1;width:100%;height:100%;';
+    document.body.appendChild(xrCanvas);
+    const gl = xrCanvas.getContext('webgl2', { xrCompatible: true })
+      || xrCanvas.getContext('webgl', { xrCompatible: true });
+    await gl.makeXRCompatible();
+    session.updateRenderState({ baseLayer: new XRWebGLLayer(session, gl) });
+
+    const viewerSpace = await session.requestReferenceSpace('viewer');
+    const localSpace  = await session.requestReferenceSpace('local');
+    const hitSource   = await session.requestHitTestSource({ space: viewerSpace });
+
+    // Reticle UI — anillo en el centro indicando superficie detectada
+    const reticleEl = document.createElement('div');
+    reticleEl.style.cssText = `
+      position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);
+      width:70px;height:70px;border-radius:50%;
+      border:3px solid rgba(255,255,255,0.9);
+      background:rgba(255,255,255,0.12);
+      box-shadow:0 0 20px rgba(100,220,255,0.5);
+      display:none;z-index:10;pointer-events:none;
+      transition:opacity 0.2s;`;
+    document.body.appendChild(reticleEl);
+
+    const hintEl = document.createElement('div');
+    hintEl.style.cssText = `
+      position:fixed;bottom:110px;left:0;right:0;text-align:center;
+      color:#fff;font-size:13px;font-weight:800;letter-spacing:0.12em;
+      text-transform:uppercase;z-index:11;pointer-events:none;
+      text-shadow:0 1px 8px rgba(0,0,0,0.8);font-family:Montserrat,sans-serif;`;
+    hintEl.textContent = 'Mueve el dispositivo — apunta al suelo';
+    document.body.appendChild(hintEl);
+
+    const tapBtn = document.createElement('button');
+    tapBtn.style.cssText = `
+      position:fixed;bottom:40px;left:50%;transform:translateX(-50%);
+      background:linear-gradient(135deg,#e63329,#ff5a4d);color:#fff;border:none;
+      padding:16px 40px;font-size:13px;font-weight:800;letter-spacing:0.12em;
+      text-transform:uppercase;cursor:pointer;border-radius:999px;
+      box-shadow:0 4px 24px rgba(230,51,41,0.4);
+      font-family:Montserrat,sans-serif;z-index:11;display:none;`;
+    tapBtn.textContent = '⊕ Colocar aquí';
+    document.body.appendChild(tapBtn);
+
+    let hitMatrix = null;
+    let placed = false;
+
+    function onSelect() {
+      if (hitMatrix && !placed) {
+        placed = true;
+        const pos = { x: hitMatrix[12], y: hitMatrix[13], z: hitMatrix[14] };
+        reticleEl.remove(); hintEl.remove(); tapBtn.remove();
+        session.end().then(() => {
+          xrCanvas.remove();
+          finalizarWorldARAtPosition(pos);
+        });
+      }
+    }
+
+    session.addEventListener('select', onSelect);
+    tapBtn.addEventListener('click', onSelect);
+
+    function onXRFrame(time, frame) {
+      session.requestAnimationFrame(onXRFrame);
+      const hits = frame.getHitTestResults(hitSource);
+      const glLayer = session.renderState.baseLayer;
+      gl.bindFramebuffer(gl.FRAMEBUFFER, glLayer.framebuffer);
+      gl.clearColor(0, 0, 0, 0);
+      gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+      if (hits.length > 0) {
+        const pose = hits[0].getPose(localSpace);
+        hitMatrix = pose.transform.matrix;
+        reticleEl.style.display = 'block';
+        hintEl.textContent = 'Superficie detectada — toca para colocar';
+        tapBtn.style.display = 'block';
+      } else {
+        reticleEl.style.display = 'none';
+        tapBtn.style.display = 'none';
+        hintEl.textContent = 'Mueve el dispositivo — apunta al suelo o mesa';
+      }
+    }
+    session.requestAnimationFrame(onXRFrame);
+  }
+
+  // ── Fallback: scan animado + placement fijo ────────────────────────────────
+  async function initFakeScan() {
     const videoEl = document.createElement('video');
-    videoEl.setAttribute('autoplay', '');
-    videoEl.setAttribute('playsinline', '');
+    videoEl.setAttribute('autoplay', ''); videoEl.setAttribute('playsinline', '');
     videoEl.setAttribute('webkit-playsinline', '');
     videoEl.style.cssText = 'position:fixed;inset:0;width:100%;height:100%;object-fit:cover;z-index:0;';
     document.body.appendChild(videoEl);
-
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } },
-        audio: false
+        video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false
       });
-      videoEl.srcObject = stream;
-      await videoEl.play();
-    } catch(e) {
-      console.warn('Cámara no disponible:', e);
-    }
-
-    hideSplash();
+      videoEl.srcObject = stream; await videoEl.play();
+    } catch(e) { console.warn('Cámara no disponible:', e); }
 
     const scanOverlay = document.createElement('div');
-    scanOverlay.id = 'worldScanOverlay';
     scanOverlay.style.cssText = 'position:fixed;inset:0;z-index:2;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none;';
     scanOverlay.innerHTML = `
       <canvas id="scanCanvas" style="position:absolute;inset:0;width:100%;height:100%;opacity:0.85;"></canvas>
@@ -920,83 +1033,42 @@
     document.body.appendChild(scanOverlay);
 
     const canvas = document.getElementById('scanCanvas');
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
+    canvas.width = window.innerWidth; canvas.height = window.innerHeight;
     const ctx = canvas.getContext('2d');
-    const dots = [];
-    const ROWS = 12, COLS = 20;
-    let scanProgress = 0;
-    let scanDone = false;
-
-    for (let r = 0; r < ROWS; r++) {
-      for (let c = 0; c < COLS; c++) {
-        dots.push({
-          x: (c / (COLS - 1)) * canvas.width,
-          y: (r / (ROWS - 1)) * canvas.height * 0.6 + canvas.height * 0.2,
-          lit: false,
-          delay: (r * COLS + c) * 18
-        });
-      }
-    }
-
-    let frame = 0;
+    const dots = []; const ROWS = 12, COLS = 20; let frame2 = 0; let scanDone = false;
+    for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++)
+      dots.push({ x: (c/(COLS-1))*canvas.width, y: (r/(ROWS-1))*canvas.height*0.6+canvas.height*0.2, lit:false, delay:(r*COLS+c)*18 });
     const scanAnim = setInterval(() => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      frame += 16;
-      let litCount = 0;
+      ctx.clearRect(0,0,canvas.width,canvas.height); frame2+=16; let litCount=0;
       dots.forEach(d => {
-        if (frame > d.delay) d.lit = true;
-        if (d.lit) litCount++;
-        const alpha = d.lit ? 0.7 + 0.3 * Math.sin(frame / 300 + d.x) : 0.15;
-        const color = d.lit ? `rgba(100,220,255,${alpha})` : `rgba(100,180,255,0.15)`;
-        ctx.beginPath();
-        ctx.arc(d.x, d.y, d.lit ? 3 : 2, 0, Math.PI * 2);
-        ctx.fillStyle = color;
-        ctx.fill();
-        if (d.lit) {
-          dots.forEach(d2 => {
-            if (!d2.lit) return;
-            const dx = d2.x - d.x, dy = d2.y - d.y;
-            const dist = Math.sqrt(dx*dx + dy*dy);
-            if (dist < canvas.width / COLS * 1.8) {
-              ctx.beginPath();
-              ctx.moveTo(d.x, d.y);
-              ctx.lineTo(d2.x, d2.y);
-              ctx.strokeStyle = `rgba(100,220,255,${0.15 * alpha})`;
-              ctx.lineWidth = 0.5;
-              ctx.stroke();
-            }
-          });
-        }
+        if (frame2>d.delay) d.lit=true; if(d.lit) litCount++;
+        const alpha=d.lit?0.7+0.3*Math.sin(frame2/300+d.x):0.15;
+        ctx.beginPath(); ctx.arc(d.x,d.y,d.lit?3:2,0,Math.PI*2);
+        ctx.fillStyle=d.lit?`rgba(100,220,255,${alpha})`:`rgba(100,180,255,0.15)`; ctx.fill();
       });
-      scanProgress = litCount / dots.length;
-      if (scanProgress > 0.85 && !scanDone) {
-        scanDone = true;
-        document.getElementById('scanMsg').textContent = '✓ Superficie detectada';
-        setTimeout(() => finalizarWorldAR(scanOverlay, videoEl), 1200);
+      if (litCount/dots.length>0.85 && !scanDone) {
+        scanDone=true; document.getElementById('scanMsg').textContent='✓ Superficie detectada';
         clearInterval(scanAnim);
+        setTimeout(() => { scanOverlay.remove(); finalizarWorldARAtPosition(null); }, 1200);
       }
     }, 16);
 
     window._worldSurfaceVertical = false;
     if (window.DeviceOrientationEvent) {
-      const onOrient = (e) => {
-        if (e.beta !== null) {
-          window._worldSurfaceVertical = Math.abs(e.beta) > 45;
-        }
-        window.removeEventListener('deviceorientation', onOrient);
-      };
+      const onOrient = e => { if(e.beta!==null) window._worldSurfaceVertical=Math.abs(e.beta)>45; window.removeEventListener('deviceorientation',onOrient); };
       window.addEventListener('deviceorientation', onOrient);
     }
   }
 
-  async function finalizarWorldAR(scanOverlay, videoEl) {
-    scanOverlay.style.transition = 'opacity 0.6s';
-    scanOverlay.style.opacity = '0';
-    setTimeout(() => scanOverlay.remove(), 700);
-
+  // pos: { x, y, z } de WebXR hit test, o null para fallback (posición fija)
+  async function finalizarWorldARAtPosition(pos) {
     const isVertical = window._worldSurfaceVertical || false;
     const baseRotX = isVertical ? 0 : -90;
+
+    // Si tenemos posición real del hit test, la usamos; si no, posición fija delante
+    const anchorPos = pos
+      ? `${pos.x.toFixed(3)} ${pos.y.toFixed(3)} ${pos.z.toFixed(3)}`
+      : '0 0 -1.5';
 
     const entities = await buildCapasEntities(baseRotX);
     const sceneDiv = document.getElementById('arScene');
@@ -1012,9 +1084,9 @@
         style="width:100vw;height:100vh;position:fixed;inset:0;z-index:1;background:transparent;">
         <a-light type="ambient" intensity="0.8"></a-light>
         <a-light type="directional" intensity="1.5" position="2 6 3" light="castShadow:true;shadowMapWidth:2048;shadowMapHeight:2048;shadowCameraTop:5;shadowCameraBottom:-5;shadowCameraLeft:-5;shadowCameraRight:5;shadowBias:-0.001"></a-light>
-        <a-plane position="0 0 -1.5" rotation="-90 0 0" width="20" height="20" shadow="receive:true;cast:false" material="shader:shadow;opacity:0.4"></a-plane>
+        <a-plane position="${anchorPos}" rotation="-90 0 0" width="20" height="20" shadow="receive:true;cast:false" material="shader:shadow;opacity:0.4"></a-plane>
         <a-camera position="0 1.6 0" look-controls="enabled:true" wasd-controls="enabled:false"></a-camera>
-        <a-entity id="worldAnchor" position="0 0 -1.5">
+        <a-entity id="worldAnchor" position="${anchorPos}">
           ${entities}
         </a-entity>
       </a-scene>`;

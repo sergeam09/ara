@@ -82,7 +82,11 @@ export class Publisher {
                         animDelay: layer.animationDelay,
                         animAmplitude: layer.animationAmplitude,
                         animationAxis: layer.animationAxis,
-                        ...(layer.type === 'glb' && { anchoReal: layer.anchoReal, altoReal: layer.altoReal, profReal: layer.profReal, unidadReal: layer.unidadReal || 'cm' }),
+                        ...(layer.type === 'glb' && {
+                            anchoReal: layer.anchoReal, altoReal: layer.altoReal, profReal: layer.profReal,
+                            anchoRaw: layer.anchoRaw, altoRaw: layer.altoRaw, profRaw: layer.profRaw,
+                            unidadReal: layer.unidadReal || 'cm'
+                        }),
                         delay: 0,
                         loop: true
                     });

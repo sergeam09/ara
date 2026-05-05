@@ -692,13 +692,15 @@
 
   async function buildCapasEntities(baseRotX = -90) {
     const BP = `${BASE}/proyectos/${PROJECT}/`;
-    const tw = CFG.anchoReal || 20;
-    const th = CFG.altoReal  || 20;
+    const tw = CFG.anchoReal || 21;
+    const th = CFG.altoReal  || 29.7;
     const ratio = tw / th;
+    const triggerCm = tw;
     const sortedCapas = [...CAPAS].sort((a, b) => (a.posZ ?? 0) - (b.posZ ?? 0));
     return (await Promise.all(sortedCapas.map(async (capa, sortedIdx) => {
       if (!capa.archivo && capa.tipo !== 'texto' && capa.tipo !== 'text') return '';
-      const posX = (capa.posX ?? 0) * ratio;
+      // posX: direct A-Frame units (1 unit = trigger width). posY scaled by height/width ratio.
+      const posX = capa.posX ?? 0;
       const posY = (capa.posY ?? 0) * (1 / ratio);
       const posZaf = (capa.posZ ?? 1) / 200 * 0.5 + (sortedIdx * 0.005) + 0.01;
       const pos  = `${posX.toFixed(4)} ${posY.toFixed(4)} ${posZaf.toFixed(4)}`;
@@ -710,7 +712,7 @@
       const dur  = capa.animationDuration ?? capa.animDuration  ?? (capa.entrada === 'fade' ? 800 : capa.entrada === 'scale' ? 600 : capa.entrada === 'rotate' ? 6000 : 2000);
       const dly  = capa.animationDelay   ?? capa.animDelay    ?? 0;
       const ampRaw = capa.animationAmplitude ?? capa.animAmplitude ?? 0.07;
-      const amp  = ampRaw * ratio;
+      const amp  = ampRaw; // A-Frame units, not ratio-scaled
       let anim = '';
       // No startEvents — animations autoplay; targetFound listener below replays them
       if (capa.entrada === 'fade')   anim  = `animation__in="property:material.opacity;from:0;to:${op};dur:${dur};delay:${dly}"`;
@@ -745,8 +747,15 @@
       switch (capa.tipo) {
         case 'video': {
           if (!['mp4','webm','mov'].includes(ext)) return '';
-          const vAspect = capa.aspectRatio || ratio;
-          const vw = 1, vh = (1 / vAspect).toFixed(4);
+          const vAspect = capa.aspectRatio || 1;
+          let vw, vh, vScl;
+          if (capa.anchoReal && capa.anchoReal > 0) {
+            const rCm = capa.unidadReal === 'm' ? capa.anchoReal * 100 : capa.anchoReal;
+            const aCm = capa.altoReal   ? (capa.unidadReal === 'm' ? capa.altoReal  * 100 : capa.altoReal)  : rCm / vAspect;
+            vw = (rCm / triggerCm).toFixed(4); vh = (aCm / triggerCm).toFixed(4); vScl = '1 1 1';
+          } else {
+            vw = s; vh = (s / vAspect).toFixed(4); vScl = scl;
+          }
           const isAlpha = ['webm','mov'].includes(ext);
           const videoId = `wv-${sortedIdx}`;
           const assets = document.querySelector('a-assets') || (() => {
@@ -768,24 +777,38 @@
             ? `material="src:#${videoId};transparent:true;alphaTest:0.05;opacity:${op}"`
             : `material="src:#${videoId};opacity:${op}"`;
           return `<a-plane id="arc-${sortedIdx}" width="${vw}" height="${vh}"
-            position="${pos}" rotation="${rot}" scale="${scl}" ${mat} ${anim}></a-plane>`;
+            position="${pos}" rotation="${rot}" scale="${vScl}" ${mat} ${anim}></a-plane>`;
         }
         case 'image':
         case 'gif': {
-          const iAspect = capa.aspectRatio || ratio;
-          const iw = 1, ih = (1 / iAspect).toFixed(4);
+          const iAspect = capa.aspectRatio || 1;
+          let iw, ih, iScl;
+          if (capa.anchoReal && capa.anchoReal > 0) {
+            const rCm = capa.unidadReal === 'm' ? capa.anchoReal * 100 : capa.anchoReal;
+            const aCm = capa.altoReal   ? (capa.unidadReal === 'm' ? capa.altoReal  * 100 : capa.altoReal)  : rCm / iAspect;
+            iw = (rCm / triggerCm).toFixed(4); ih = (aCm / triggerCm).toFixed(4); iScl = '1 1 1';
+          } else {
+            iw = s; ih = (s / iAspect).toFixed(4); iScl = scl;
+          }
           const hasTrans = ['png','webp','apng','gif'].includes(ext);
           const mat = hasTrans
             ? `material="src:${src};transparent:true;alphaTest:0.05;opacity:${op}"`
             : `material="src:${src};opacity:${op}"`;
           return `<a-image id="arc-${sortedIdx}" src="${src}" width="${iw}" height="${ih}"
-            position="${pos}" rotation="${rot}" scale="${scl}" ${mat} ${anim}></a-image>`;
+            position="${pos}" rotation="${rot}" scale="${iScl}" ${mat} ${anim}></a-image>`;
         }
         case 'svg': {
           const svgAspect = capa.aspectRatio || 1;
-          const sw = 1, sh = (1 / svgAspect).toFixed(4);
-          return `<a-image id="arc-${sortedIdx}" src="${src}" width="${sw}" height="${sh}"
-            position="${pos}" rotation="${rot}" scale="${scl}"
+          let svgw, svgh, svgScl;
+          if (capa.anchoReal && capa.anchoReal > 0) {
+            const rCm = capa.unidadReal === 'm' ? capa.anchoReal * 100 : capa.anchoReal;
+            const aCm = capa.altoReal   ? (capa.unidadReal === 'm' ? capa.altoReal  * 100 : capa.altoReal)  : rCm / svgAspect;
+            svgw = (rCm / triggerCm).toFixed(4); svgh = (aCm / triggerCm).toFixed(4); svgScl = '1 1 1';
+          } else {
+            svgw = s; svgh = (s / svgAspect).toFixed(4); svgScl = scl;
+          }
+          return `<a-image id="arc-${sortedIdx}" src="${src}" width="${svgw}" height="${svgh}"
+            position="${pos}" rotation="${rot}" scale="${svgScl}"
             material="src:${src};transparent:true;alphaTest:0.01;opacity:${op}" ${anim}></a-image>`;
         }
         case 'glb':

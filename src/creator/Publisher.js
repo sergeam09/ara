@@ -82,13 +82,18 @@ export class Publisher {
                         animDelay: layer.animationDelay,
                         animAmplitude: layer.animationAmplitude,
                         animationAxis: layer.animationAxis,
-                        ...(layer.type === 'glb' && {
+                        ...(['image', 'video', 'gif', 'svg'].includes(layer.type) && layer.anchoReal ? {
+                            anchoReal: layer.anchoReal,
+                            altoReal: layer.altoReal,
+                            unidadReal: layer.unidadReal || 'cm'
+                        } : {}),
+                        ...(layer.type === 'glb' || layer.type === 'gltf' || layer.type === 'model' ? {
                             anchoReal: layer.anchoReal, altoReal: layer.altoReal, profReal: layer.profReal,
                             anchoRaw: layer.anchoRaw ? layer.anchoRaw : (layer.anchoReal ? layer.anchoReal : 9.6),
                             altoRaw: layer.altoRaw ? layer.altoRaw : (layer.altoReal ? layer.altoReal : 3.3),
                             profRaw: layer.profRaw ? layer.profRaw : (layer.profReal ? layer.profReal : 4.8),
                             unidadReal: layer.unidadReal || 'cm'
-                        }),
+                        } : {}),
                         delay: 0,
                         loop: true
                     });

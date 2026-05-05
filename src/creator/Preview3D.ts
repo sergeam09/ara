@@ -47,7 +47,7 @@ export class Preview3D {
   private container: HTMLElement | null = null
   private animId = 0
   private triggerW = 150
-  private triggerH = 100
+  private triggerH = 150
   private clock = new THREE.Clock()
   private activeLayerId: string | null = null
 
@@ -222,7 +222,8 @@ export class Preview3D {
     this.removeLayer(layer.id)
 
     const baseElevation = this.calcElevation(layer)
-    const half = triggerWidth / 2
+    const half  = triggerWidth / 2
+    const halfY = this.triggerH / 2
 
     // ── GLB — async load, no placeholder in scene ─────────────────────────
     if ((layer.type === 'glb' || layer.type === 'gltf' || layer.type === 'model') && layer.file) {
@@ -269,7 +270,7 @@ export class Preview3D {
         // Apply layer position and rotation
         model.position.x += (layer.posX ?? 0) * half
         model.position.y += baseElevation
-        model.position.z += (layer.posY ?? 0) * half
+        model.position.z += (layer.posY ?? 0) * halfY
         model.rotation.set(DEG(layer.rotX ?? 0), DEG(layer.rotY ?? 0), DEG(layer.rotZ ?? 0))
 
         this.scene!.add(model)
@@ -336,7 +337,7 @@ export class Preview3D {
 
     const mesh = new THREE.Mesh(geo, mat)
     mesh.userData = { layerId: layer.id, isLayer: true }
-    mesh.position.set((layer.posX ?? 0) * half, baseElevation, (layer.posY ?? 0) * half)
+    mesh.position.set((layer.posX ?? 0) * half, baseElevation, (layer.posY ?? 0) * halfY)
     mesh.rotation.set(DEG(layer.rotX ?? 0), DEG(layer.rotY ?? 0), DEG(layer.rotZ ?? 0))
 
     this.scene.add(mesh)
@@ -403,9 +404,10 @@ export class Preview3D {
     const id = mesh.userData.layerId as string
     if (!id) return
     const halfW = this.triggerW / 2
+    const halfH = this.triggerH / 2
     if (this.tcMode === 'translate') {
       const posX = mesh.position.x / halfW
-      const posY = mesh.position.z / halfW
+      const posY = mesh.position.z / halfH
       const posZ = Math.round(Math.max(0, Math.min(200, (mesh.position.y - 1) * 8)))
       const entry = this.layers.get(id)
       if (entry) entry.baseElevation = mesh.position.y
@@ -421,10 +423,11 @@ export class Preview3D {
   private updateTCTip(mesh: THREE.Object3D): void {
     if (!this.coordTip) return
     const halfW = this.triggerW / 2
+    const halfH = this.triggerH / 2
     let text: string
     if (this.tcMode === 'translate') {
       const posX = mesh.position.x / halfW
-      const posY = mesh.position.z / halfW
+      const posY = mesh.position.z / halfH
       const posZ = Math.round(Math.max(0, Math.min(200, (mesh.position.y - 1) * 8)))
       text = `X ${posX >= 0 ? '+' : ''}${posX.toFixed(2)}  Y ${posY >= 0 ? '+' : ''}${posY.toFixed(2)}  Z ${posZ}`
     } else {
@@ -488,7 +491,7 @@ export class Preview3D {
       this.coordTip.style.left = `${e.clientX - rect.left + 14}px`
       this.coordTip.style.top = `${e.clientY - rect.top - 28}px`
       this.coordTip.style.display = 'block'
-      this.coordTip.textContent = `X ${(newPos.x / halfW).toFixed(2)}  Y ${(newPos.z / halfW).toFixed(2)}`
+      this.coordTip.textContent = `X ${(newPos.x / halfW).toFixed(2)}  Y ${(newPos.z / (this.triggerH / 2)).toFixed(2)}`
     }
   }
 
@@ -499,7 +502,7 @@ export class Preview3D {
         const halfW = this.triggerW / 2
         this.onLayerTransformed?.(this.dragLayerId, {
           posX: entry.mesh.position.x / halfW,
-          posY: entry.mesh.position.z / halfW
+          posY: entry.mesh.position.z / (this.triggerH / 2)
         })
       }
     }
@@ -598,7 +601,7 @@ export class Preview3D {
         const dur = (l.animationDuration ?? 2000) / 1000
         const axis = l.animationAxis || 'y'
         const bx = (l.posX ?? 0) * (this.triggerW / 2)
-        const bz = (l.posY ?? 0) * (this.triggerW / 2)
+        const bz = (l.posY ?? 0) * (this.triggerH / 2)
         const wave = amp * Math.sin((2 * Math.PI * t) / dur)
         mesh.position.x = axis === 'x' ? bx + wave : bx
         mesh.position.y = axis === 'y' ? entry.baseElevation + wave : entry.baseElevation

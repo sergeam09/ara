@@ -240,7 +240,28 @@ function updatePropsPanel(layer: Layer | undefined) {
   set2('propAnimDelay', layer.animationDelay ?? 0)
   set2('propAnimAmplitude', layer.animationAmplitude ?? (activeAnim === 'rotate' ? 6000 : 0.04))
 
-  // GLB medidas reales — visible solo para layers 3D
+  // Medidas reales 2D — image, video, gif, svg
+  const panel2D = document.getElementById('medidasPanel2D') as HTMLElement
+  if (panel2D) {
+    const is2D = layer.type === 'image' || layer.type === 'video' || layer.type === 'gif' || layer.type === 'svg'
+    panel2D.style.display = is2D ? 'block' : 'none'
+    if (is2D) {
+      const anchoEl = document.getElementById('prop2DAncho') as HTMLInputElement
+      const altoEl  = document.getElementById('prop2DAlto')  as HTMLInputElement
+      if (anchoEl) anchoEl.value = layer.anchoReal != null ? layer.anchoReal.toString() : ''
+      if (altoEl)  altoEl.value  = layer.altoReal  != null ? layer.altoReal.toString()  : ''
+      const u2d = layer.unidadReal || 'cm'
+      document.querySelectorAll('.unit-btn-2d[data-unidad2d]').forEach(btn => {
+        btn.classList.toggle('active', btn.getAttribute('data-unidad2d') === u2d)
+      })
+      const lbl2D = document.getElementById('lblUnidad2D')
+      if (lbl2D) lbl2D.textContent = u2d
+      const lockBtn = document.getElementById('propLock2D') as HTMLButtonElement
+      if (lockBtn) lockBtn.textContent = (layer as any)._lock2D !== false ? '⊠' : '⊡'
+    }
+  }
+
+  // Medidas reales 3D (GLB) — visible solo para layers 3D
   const glbPanel = document.getElementById('glbMedidasPanel') as HTMLElement
   if (glbPanel) {
     const isGlb = layer.type === 'glb' || layer.type === 'gltf' || layer.type === 'model'
@@ -331,7 +352,17 @@ function setupLayerFileInput() {
     const active = layerManager.getActiveLayer()
     if (!active) return
     const dims = await detectFileDimensions(file)
-    layerManager.updateLayer(active.id, { file, naturalWidth: dims.w, naturalHeight: dims.h })
+    const is2D = active.type === 'image' || active.type === 'video' || active.type === 'gif' || active.type === 'svg'
+    const updates: Partial<Layer> = { file, naturalWidth: dims.w, naturalHeight: dims.h }
+    if (is2D && dims.w > 1 && dims.h > 1) {
+      // Default: match trigger width (anchoReal from header input)
+      const trigW = parseFloat((document.getElementById('inputWidth') as HTMLInputElement)?.value || '21') || 21
+      const aspect = dims.w / dims.h
+      updates.anchoReal = parseFloat(trigW.toFixed(1))
+      updates.altoReal  = parseFloat((trigW / aspect).toFixed(1))
+      updates.unidadReal = 'cm'
+    }
+    layerManager.updateLayer(active.id, updates)
   }
 
   function detectFileDimensions(file: File): Promise<{ w: number; h: number }> {
@@ -462,7 +493,74 @@ function setupSliders() {
   document.getElementById('propGlbAlto') ?.addEventListener('input', e => onMedidaInput('alto',  e))
   document.getElementById('propGlbProf') ?.addEventListener('input', e => onMedidaInput('prof',  e))
 
-  // Selector de unidad cm/m
+  // ── Panel 2D medidas ────────────────────────────────────────────────────────
+  let lock2D = true // proporcional por defecto
+
+  const update2DField = (axis: 'ancho' | 'alto', newVal: number) => {
+    const active = layerManager.getActiveLayer()
+    if (!active) return
+    if (lock2D) {
+      const aspect = (active.naturalWidth && active.naturalHeight)
+        ? active.naturalWidth / active.naturalHeight : 1
+      if (axis === 'ancho') {
+        const newAlto = parseFloat((newVal / aspect).toFixed(2))
+        layerManager.updateLayer(active.id, { anchoReal: newVal, altoReal: newAlto })
+        const altoEl = document.getElementById('prop2DAlto') as HTMLInputElement
+        if (altoEl) altoEl.value = newAlto.toString()
+      } else {
+        const newAncho = parseFloat((newVal * aspect).toFixed(2))
+        layerManager.updateLayer(active.id, { anchoReal: newAncho, altoReal: newVal })
+        const anchoEl = document.getElementById('prop2DAncho') as HTMLInputElement
+        if (anchoEl) anchoEl.value = newAncho.toString()
+      }
+    } else {
+      if (axis === 'ancho') layerManager.updateLayer(active.id, { anchoReal: newVal })
+      else                  layerManager.updateLayer(active.id, { altoReal: newVal })
+    }
+  }
+
+  document.getElementById('prop2DAncho')?.addEventListener('input', e => {
+    const v = parseFloat((e.target as HTMLInputElement).value)
+    if (!isNaN(v) && v > 0) update2DField('ancho', v)
+  })
+  document.getElementById('prop2DAlto')?.addEventListener('input', e => {
+    const v = parseFloat((e.target as HTMLInputElement).value)
+    if (!isNaN(v) && v > 0) update2DField('alto', v)
+  })
+
+  document.getElementById('propLock2D')?.addEventListener('click', () => {
+    lock2D = !lock2D
+    const btn = document.getElementById('propLock2D') as HTMLButtonElement
+    if (btn) btn.textContent = lock2D ? '⊠' : '⊡'
+  })
+
+  // Unidad cm/m para 2D
+  document.querySelectorAll('.unit-btn-2d[data-unidad2d]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const u = btn.getAttribute('data-unidad2d') as 'cm' | 'm'
+      document.querySelectorAll('.unit-btn-2d[data-unidad2d]').forEach(b => b.classList.toggle('active', b === btn))
+      const lbl = document.getElementById('lblUnidad2D')
+      if (lbl) lbl.textContent = u
+      const active = layerManager.getActiveLayer()
+      if (!active) return
+      // Convertir valores al cambiar unidad
+      const factor = u === 'm' ? 0.01 : 100
+      const prevU = active.unidadReal || 'cm'
+      if (prevU !== u) {
+        const newAncho = active.anchoReal != null ? parseFloat((active.anchoReal * factor).toFixed(4)) : undefined
+        const newAlto  = active.altoReal  != null ? parseFloat((active.altoReal  * factor).toFixed(4)) : undefined
+        layerManager.updateLayer(active.id, { unidadReal: u, anchoReal: newAncho, altoReal: newAlto })
+        const anchoEl = document.getElementById('prop2DAncho') as HTMLInputElement
+        const altoEl  = document.getElementById('prop2DAlto')  as HTMLInputElement
+        if (anchoEl && newAncho != null) anchoEl.value = newAncho.toString()
+        if (altoEl  && newAlto  != null) altoEl.value  = newAlto.toString()
+      } else {
+        layerManager.updateLayer(active.id, { unidadReal: u })
+      }
+    })
+  })
+
+  // Selector de unidad cm/m para GLB
   document.querySelectorAll('.unit-btn[data-unidad]').forEach(btn => {
     btn.addEventListener('click', () => {
       const u = btn.getAttribute('data-unidad') as 'cm' | 'm'
@@ -470,7 +568,24 @@ function setupSliders() {
       const lblEl = document.getElementById('lblUnidad')
       if (lblEl) lblEl.textContent = u
       const active = layerManager.getActiveLayer()
-      if (active) layerManager.updateLayer(active.id, { unidadReal: u })
+      if (!active) return
+      // Convertir valores al cambiar unidad para GLB también
+      const factor = u === 'm' ? 0.01 : 100
+      const prevU = active.unidadReal || 'cm'
+      if (prevU !== u) {
+        const newAncho = active.anchoReal != null ? parseFloat((active.anchoReal * factor).toFixed(4)) : undefined
+        const newAlto  = active.altoReal  != null ? parseFloat((active.altoReal  * factor).toFixed(4)) : undefined
+        const newProf  = active.profReal  != null ? parseFloat((active.profReal  * factor).toFixed(4)) : undefined
+        layerManager.updateLayer(active.id, { unidadReal: u, anchoReal: newAncho, altoReal: newAlto, profReal: newProf })
+        const aE = document.getElementById('propGlbAncho') as HTMLInputElement
+        const hE = document.getElementById('propGlbAlto')  as HTMLInputElement
+        const dE = document.getElementById('propGlbProf')  as HTMLInputElement
+        if (aE && newAncho != null) aE.value = newAncho.toString()
+        if (hE && newAlto  != null) hE.value = newAlto.toString()
+        if (dE && newProf  != null) dE.value = newProf.toString()
+      } else {
+        layerManager.updateLayer(active.id, { unidadReal: u })
+      }
     })
   })
 

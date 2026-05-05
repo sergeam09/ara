@@ -5,20 +5,17 @@ export class SceneBuilder {
         const triggerPath = `${contentPath}/trigger.${triggerExt}`;
         // Sort layers by posZ DESCENDING: highest posZ (farthest from camera) renders first = stays behind
         const capas = [...config.capas].sort((a, b) => b.posZ - a.posZ);
-        // Trigger real width in cm (for scaling GLB to real-world size in image tracking)
-        const triggerCm = config.anchoReal || 21;
         let entities = '';
         for (let idx = 0; idx < capas.length; idx++) {
             const capa = capas[idx];
             const layerPath = `${contentPath}/${capa.archivo}`;
             const pos = `${capa.posX} ${capa.posY} ${this.calcZ(idx, capas.length)}`;
-            // GLB with real dimensions: scale = (anchoReal / triggerCm) / (anchoRaw / 100)
-            // MindAR: 1 A-Frame unit = trigger width. GLTF: 1 unit = 1m = 100cm.
             let sclVal = capa.escala;
             const isGlb = capa.tipo === 'glb' || capa.tipo === 'gltf';
             if (isGlb && capa.anchoReal && capa.anchoRaw && capa.anchoRaw > 0) {
+                // Scale = anchoReal_cm / anchoRaw_cm — same ratio regardless of trigger size
                 const toCm = (v) => capa.unidadReal === 'm' ? v * 100 : v;
-                sclVal = (toCm(capa.anchoReal) * 100) / (triggerCm * capa.anchoRaw);
+                sclVal = toCm(capa.anchoReal) / capa.anchoRaw;
             }
             const scl = `${sclVal} ${sclVal} ${sclVal}`;
             const alpha = `transparent:true;alphaTest:0.01;opacity:${capa.opacidad}`;
@@ -39,9 +36,11 @@ export class SceneBuilder {
                 const ext = capa.archivo.split('.').pop()?.toLowerCase() || '';
                 const hasTrans = ['png', 'webp', 'apng', 'gif', 'svg'].includes(ext);
                 const mat = `material="src:${layerPath};${hasTrans ? alpha : `opacity:${capa.opacidad}`}"`;
+                const aspect = capa.aspectRatio && capa.aspectRatio > 0 ? capa.aspectRatio : 1;
+                const ih = (1 / aspect).toFixed(4);
                 entities += `
         <a-image id="arc-${capa.id}" src="${layerPath}"
-          width="1" height="1"
+          width="1" height="${ih}"
           position="${pos}" scale="${scl}"
           ${mat}></a-image>`;
             }
@@ -52,8 +51,8 @@ export class SceneBuilder {
             }
             else if (capa.tipo === 'texto') {
                 entities += `
-        <a-text id="arc-${capa.id}" value="${capa.archivo || 'Texto AR'}"
-          color="#ffffff" align="center"
+        <a-text id="arc-${capa.id}" value="${capa.texto || 'Texto AR'}"
+          color="${capa.colorTexto || '#ffffff'}" align="center"
           position="${pos}" scale="${scl}"></a-text>`;
             }
         }

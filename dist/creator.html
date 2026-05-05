@@ -548,6 +548,28 @@
         <span id="valRotY" style="display:none"></span>
         <span id="valRotZ" style="display:none"></span>
 
+        <!-- Medidas reales (visible para layers 2D: image, video, gif, svg) -->
+        <div id="medidasPanel2D" class="prop-group" style="display:none">
+          <div class="prop-label-row" style="display:flex;justify-content:space-between;align-items:center;">
+            <span class="prop-label">Medidas reales (<span id="lblUnidad2D">cm</span>)</span>
+            <div style="display:flex;gap:2px;align-items:center;">
+              <button class="unit-btn-2d active" data-unidad2d="cm" style="font-size:9px;padding:2px 6px;border:1px solid var(--border);background:transparent;color:var(--text);cursor:pointer;border-radius:3px;">cm</button>
+              <button class="unit-btn-2d" data-unidad2d="m" style="font-size:9px;padding:2px 6px;border:1px solid var(--border);background:transparent;color:var(--text);cursor:pointer;border-radius:3px;">m</button>
+              <button id="propLock2D" title="Bloquear proporción" style="font-size:11px;padding:2px 6px;border:1px solid var(--border);background:transparent;color:var(--accent);cursor:pointer;border-radius:3px;margin-left:2px;">⊡</button>
+            </div>
+          </div>
+          <div class="xyz-pos-row">
+            <div class="xyz-pos-col">
+              <span class="xyz-tag x-tag">W</span>
+              <input type="number" class="xyz-num" id="prop2DAncho" placeholder="—" min="0.1" step="0.1">
+            </div>
+            <div class="xyz-pos-col">
+              <span class="xyz-tag z-tag">H</span>
+              <input type="number" class="xyz-num" id="prop2DAlto" placeholder="—" min="0.1" step="0.1">
+            </div>
+          </div>
+        </div>
+
         <!-- Medidas reales (visible para layers 3D) -->
         <div id="glbMedidasPanel" class="prop-group">
           <div class="prop-label-row" style="display:flex;justify-content:space-between;align-items:center;">

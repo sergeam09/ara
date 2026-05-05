@@ -976,8 +976,21 @@
         placed = true;
         const pos = { x: hitMatrix[12], y: hitMatrix[13], z: hitMatrix[14] };
         reticleEl.remove(); hintEl.remove(); tapBtn.remove();
-        session.end().then(() => {
+        session.end().then(async () => {
           xrCanvas.remove();
+          // Al cerrar la sesión XR se apaga el feed de cámara — reanudarlo manualmente
+          const camVid = document.createElement('video');
+          camVid.setAttribute('autoplay',''); camVid.setAttribute('playsinline','');
+          camVid.setAttribute('webkit-playsinline','');
+          camVid.style.cssText = 'position:fixed;inset:0;width:100%;height:100%;object-fit:cover;z-index:0;';
+          document.body.appendChild(camVid);
+          try {
+            const stream = await navigator.mediaDevices.getUserMedia({
+              video: { facingMode:'environment', width:{ideal:1280}, height:{ideal:720} }, audio:false
+            });
+            camVid.srcObject = stream;
+            await camVid.play();
+          } catch(e) { console.warn('cam:', e); }
           finalizarWorldARAtPosition(pos);
         });
       }

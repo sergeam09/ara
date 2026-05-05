@@ -239,22 +239,22 @@ export class Preview3D {
         const model = gltf.scene
         model.userData = { layerId: layer.id, isLayer: true }
 
-        // Bounding box for real dimensions
-        const bbox = new THREE.Box3().setFromObject(model)
-        const size = bbox.getSize(new THREE.Vector3())
+        // Calculate raw bounding box BEFORE scaling
+        const rawBbox = new THREE.Box3().setFromObject(gltf.scene)
+        const rawSize = rawBbox.getSize(new THREE.Vector3())
 
         // Scale: use real cm dimensions if set, otherwise scale slider
         let scaleFactor: number
         if (layer.anchoReal && layer.anchoReal > 0) {
-          scaleFactor = (layer.anchoReal / 100) / size.x
+          scaleFactor = (layer.anchoReal / 100) / rawSize.x
         } else {
-          const maxDim = Math.max(size.x, size.y, size.z) || 1
+          const maxDim = Math.max(rawSize.x, rawSize.y, rawSize.z) || 1
           scaleFactor = ((layer.scale ?? 1) * (triggerWidth * 0.5)) / maxDim
         }
         model.scale.setScalar(scaleFactor)
 
         // Center model on its own origin
-        bbox.setFromObject(model)
+        const bbox = new THREE.Box3().setFromObject(model)
         const center = bbox.getCenter(new THREE.Vector3())
         model.position.sub(center)
 
@@ -273,11 +273,11 @@ export class Preview3D {
           entry.glbLoaded = true
         }
 
-        // Fire dimensions callback (original model size in cm, before user scaling)
+        // Fire dimensions callback with raw dimensions (before scaling)
         this.onGlbDimensions?.(layer.id, {
-          ancho: parseFloat((size.x * 100).toFixed(1)),
-          alto:  parseFloat((size.y * 100).toFixed(1)),
-          prof:  parseFloat((size.z * 100).toFixed(1))
+          ancho: parseFloat((rawSize.x * 100).toFixed(1)),
+          alto:  parseFloat((rawSize.y * 100).toFixed(1)),
+          prof:  parseFloat((rawSize.z * 100).toFixed(1))
         })
 
         // If still active layer, now attach TransformControls safely

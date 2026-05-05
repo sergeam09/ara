@@ -242,18 +242,21 @@ function updatePropsPanel(layer: Layer | undefined) {
 
   // GLB medidas reales
   const glbPanel = document.getElementById('glbMedidasPanel') as HTMLElement
-  if (glbPanel) glbPanel.style.display = (layer.type === 'glb' || layer.type === 'gltf' || layer.type === 'model') ? 'block' : 'none'
-  if (layer.type === 'glb') {
-    const anchoEl = document.getElementById('propGlbAncho') as HTMLInputElement
-    const altoEl = document.getElementById('propGlbAlto') as HTMLInputElement
-    const profEl = document.getElementById('propGlbProf') as HTMLInputElement
-    if (anchoEl) anchoEl.value = (layer.anchoReal ?? '').toString()
-    if (altoEl) altoEl.value = (layer.altoReal ?? '').toString()
-    if (profEl) profEl.value = (layer.profReal ?? '').toString()
-    const unidad = layer.unidadReal || 'cm'
-    document.querySelectorAll('[data-unidad]').forEach(btn => {
-      btn.classList.toggle('active', btn.getAttribute('data-unidad') === unidad)
-    })
+  if (glbPanel) {
+    const isGlb = layer.type === 'glb' || layer.type === 'gltf' || layer.type === 'model'
+    glbPanel.style.display = isGlb ? 'block' : 'none'
+    if (isGlb) {
+      const anchoEl = document.getElementById('propGlbAncho') as HTMLInputElement
+      const altoEl  = document.getElementById('propGlbAlto')  as HTMLInputElement
+      const profEl  = document.getElementById('propGlbProf')  as HTMLInputElement
+      if (anchoEl) anchoEl.value = (layer.anchoReal ?? '').toString()
+      if (altoEl)  altoEl.value  = (layer.altoReal  ?? '').toString()
+      if (profEl)  profEl.value  = (layer.profReal  ?? '').toString()
+      const unidad = layer.unidadReal || 'cm'
+      document.querySelectorAll('[data-unidad]').forEach(btn => {
+        btn.classList.toggle('active', btn.getAttribute('data-unidad') === unidad)
+      })
+    }
   }
 
   updateSliderValues(layer)
@@ -416,15 +419,24 @@ function setupSliders() {
 
   document.getElementById('propGlbAncho')?.addEventListener('change', (e) => {
     const v = parseFloat((e.target as HTMLInputElement).value)
-    if (!isNaN(v)) layerManager.updateLayer(layerManager.getActiveLayer()!.id, { anchoReal: v })
+    if (isNaN(v) || v <= 0) return
+    const active = layerManager.getActiveLayer()
+    if (!active) return
+    layerManager.updateLayer(active.id, { anchoReal: v })
   })
   document.getElementById('propGlbAlto')?.addEventListener('change', (e) => {
     const v = parseFloat((e.target as HTMLInputElement).value)
-    if (!isNaN(v)) layerManager.updateLayer(layerManager.getActiveLayer()!.id, { altoReal: v })
+    if (isNaN(v) || v <= 0) return
+    const active = layerManager.getActiveLayer()
+    if (!active) return
+    layerManager.updateLayer(active.id, { altoReal: v })
   })
   document.getElementById('propGlbProf')?.addEventListener('change', (e) => {
     const v = parseFloat((e.target as HTMLInputElement).value)
-    if (!isNaN(v)) layerManager.updateLayer(layerManager.getActiveLayer()!.id, { profReal: v })
+    if (isNaN(v) || v <= 0) return
+    const active = layerManager.getActiveLayer()
+    if (!active) return
+    layerManager.updateLayer(active.id, { profReal: v })
   })
   document.querySelectorAll('[data-unidad]').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -655,20 +667,22 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // When a GLB finishes loading, show its real dimensions in the panel
     preview3D.onGlbDimensions = (id, dims) => {
-      const active = layerManager.getActiveLayer()
-      if (!active || active.id !== id) return
+      // Mostrar panel siempre
+      const glbPanel = document.getElementById('glbMedidasPanel') as HTMLElement
+      if (glbPanel) glbPanel.style.display = 'block'
+      // Poblar campos con dimensiones reales del archivo
       const anchoEl = document.getElementById('propGlbAncho') as HTMLInputElement
       const altoEl  = document.getElementById('propGlbAlto')  as HTMLInputElement
       const profEl  = document.getElementById('propGlbProf')  as HTMLInputElement
-      // Only auto-fill if user hasn't set custom values
-      if (anchoEl && !anchoEl.value) anchoEl.value = dims.ancho.toString()
-      if (altoEl  && !altoEl.value)  altoEl.value  = dims.alto.toString()
-      if (profEl  && !profEl.value)  profEl.value  = dims.prof.toString()
-      // Store in layer if not already set
-      if (!active.anchoReal) layerManager.updateLayer(id, { anchoReal: dims.ancho, altoReal: dims.alto, profReal: dims.prof })
-      // Show panel
-      const glbPanel = document.getElementById('glbMedidasPanel') as HTMLElement
-      if (glbPanel) glbPanel.style.display = 'block'
+      if (anchoEl) anchoEl.value = dims.ancho.toString()
+      if (altoEl)  altoEl.value  = dims.alto.toString()
+      if (profEl)  profEl.value  = dims.prof.toString()
+      // Guardar en el layer
+      layerManager.updateLayer(id, {
+        anchoReal: dims.ancho,
+        altoReal:  dims.alto,
+        profReal:  dims.prof
+      })
     }
   }
 

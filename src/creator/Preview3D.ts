@@ -243,10 +243,15 @@ export class Preview3D {
         const rawBbox = new THREE.Box3().setFromObject(gltf.scene)
         const rawSize = rawBbox.getSize(new THREE.Vector3())
 
-        // Scale: use real cm dimensions if set, otherwise scale slider
+        // Scale: use real cm dimensions if set (any of the 3 axes), otherwise scale slider
+        const unitFactor = layer.unidadReal === 'm' ? 1 : 0.01
         let scaleFactor: number
-        if (layer.anchoReal && layer.anchoReal > 0) {
-          scaleFactor = (layer.anchoReal / 100) / rawSize.x
+        if (layer.anchoReal && layer.anchoReal > 0 && rawSize.x > 0) {
+          scaleFactor = (layer.anchoReal * unitFactor) / rawSize.x
+        } else if (layer.altoReal && layer.altoReal > 0 && rawSize.y > 0) {
+          scaleFactor = (layer.altoReal * unitFactor) / rawSize.y
+        } else if (layer.profReal && layer.profReal > 0 && rawSize.z > 0) {
+          scaleFactor = (layer.profReal * unitFactor) / rawSize.z
         } else {
           const maxDim = Math.max(rawSize.x, rawSize.y, rawSize.z) || 1
           scaleFactor = ((layer.scale ?? 1) * (triggerWidth * 0.5)) / maxDim

@@ -240,21 +240,18 @@ function updatePropsPanel(layer: Layer | undefined) {
   set2('propAnimDelay', layer.animationDelay ?? 0)
   set2('propAnimAmplitude', layer.animationAmplitude ?? (activeAnim === 'rotate' ? 6000 : 0.04))
 
-  // GLB medidas reales
-  console.log('updatePropsPanel: layer.type =', layer.type)
+  // GLB medidas reales — visible solo para layers 3D
   const glbPanel = document.getElementById('glbMedidasPanel') as HTMLElement
-  console.log('glbPanel element found:', !!glbPanel)
   if (glbPanel) {
     const isGlb = layer.type === 'glb' || layer.type === 'gltf' || layer.type === 'model'
-    console.log('isGlb:', isGlb)
     glbPanel.style.display = isGlb ? 'block' : 'none'
     if (isGlb) {
       const anchoEl = document.getElementById('propGlbAncho') as HTMLInputElement
       const altoEl  = document.getElementById('propGlbAlto')  as HTMLInputElement
       const profEl  = document.getElementById('propGlbProf')  as HTMLInputElement
-      if (anchoEl) anchoEl.value = (layer.anchoReal ?? '').toString()
-      if (altoEl)  altoEl.value  = (layer.altoReal  ?? '').toString()
-      if (profEl)  profEl.value  = (layer.profReal  ?? '').toString()
+      if (anchoEl) anchoEl.value = layer.anchoReal != null ? layer.anchoReal.toString() : ''
+      if (altoEl)  altoEl.value  = layer.altoReal  != null ? layer.altoReal.toString()  : ''
+      if (profEl)  profEl.value  = layer.profReal  != null ? layer.profReal.toString()  : ''
       const unidad = layer.unidadReal || 'cm'
       document.querySelectorAll('[data-unidad]').forEach(btn => {
         btn.classList.toggle('active', btn.getAttribute('data-unidad') === unidad)
@@ -420,26 +417,41 @@ function setupSliders() {
     })
   }
 
-  document.getElementById('propGlbAncho')?.addEventListener('change', (e) => {
-    const v = parseFloat((e.target as HTMLInputElement).value)
-    if (isNaN(v) || v <= 0) return
+  // Cuando el usuario edita una medida, las otras dos se ajustan proporcionalmente
+  const scaleProporcionalmente = (axis: 'ancho' | 'alto' | 'prof', newVal: number) => {
     const active = layerManager.getActiveLayer()
     if (!active) return
-    layerManager.updateLayer(active.id, { anchoReal: v })
+    const a = active.anchoReal || 0
+    const b = active.altoReal  || 0
+    const c = active.profReal  || 0
+    if (a <= 0 || b <= 0 || c <= 0) {
+      const upd: Partial<Layer> = {}
+      if (axis === 'ancho') upd.anchoReal = newVal
+      if (axis === 'alto')  upd.altoReal  = newVal
+      if (axis === 'prof')  upd.profReal  = newVal
+      layerManager.updateLayer(active.id, upd)
+      return
+    }
+    const ratio = axis === 'ancho' ? newVal / a : axis === 'alto' ? newVal / b : newVal / c
+    layerManager.updateLayer(active.id, {
+      anchoReal: parseFloat((a * ratio).toFixed(2)),
+      altoReal:  parseFloat((b * ratio).toFixed(2)),
+      profReal:  parseFloat((c * ratio).toFixed(2))
+    })
+    const after = layerManager.getActiveLayer()
+    if (after) updatePropsPanel(after)
+  }
+  document.getElementById('propGlbAncho')?.addEventListener('change', (e) => {
+    const v = parseFloat((e.target as HTMLInputElement).value)
+    if (!isNaN(v) && v > 0) scaleProporcionalmente('ancho', v)
   })
   document.getElementById('propGlbAlto')?.addEventListener('change', (e) => {
     const v = parseFloat((e.target as HTMLInputElement).value)
-    if (isNaN(v) || v <= 0) return
-    const active = layerManager.getActiveLayer()
-    if (!active) return
-    layerManager.updateLayer(active.id, { altoReal: v })
+    if (!isNaN(v) && v > 0) scaleProporcionalmente('alto', v)
   })
   document.getElementById('propGlbProf')?.addEventListener('change', (e) => {
     const v = parseFloat((e.target as HTMLInputElement).value)
-    if (isNaN(v) || v <= 0) return
-    const active = layerManager.getActiveLayer()
-    if (!active) return
-    layerManager.updateLayer(active.id, { profReal: v })
+    if (!isNaN(v) && v > 0) scaleProporcionalmente('prof', v)
   })
   document.querySelectorAll('[data-unidad]').forEach(btn => {
     btn.addEventListener('click', () => {

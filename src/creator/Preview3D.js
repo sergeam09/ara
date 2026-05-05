@@ -102,7 +102,12 @@ export class Preview3D {
             writable: true,
             value: new THREE.Clock()
         });
-        // Drag state (free XZ drag)
+        Object.defineProperty(this, "activeLayerId", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: null
+        });
         Object.defineProperty(this, "dragging", {
             enumerable: true,
             configurable: true,
@@ -139,7 +144,6 @@ export class Preview3D {
             writable: true,
             value: new THREE.Vector2()
         });
-        // TC state
         Object.defineProperty(this, "tcDragging", {
             enumerable: true,
             configurable: true,
@@ -152,7 +156,6 @@ export class Preview3D {
             writable: true,
             value: 'translate'
         });
-        // UI overlays
         Object.defineProperty(this, "coordTip", {
             enumerable: true,
             configurable: true,
@@ -165,21 +168,24 @@ export class Preview3D {
             writable: true,
             value: null
         });
-        // Fired on drag/TC end with layer property updates
         Object.defineProperty(this, "onLayerTransformed", {
             enumerable: true,
             configurable: true,
             writable: true,
             value: null
         });
-        // Fired when a layer mesh is clicked in the viewport
         Object.defineProperty(this, "onLayerSelected", {
             enumerable: true,
             configurable: true,
             writable: true,
             value: null
         });
-        // ── Free drag (XZ plane) ──────────────────────────────────────────────────
+        Object.defineProperty(this, "onGlbDimensions", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: null
+        });
         Object.defineProperty(this, "onMouseDown", {
             enumerable: true,
             configurable: true,
@@ -189,32 +195,33 @@ export class Preview3D {
                     return;
                 this.setMouse(e);
                 this.raycaster.setFromCamera(this.mouse, this.camera);
-                // Check TC gizmo objects first — if TC is handling the event, skip
                 const tcChildren = [];
                 this.transformControls?.traverse(o => { if (o !== this.transformControls)
                     tcChildren.push(o); });
                 if (this.raycaster.intersectObjects(tcChildren, false).length > 0)
                     return;
-                const layerMeshes = Array.from(this.layers.values()).map(en => en.mesh);
-                const hits = this.raycaster.intersectObjects(layerMeshes, false);
+                const layerMeshes = Array.from(this.layers.values())
+                    .filter(en => en.glbLoaded && en.mesh.parent)
+                    .map(en => en.mesh);
+                const hits = this.raycaster.intersectObjects(layerMeshes, true);
                 if (hits.length > 0) {
-                    const hit = hits[0];
-                    const id = hit.object.userData.layerId;
+                    let obj = hits[0].object;
+                    while (obj.parent && !obj.userData.layerId)
+                        obj = obj.parent;
+                    const id = obj.userData.layerId;
                     if (!id)
                         return;
-                    // Click to select
                     this.onLayerSelected?.(id);
-                    // Start free drag only in translate mode
                     if (this.tcMode !== 'translate')
                         return;
                     this.dragging = true;
                     this.dragLayerId = id;
                     if (this.controls)
                         this.controls.enabled = false;
-                    this.dragPlane.set(new THREE.Vector3(0, 1, 0), -hit.object.position.y);
+                    this.dragPlane.set(new THREE.Vector3(0, 1, 0), -hits[0].object.position.y);
                     const pt = new THREE.Vector3();
                     this.raycaster.ray.intersectPlane(this.dragPlane, pt);
-                    this.dragOffset.copy(pt).sub(hit.object.position);
+                    this.dragOffset.copy(pt).sub(obj.position);
                     e.stopPropagation();
                 }
             }
@@ -236,19 +243,16 @@ export class Preview3D {
                 const newPos = pt.clone().sub(this.dragOffset);
                 entry.mesh.position.x = newPos.x;
                 entry.mesh.position.z = newPos.z;
-                if (this.boxHelper)
+                if (this.boxHelper && this.boxHelper.parent)
                     this.boxHelper.update();
                 const halfW = this.triggerW / 2;
-                const posX = newPos.x / halfW;
-                const posY = newPos.z / halfW;
                 if (this.coordTip && this.renderer) {
                     const rect = this.renderer.domElement.getBoundingClientRect();
                     this.coordTip.style.left = `${e.clientX - rect.left + 14}px`;
                     this.coordTip.style.top = `${e.clientY - rect.top - 28}px`;
                     this.coordTip.style.display = 'block';
-                    this.coordTip.textContent = `X ${posX >= 0 ? '+' : ''}${posX.toFixed(2)}  Y ${posY >= 0 ? '+' : ''}${posY.toFixed(2)}`;
+                    this.coordTip.textContent = `X ${(newPos.x / halfW).toFixed(2)}  Y ${(newPos.z / halfW).toFixed(2)}`;
                 }
-                // NOTE: do NOT call onLayerTransformed here — deferred to mouseUp to prevent mesh rebuild during drag
             }
         });
         Object.defineProperty(this, "onMouseUp", {
@@ -260,9 +264,10 @@ export class Preview3D {
                     const entry = this.layers.get(this.dragLayerId);
                     if (entry) {
                         const halfW = this.triggerW / 2;
-                        const posX = entry.mesh.position.x / halfW;
-                        const posY = entry.mesh.position.z / halfW;
-                        this.onLayerTransformed?.(this.dragLayerId, { posX, posY });
+                        this.onLayerTransformed?.(this.dragLayerId, {
+                            posX: entry.mesh.position.x / halfW,
+                            posY: entry.mesh.position.z / halfW
+                        });
                     }
                 }
                 this.dragging = false;
@@ -273,7 +278,6 @@ export class Preview3D {
                     this.coordTip.style.display = 'none';
             }
         });
-        // ── Render loop ───────────────────────────────────────────────────────────
         Object.defineProperty(this, "animate", {
             enumerable: true,
             configurable: true,
@@ -281,18 +285,22 @@ export class Preview3D {
             value: () => {
                 this.animId = requestAnimationFrame(this.animate);
                 this.controls?.update();
-                if (this.boxHelper)
+                // Safe boxHelper update — only when object is actually in the scene
+                if (this.boxHelper && this.boxHelper.parent) {
                     this.boxHelper.update();
+                }
                 const t = this.clock.getElapsedTime();
                 this.layers.forEach(entry => {
+                    if (!entry.glbLoaded || !entry.mesh.parent)
+                        return;
                     const l = entry.layer;
                     const mesh = entry.mesh;
                     if (l.animation === 'float') {
                         const amp = (l.animationAmplitude ?? 0.04) * (this.triggerW / 2);
                         const dur = (l.animationDuration ?? 2000) / 1000;
                         const axis = l.animationAxis || 'y';
-                        const bx = l.posX * (this.triggerW / 2);
-                        const bz = l.posY * (this.triggerW / 2);
+                        const bx = (l.posX ?? 0) * (this.triggerW / 2);
+                        const bz = (l.posY ?? 0) * (this.triggerW / 2);
                         const wave = amp * Math.sin((2 * Math.PI * t) / dur);
                         mesh.position.x = axis === 'x' ? bx + wave : bx;
                         mesh.position.y = axis === 'y' ? entry.baseElevation + wave : entry.baseElevation;
@@ -329,7 +337,6 @@ export class Preview3D {
     init(container) {
         this.container = container;
         container.style.position = 'relative';
-        // ── Overlays ────────────────────────────────────────────────────────────
         const tip = document.createElement('div');
         tip.style.cssText = 'position:absolute;background:rgba(0,0,0,0.85);color:#e63329;font-size:10px;font-weight:700;font-family:monospace;padding:4px 9px;border-radius:4px;pointer-events:none;display:none;z-index:20;white-space:nowrap;border:1px solid rgba(230,51,41,0.4);';
         container.appendChild(tip);
@@ -338,17 +345,15 @@ export class Preview3D {
         dim.style.cssText = 'position:absolute;bottom:8px;left:8px;background:rgba(0,0,0,0.7);color:#aaa;font-size:10px;font-family:monospace;padding:3px 8px;border-radius:4px;pointer-events:none;display:none;z-index:20;';
         container.appendChild(dim);
         this.dimLabel = dim;
-        // ── TC mode toggle buttons ───────────────────────────────────────────────
         const modeBar = document.createElement('div');
         modeBar.style.cssText = 'position:absolute;top:10px;right:10px;z-index:25;display:flex;gap:6px;';
         modeBar.innerHTML = `
-      <button id="tc-btn-translate" title="Mover [W]" style="background:#1a1a1a;border:2px solid #e63329;color:#e63329;padding:6px 14px;border-radius:5px;cursor:pointer;font-size:12px;font-weight:800;letter-spacing:0.04em;font-family:monospace;">↔ MOVER</button>
-      <button id="tc-btn-rotate"    title="Rotar [E]" style="background:#1a1a1a;border:2px solid #444;color:#666;padding:6px 14px;border-radius:5px;cursor:pointer;font-size:12px;font-weight:800;letter-spacing:0.04em;font-family:monospace;">↻ ROTAR</button>
+      <button id="tc-btn-translate" style="background:#1a1a1a;border:2px solid #e63329;color:#e63329;padding:6px 14px;border-radius:5px;cursor:pointer;font-size:12px;font-weight:800;letter-spacing:0.04em;font-family:monospace;">↔ MOVER</button>
+      <button id="tc-btn-rotate" style="background:#1a1a1a;border:2px solid #444;color:#666;padding:6px 14px;border-radius:5px;cursor:pointer;font-size:12px;font-weight:800;letter-spacing:0.04em;font-family:monospace;">↻ ROTAR</button>
     `;
         container.appendChild(modeBar);
         modeBar.querySelector('#tc-btn-translate')?.addEventListener('click', () => this.setTransformMode('translate'));
         modeBar.querySelector('#tc-btn-rotate')?.addEventListener('click', () => this.setTransformMode('rotate'));
-        // Keyboard shortcuts W / E
         document.addEventListener('keydown', (ev) => {
             if (ev.target instanceof HTMLInputElement || ev.target instanceof HTMLTextAreaElement)
                 return;
@@ -357,7 +362,6 @@ export class Preview3D {
             if (ev.key === 'e' || ev.key === 'E')
                 this.setTransformMode('rotate');
         });
-        // ── Scene ────────────────────────────────────────────────────────────────
         this.scene = new THREE.Scene();
         this.scene.background = new THREE.Color(0x0a0a0a);
         const w = container.clientWidth || 800;
@@ -369,14 +373,12 @@ export class Preview3D {
         this.renderer.setSize(w, h);
         this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
         container.appendChild(this.renderer.domElement);
-        // ── Orbit controls ────────────────────────────────────────────────────────
         this.controls = new OrbitControls(this.camera, this.renderer.domElement);
         this.controls.enableDamping = true;
         this.controls.dampingFactor = 0.06;
         this.controls.minDistance = 50;
         this.controls.maxDistance = 1200;
         this.controls.target.set(0, 0, 0);
-        // ── TransformControls ─────────────────────────────────────────────────────
         this.transformControls = new TransformControls(this.camera, this.renderer.domElement);
         this.transformControls.setSize(0.75);
         this.scene.add(this.transformControls);
@@ -385,7 +387,6 @@ export class Preview3D {
             if (this.controls)
                 this.controls.enabled = !event.value;
             if (!event.value) {
-                // Drag ended — fire final positions to layer manager
                 const obj = this.transformControls?.object;
                 if (obj)
                     this.fireTCCallback(obj);
@@ -394,22 +395,17 @@ export class Preview3D {
             }
         });
         this.transformControls.addEventListener('objectChange', () => {
-            // During drag: update tooltip only — do NOT call onLayerTransformed
-            // (calling it would trigger updateLayer, which rebuilds the mesh, killing the drag)
             const obj = this.transformControls?.object;
             if (obj && this.tcDragging)
                 this.updateTCTip(obj);
         });
-        // ── Lights ────────────────────────────────────────────────────────────────
         this.scene.add(new THREE.AmbientLight(0xffffff, 0.9));
         const dir = new THREE.DirectionalLight(0xffffff, 0.5);
         dir.position.set(100, 300, 150);
         this.scene.add(dir);
-        // ── Grid ──────────────────────────────────────────────────────────────────
         const grid = new THREE.GridHelper(600, 60, 0x2a2a2a, 0x1a1a1a);
         grid.position.y = -1;
         this.scene.add(grid);
-        // ── Mouse events ──────────────────────────────────────────────────────────
         const canvas = this.renderer.domElement;
         canvas.addEventListener('mousedown', this.onMouseDown);
         canvas.addEventListener('mousemove', this.onMouseMove);
@@ -422,7 +418,6 @@ export class Preview3D {
     setTransformMode(mode) {
         this.tcMode = mode;
         this.transformControls?.setMode(mode);
-        // Update button styles
         const btnT = this.container?.querySelector('#tc-btn-translate');
         const btnR = this.container?.querySelector('#tc-btn-rotate');
         if (btnT) {
@@ -435,9 +430,9 @@ export class Preview3D {
         }
     }
     selectLayer(id) {
+        this.activeLayerId = id;
         if (!this.transformControls || !this.scene)
             return;
-        // Remove old box helper
         if (this.boxHelper) {
             this.scene.remove(this.boxHelper);
             this.boxHelper = null;
@@ -453,12 +448,17 @@ export class Preview3D {
             this.transformControls.detach();
             return;
         }
-        this.transformControls.attach(entry.mesh);
-        // Box helper — red wireframe around selected layer
-        this.boxHelper = new THREE.BoxHelper(entry.mesh, 0xe63329);
-        this.scene.add(this.boxHelper);
-        // Dimension annotation
-        this.showDimLabel(entry.mesh, entry.layer);
+        // GLB still loading — do NOT attach TransformControls
+        if (!entry.glbLoaded) {
+            this.transformControls.detach();
+            return;
+        }
+        if (entry.mesh && entry.mesh.parent) {
+            this.transformControls.attach(entry.mesh);
+            this.boxHelper = new THREE.BoxHelper(entry.mesh, 0xe63329);
+            this.scene.add(this.boxHelper);
+            this.showDimLabel(entry.mesh, entry.layer);
+        }
     }
     showDimLabel(mesh, layer) {
         if (!this.dimLabel)
@@ -469,28 +469,102 @@ export class Preview3D {
         const wx = (size.x / halfW).toFixed(2);
         const wz = (size.z / halfW).toFixed(2);
         const typeLabel = layer.type === 'texto' ? 'Texto' : layer.type.toUpperCase();
-        this.dimLabel.textContent = `${typeLabel}  ${wx} × ${wz} u  |  escala ${layer.scale.toFixed(2)}×  |  Z ${layer.posZ}`;
+        this.dimLabel.textContent = `${typeLabel}  ${wx} × ${wz} u  |  escala ${(layer.scale ?? 1).toFixed(2)}×  |  Z ${layer.posZ ?? 0}`;
         this.dimLabel.style.display = 'block';
     }
-    // ── Layer CRUD ────────────────────────────────────────────────────────────
     addLayer(layer, triggerWidth) {
         this.updateLayer(layer, triggerWidth);
     }
     updateLayer(layer, triggerWidth) {
         if (!this.scene)
             return;
-        const wasSelected = this.transformControls?.object?.userData?.layerId === layer.id;
-        if (wasSelected)
+        this.triggerW = triggerWidth;
+        const wasActive = this.activeLayerId === layer.id;
+        if (wasActive) {
             this.transformControls?.detach();
+            if (this.boxHelper) {
+                this.scene.remove(this.boxHelper);
+                this.boxHelper = null;
+            }
+            if (this.dimLabel)
+                this.dimLabel.style.display = 'none';
+        }
         this.removeLayer(layer.id);
+        const baseElevation = this.calcElevation(layer);
+        const half = triggerWidth / 2;
+        // ── GLB — async load, no placeholder in scene ─────────────────────────
+        if ((layer.type === 'glb' || layer.type === 'gltf' || layer.type === 'model') && layer.file) {
+            const objectURL = URL.createObjectURL(layer.file);
+            // Store entry with glbLoaded=false — mesh is a dummy NOT in the scene
+            const dummy = new THREE.Object3D();
+            dummy.userData = { layerId: layer.id, isLayer: true };
+            this.layers.set(layer.id, { mesh: dummy, objectURL, layer: { ...layer }, baseElevation, glbLoaded: false });
+            const loader = new GLTFLoader();
+            loader.load(objectURL, (gltf) => {
+                if (!this.scene || !this.layers.has(layer.id))
+                    return;
+                const model = gltf.scene;
+                model.userData = { layerId: layer.id, isLayer: true };
+                // Calculate raw bounding box BEFORE scaling
+                const rawBbox = new THREE.Box3().setFromObject(gltf.scene);
+                const rawSize = rawBbox.getSize(new THREE.Vector3());
+                // Scale: use real cm dimensions if set (any of the 3 axes), otherwise scale slider
+                const unitFactor = layer.unidadReal === 'm' ? 1 : 0.01;
+                let scaleFactor;
+                if (layer.anchoReal && layer.anchoReal > 0 && rawSize.x > 0) {
+                    scaleFactor = (layer.anchoReal * unitFactor) / rawSize.x;
+                }
+                else if (layer.altoReal && layer.altoReal > 0 && rawSize.y > 0) {
+                    scaleFactor = (layer.altoReal * unitFactor) / rawSize.y;
+                }
+                else if (layer.profReal && layer.profReal > 0 && rawSize.z > 0) {
+                    scaleFactor = (layer.profReal * unitFactor) / rawSize.z;
+                }
+                else {
+                    const maxDim = Math.max(rawSize.x, rawSize.y, rawSize.z) || 1;
+                    scaleFactor = ((layer.scale ?? 1) * (triggerWidth * 0.5)) / maxDim;
+                }
+                model.scale.setScalar(scaleFactor);
+                // Center model on its own origin
+                const bbox = new THREE.Box3().setFromObject(model);
+                const center = bbox.getCenter(new THREE.Vector3());
+                model.position.sub(center);
+                // Apply layer position and rotation
+                model.position.x += (layer.posX ?? 0) * half;
+                model.position.y += baseElevation;
+                model.position.z += (layer.posY ?? 0) * half;
+                model.rotation.set(DEG(layer.rotX ?? 0), DEG(layer.rotY ?? 0), DEG(layer.rotZ ?? 0));
+                this.scene.add(model);
+                // Update entry
+                const entry = this.layers.get(layer.id);
+                if (entry) {
+                    entry.mesh = model;
+                    entry.glbLoaded = true;
+                }
+                // Fire dimensions callback with raw dimensions (before scaling)
+                this.onGlbDimensions?.(layer.id, {
+                    ancho: parseFloat((rawSize.x * 100).toFixed(1)),
+                    alto: parseFloat((rawSize.y * 100).toFixed(1)),
+                    prof: parseFloat((rawSize.z * 100).toFixed(1))
+                });
+                // If still active layer, now attach TransformControls safely
+                if (this.activeLayerId === layer.id && this.transformControls && this.scene) {
+                    this.transformControls.attach(model);
+                    this.boxHelper = new THREE.BoxHelper(model, 0xe63329);
+                    this.scene.add(this.boxHelper);
+                    this.showDimLabel(model, layer);
+                }
+            }, undefined, (err) => {
+                console.error('GLB load error:', err);
+            });
+            return;
+        }
+        // ── Non-GLB layers ────────────────────────────────────────────────────
         const aspect = (layer.naturalWidth && layer.naturalHeight)
             ? layer.naturalWidth / layer.naturalHeight
             : layer.type === 'texto' ? 4 : 1;
-        // For texto, tamanoTexto controls the plane size (matches viewer formula: fw = max(0.5, size*2))
-        const textoScale = layer.type === 'texto'
-            ? Math.max(0.25, (layer.tamanoTexto ?? 0.5) * 2)
-            : 1;
-        const w = triggerWidth * layer.scale * textoScale;
+        const textoScale = layer.type === 'texto' ? Math.max(0.25, (layer.tamanoTexto ?? 0.5) * 2) : 1;
+        const w = triggerWidth * (layer.scale ?? 1) * textoScale;
         const h = w / aspect;
         const geo = new THREE.PlaneGeometry(w, h);
         geo.rotateX(-Math.PI / 2);
@@ -506,76 +580,26 @@ export class Preview3D {
             videoEl.playsInline = true;
             videoEl.crossOrigin = 'anonymous';
             videoEl.play().catch(() => { });
-            mat = new THREE.MeshLambertMaterial({ map: new THREE.VideoTexture(videoEl), transparent: true, opacity: layer.opacity, side: THREE.DoubleSide, depthWrite: false });
+            mat = new THREE.MeshLambertMaterial({ map: new THREE.VideoTexture(videoEl), transparent: true, opacity: layer.opacity ?? 1, side: THREE.DoubleSide, depthWrite: false });
         }
         else if (layer.file && layer.file.type.startsWith('image/')) {
             objectURL = URL.createObjectURL(layer.file);
-            mat = new THREE.MeshLambertMaterial({ map: new THREE.TextureLoader().load(objectURL), transparent: true, opacity: layer.opacity, side: THREE.DoubleSide, depthWrite: false });
+            mat = new THREE.MeshLambertMaterial({ map: new THREE.TextureLoader().load(objectURL), transparent: true, opacity: layer.opacity ?? 1, side: THREE.DoubleSide, depthWrite: false });
         }
         else if (layer.type === 'texto') {
-            mat = new THREE.MeshLambertMaterial({ map: this.makeTextTexture(layer.texto || 'Texto AR', layer.colorTexto || '#ffffff', layer.fontTexto || 'roboto'), transparent: true, opacity: layer.opacity, side: THREE.DoubleSide, depthWrite: false });
+            mat = new THREE.MeshLambertMaterial({ map: this.makeTextTexture(layer.texto || 'Texto AR', layer.colorTexto || '#ffffff', layer.fontTexto || 'roboto'), transparent: true, opacity: layer.opacity ?? 1, side: THREE.DoubleSide, depthWrite: false });
         }
         else {
-            if (layer.type === 'glb' && layer.file) {
-                objectURL = URL.createObjectURL(layer.file);
-                const baseElevation = this.calcElevation(layer);
-                const placeholder = new THREE.Mesh();
-                placeholder.userData = { layerId: layer.id, isLayer: true };
-                this.layers.set(layer.id, { mesh: placeholder, objectURL, layer: { ...layer }, baseElevation });
-                const loader = new GLTFLoader();
-                loader.load(objectURL, (gltf) => {
-                    if (!this.scene || !this.layers.has(layer.id))
-                        return;
-                    const model = gltf.scene;
-                    model.userData = { layerId: layer.id, isLayer: true };
-                    const box = new THREE.Box3().setFromObject(model);
-                    const size = box.getSize(new THREE.Vector3());
-                    const maxDim = Math.max(size.x, size.y, size.z);
-                    const targetSize = (layer.scale ?? 1) * (this.triggerW * 0.5);
-                    model.scale.setScalar(targetSize / maxDim);
-                    box.setFromObject(model);
-                    const center = box.getCenter(new THREE.Vector3());
-                    model.position.sub(center);
-                    const half = this.triggerW / 2;
-                    model.position.x += layer.posX * half;
-                    model.position.y += baseElevation;
-                    model.position.z += layer.posY * half;
-                    model.rotation.set(DEG(layer.rotX ?? 0), DEG(layer.rotY ?? 0), DEG(layer.rotZ ?? 0));
-                    this.scene.add(model);
-                    const existing = this.layers.get(layer.id);
-                    if (existing)
-                        existing.mesh = model;
-                    if (wasSelected) {
-                        this.transformControls?.attach(model);
-                        if (this.boxHelper) {
-                            this.scene.remove(this.boxHelper);
-                        }
-                        this.boxHelper = new THREE.BoxHelper(model, 0xe63329);
-                        this.scene.add(this.boxHelper);
-                        this.showDimLabel(model, layer);
-                    }
-                }, undefined, (err) => {
-                    console.error('GLB load error:', err);
-                });
-                return;
-            }
-            else {
-                mat = new THREE.MeshLambertMaterial({ color: this.typeColor(layer.type), transparent: true, opacity: layer.file ? 0.45 : 0.3, side: THREE.DoubleSide, wireframe: !layer.file });
-            }
+            mat = new THREE.MeshLambertMaterial({ color: this.typeColor(layer.type), transparent: true, opacity: layer.file ? 0.45 : 0.3, side: THREE.DoubleSide, wireframe: !layer.file });
         }
         const mesh = new THREE.Mesh(geo, mat);
         mesh.userData = { layerId: layer.id, isLayer: true };
-        const baseElevation = this.calcElevation(layer);
-        mesh.position.set(layer.posX * (this.triggerW / 2), baseElevation, layer.posY * (this.triggerW / 2));
+        mesh.position.set((layer.posX ?? 0) * half, baseElevation, (layer.posY ?? 0) * half);
         mesh.rotation.set(DEG(layer.rotX ?? 0), DEG(layer.rotY ?? 0), DEG(layer.rotZ ?? 0));
         this.scene.add(mesh);
-        this.layers.set(layer.id, { mesh, objectURL, videoEl, layer: { ...layer }, baseElevation });
-        if (wasSelected) {
-            this.transformControls?.attach(mesh);
-            // Refresh box helper
-            if (this.boxHelper) {
-                this.scene.remove(this.boxHelper);
-            }
+        this.layers.set(layer.id, { mesh, objectURL, videoEl, layer: { ...layer }, baseElevation, glbLoaded: true });
+        if (wasActive && this.transformControls) {
+            this.transformControls.attach(mesh);
             this.boxHelper = new THREE.BoxHelper(mesh, 0xe63329);
             this.scene.add(this.boxHelper);
             this.showDimLabel(mesh, layer);
@@ -587,26 +611,25 @@ export class Preview3D {
         if (!entry || !this.scene)
             return;
         if (this.transformControls?.object === entry.mesh) {
-            this.transformControls?.detach();
-            if (this.boxHelper) {
-                this.scene.remove(this.boxHelper);
-                this.boxHelper = null;
-            }
+            this.transformControls.detach();
         }
-        if (entry.mesh) {
+        if (this.boxHelper) {
+            this.scene.remove(this.boxHelper);
+            this.boxHelper = null;
+        }
+        if (entry.mesh.parent)
             this.scene.remove(entry.mesh);
-            entry.mesh.traverse((child) => {
-                if (child.isMesh) {
-                    const m = child;
-                    if (m.geometry)
-                        m.geometry.dispose();
-                    if (Array.isArray(m.material))
-                        m.material.forEach(mat => mat.dispose());
-                    else if (m.material)
-                        m.material.dispose();
-                }
-            });
-        }
+        entry.mesh.traverse((child) => {
+            if (child.isMesh) {
+                const m = child;
+                if (m.geometry)
+                    m.geometry.dispose();
+                if (Array.isArray(m.material))
+                    m.material.forEach(mat => mat.dispose());
+                else if (m.material)
+                    m.material.dispose();
+            }
+        });
         if (entry.videoEl) {
             entry.videoEl.pause();
             entry.videoEl.src = '';
@@ -628,11 +651,13 @@ export class Preview3D {
         }
         const geo = new THREE.PlaneGeometry(width, height);
         geo.rotateX(-Math.PI / 2);
-        this.triggerMesh = new THREE.Mesh(geo, new THREE.MeshLambertMaterial({ map: new THREE.TextureLoader().load(dataURL), transparent: true, opacity: 0.92, side: THREE.DoubleSide }));
+        this.triggerMesh = new THREE.Mesh(geo, new THREE.MeshLambertMaterial({
+            map: new THREE.TextureLoader().load(dataURL),
+            transparent: true, opacity: 0.92, side: THREE.DoubleSide
+        }));
         this.triggerMesh.userData = { isTrigger: true };
         this.scene.add(this.triggerMesh);
     }
-    // ── TC callback ──────────────────────────────────────────────────────────
     fireTCCallback(mesh) {
         const id = mesh.userData.layerId;
         if (!id)
@@ -642,7 +667,6 @@ export class Preview3D {
             const posX = mesh.position.x / halfW;
             const posY = mesh.position.z / halfW;
             const posZ = Math.round(Math.max(0, Math.min(200, (mesh.position.y - 1) * 8)));
-            // Update stored base elevation
             const entry = this.layers.get(id);
             if (entry)
                 entry.baseElevation = mesh.position.y;
@@ -681,13 +705,12 @@ export class Preview3D {
         this.mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
         this.mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
     }
-    // ── Animations ────────────────────────────────────────────────────────────
     playEntranceAnimation(mesh, layer) {
         if (!layer.animation)
             return;
         const mat = mesh.material;
         const dur = (layer.animationDuration ?? 800) / 1000;
-        const targetOpacity = layer.opacity;
+        const targetOpacity = layer.opacity ?? 1;
         if (layer.animation === 'fade') {
             mat.opacity = 0;
             const start = this.clock.getElapsedTime();
@@ -716,9 +739,8 @@ export class Preview3D {
             requestAnimationFrame(tick);
         }
     }
-    // ── Helpers ───────────────────────────────────────────────────────────────
     calcElevation(layer) {
-        return (Math.max(0, Math.min(200, layer.posZ)) / 200) * 25 + 1;
+        return (Math.max(0, Math.min(200, layer.posZ ?? 0)) / 200) * 25 + 1;
     }
     makeTextTexture(text, color, fontName = 'roboto') {
         const family = FONT_MAP[fontName] || 'Arial, sans-serif';

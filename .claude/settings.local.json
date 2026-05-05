@@ -25,7 +25,10 @@
       "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:5173/creator.html)",
       "Bash(git rm *)",
       "Bash(git show *)",
-      "Read(//tmp/**)"
+      "Read(//tmp/**)",
+      "Bash(cat C:\\\\\\\\Users\\\\\\\\SOUNDW~1\\\\\\\\AppData\\\\\\\\Local\\\\\\\\Temp\\\\\\\\claude\\\\\\\\C--Users-soundwave-Desktop-ARA5-0\\\\\\\\4f6d437a-5607-43d9-ac1a-7aa588ef7b4c\\\\\\\\tasks\\\\\\\\bb649zas7.output)",
+      "Bash(curl -s http://localhost:5173)",
+      "Bash(grep -v \"//\")"
     ]
   }
 }

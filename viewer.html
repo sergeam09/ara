@@ -1093,15 +1093,14 @@
     sceneDiv.innerHTML = `
       <a-scene
         embedded
-        shadow="type:pcfsoft;autoUpdate:true"
-        renderer="colorManagement:true;physicallyCorrectLights:true;shadowMapEnabled:true"
+        renderer="colorManagement:true;physicallyCorrectLights:true;alpha:true"
+        background="transparent:true"
         vr-mode-ui="enabled:false"
         device-orientation-permission-ui="enabled:false"
         loading-screen="enabled:false"
-        style="width:100vw;height:100vh;position:fixed;inset:0;z-index:1;background:transparent;">
-        <a-light type="ambient" intensity="0.8"></a-light>
-        <a-light type="directional" intensity="1.5" position="2 6 3" light="castShadow:true;shadowMapWidth:2048;shadowMapHeight:2048;shadowCameraTop:5;shadowCameraBottom:-5;shadowCameraLeft:-5;shadowCameraRight:5;shadowBias:-0.001"></a-light>
-        <a-plane position="${anchorPos}" rotation="-90 0 0" width="20" height="20" shadow="receive:true;cast:false" material="shader:shadow;opacity:0.4"></a-plane>
+        style="width:100vw;height:100vh;position:fixed;inset:0;z-index:1;">
+        <a-light type="ambient" intensity="1.0"></a-light>
+        <a-light type="directional" intensity="1.2" position="2 6 3"></a-light>
         <a-camera position="0 1.6 0" look-controls="enabled:true" wasd-controls="enabled:false"></a-camera>
         <a-entity id="worldAnchor" position="${anchorPos}">
           ${entities}

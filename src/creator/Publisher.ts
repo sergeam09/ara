@@ -96,7 +96,9 @@ export class Publisher {
             animationAxis: layer.animationAxis,
             ...(layer.type === 'glb' && {
               anchoReal: layer.anchoReal, altoReal: layer.altoReal, profReal: layer.profReal,
-              anchoRaw:  layer.anchoRaw,  altoRaw:  layer.altoRaw,  profRaw:  layer.profRaw,
+              anchoRaw:  layer.anchoRaw  ? layer.anchoRaw  : (layer.anchoReal ? layer.anchoReal : 9.6),
+              altoRaw:   layer.altoRaw   ? layer.altoRaw   : (layer.altoReal  ? layer.altoReal  : 3.3),
+              profRaw:   layer.profRaw   ? layer.profRaw   : (layer.profReal  ? layer.profReal  : 4.8),
               unidadReal: layer.unidadReal || 'cm'
             }),
             delay: 0,

@@ -792,12 +792,16 @@
         case 'gltf':
         case 'model': {
           let sclFinal = scl;
-          if (capa.anchoReal) {
-            const factor = capa.unidadReal === 'm' ? 1 : 0.01;
-            const w = (capa.anchoReal * factor).toFixed(4);
-            const h = ((capa.altoReal || capa.anchoReal) * factor).toFixed(4);
-            const d = ((capa.profReal || capa.anchoReal) * factor).toFixed(4);
-            sclFinal = `${w} ${h} ${d}`;
+          if (capa.tipo === 'glb' || capa.tipo === 'gltf') {
+            if (capa.anchoReal && capa.anchoRaw && capa.anchoRaw > 0) {
+              const realCm = capa.unidadReal === 'm' ? capa.anchoReal * 100 : capa.anchoReal;
+              const rawCm = capa.anchoRaw;
+              const scaleFactor = realCm / rawCm;
+              sclFinal = `${scaleFactor.toFixed(4)} ${scaleFactor.toFixed(4)} ${scaleFactor.toFixed(4)}`;
+            } else if (capa.anchoReal) {
+              const scaleMeters = (capa.unidadReal === 'm' ? capa.anchoReal : capa.anchoReal / 100);
+              sclFinal = `${scaleMeters.toFixed(4)} ${scaleMeters.toFixed(4)} ${scaleMeters.toFixed(4)}`;
+            }
           }
           return `<a-gltf-model id="arc-${sortedIdx}" src="${src}"
             position="${pos}" rotation="${rot}" scale="${sclFinal}" shadow="cast:true;receive:false" ${anim}></a-gltf-model>`;

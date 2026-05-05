@@ -241,9 +241,12 @@ function updatePropsPanel(layer: Layer | undefined) {
   set2('propAnimAmplitude', layer.animationAmplitude ?? (activeAnim === 'rotate' ? 6000 : 0.04))
 
   // GLB medidas reales
+  console.log('updatePropsPanel: layer.type =', layer.type)
   const glbPanel = document.getElementById('glbMedidasPanel') as HTMLElement
+  console.log('glbPanel element found:', !!glbPanel)
   if (glbPanel) {
     const isGlb = layer.type === 'glb' || layer.type === 'gltf' || layer.type === 'model'
+    console.log('isGlb:', isGlb)
     glbPanel.style.display = isGlb ? 'block' : 'none'
     if (isGlb) {
       const anchoEl = document.getElementById('propGlbAncho') as HTMLInputElement

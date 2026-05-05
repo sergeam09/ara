@@ -220,23 +220,28 @@ function updatePropsPanel(layer) {
     set2('propAnimDelay', layer.animationDelay ?? 0);
     set2('propAnimAmplitude', layer.animationAmplitude ?? (activeAnim === 'rotate' ? 6000 : 0.04));
     // GLB medidas reales
+    console.log('updatePropsPanel: layer.type =', layer.type);
     const glbPanel = document.getElementById('glbMedidasPanel');
-    if (glbPanel)
-        glbPanel.style.display = (layer.type === 'glb' || layer.type === 'gltf' || layer.type === 'model') ? 'block' : 'none';
-    if (layer.type === 'glb' || layer.type === 'gltf' || layer.type === 'model') {
-        const anchoEl = document.getElementById('propGlbAncho');
-        const altoEl = document.getElementById('propGlbAlto');
-        const profEl = document.getElementById('propGlbProf');
-        if (anchoEl)
-            anchoEl.value = (layer.anchoReal ?? '').toString();
-        if (altoEl)
-            altoEl.value = (layer.altoReal ?? '').toString();
-        if (profEl)
-            profEl.value = (layer.profReal ?? '').toString();
-        const unidad = layer.unidadReal || 'cm';
-        document.querySelectorAll('[data-unidad]').forEach(btn => {
-            btn.classList.toggle('active', btn.getAttribute('data-unidad') === unidad);
-        });
+    console.log('glbPanel element found:', !!glbPanel);
+    if (glbPanel) {
+        const isGlb = layer.type === 'glb' || layer.type === 'gltf' || layer.type === 'model';
+        console.log('isGlb:', isGlb);
+        glbPanel.style.display = isGlb ? 'block' : 'none';
+        if (isGlb) {
+            const anchoEl = document.getElementById('propGlbAncho');
+            const altoEl = document.getElementById('propGlbAlto');
+            const profEl = document.getElementById('propGlbProf');
+            if (anchoEl)
+                anchoEl.value = (layer.anchoReal ?? '').toString();
+            if (altoEl)
+                altoEl.value = (layer.altoReal ?? '').toString();
+            if (profEl)
+                profEl.value = (layer.profReal ?? '').toString();
+            const unidad = layer.unidadReal || 'cm';
+            document.querySelectorAll('[data-unidad]').forEach(btn => {
+                btn.classList.toggle('active', btn.getAttribute('data-unidad') === unidad);
+            });
+        }
     }
     updateSliderValues(layer);
 }
@@ -304,10 +309,8 @@ function setupLayerFileInput() {
         const active = layerManager.getActiveLayer();
         if (!active)
             return;
-        const ext = file.name.split('.').pop()?.toLowerCase() || '';
-        const typeFromExt = (ext === 'glb' || ext === 'gltf') ? { type: 'glb' } : {};
         const dims = await detectFileDimensions(file);
-        layerManager.updateLayer(active.id, { ...typeFromExt, file, naturalWidth: dims.w, naturalHeight: dims.h });
+        layerManager.updateLayer(active.id, { file, naturalWidth: dims.w, naturalHeight: dims.h });
     }
     function detectFileDimensions(file) {
         return new Promise(resolve => {
@@ -397,18 +400,30 @@ function setupSliders() {
     }
     document.getElementById('propGlbAncho')?.addEventListener('change', (e) => {
         const v = parseFloat(e.target.value);
-        if (!isNaN(v))
-            layerManager.updateLayer(layerManager.getActiveLayer().id, { anchoReal: v });
+        if (isNaN(v) || v <= 0)
+            return;
+        const active = layerManager.getActiveLayer();
+        if (!active)
+            return;
+        layerManager.updateLayer(active.id, { anchoReal: v });
     });
     document.getElementById('propGlbAlto')?.addEventListener('change', (e) => {
         const v = parseFloat(e.target.value);
-        if (!isNaN(v))
-            layerManager.updateLayer(layerManager.getActiveLayer().id, { altoReal: v });
+        if (isNaN(v) || v <= 0)
+            return;
+        const active = layerManager.getActiveLayer();
+        if (!active)
+            return;
+        layerManager.updateLayer(active.id, { altoReal: v });
     });
     document.getElementById('propGlbProf')?.addEventListener('change', (e) => {
         const v = parseFloat(e.target.value);
-        if (!isNaN(v))
-            layerManager.updateLayer(layerManager.getActiveLayer().id, { profReal: v });
+        if (isNaN(v) || v <= 0)
+            return;
+        const active = layerManager.getActiveLayer();
+        if (!active)
+            return;
+        layerManager.updateLayer(active.id, { profReal: v });
     });
     document.querySelectorAll('[data-unidad]').forEach(btn => {
         btn.addEventListener('click', () => {
@@ -641,6 +656,29 @@ document.addEventListener('DOMContentLoaded', async () => {
         // When a layer is clicked in the 3D preview, select it in the panel
         preview3D.onLayerSelected = (id) => {
             layerManager.selectLayer(id);
+        };
+        // When a GLB finishes loading, show its real dimensions in the panel
+        preview3D.onGlbDimensions = (id, dims) => {
+            // Mostrar panel siempre
+            const glbPanel = document.getElementById('glbMedidasPanel');
+            if (glbPanel)
+                glbPanel.style.display = 'block';
+            // Poblar campos con dimensiones reales del archivo
+            const anchoEl = document.getElementById('propGlbAncho');
+            const altoEl = document.getElementById('propGlbAlto');
+            const profEl = document.getElementById('propGlbProf');
+            if (anchoEl)
+                anchoEl.value = dims.ancho.toString();
+            if (altoEl)
+                altoEl.value = dims.alto.toString();
+            if (profEl)
+                profEl.value = dims.prof.toString();
+            // Guardar en el layer
+            layerManager.updateLayer(id, {
+                anchoReal: dims.ancho,
+                altoReal: dims.alto,
+                profReal: dims.prof
+            });
         };
     }
     // Modo AR buttons

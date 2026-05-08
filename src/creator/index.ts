@@ -531,7 +531,7 @@ function setupSliders() {
   document.getElementById('propLock2D')?.addEventListener('click', () => {
     lock2D = !lock2D
     const btn = document.getElementById('propLock2D') as HTMLButtonElement
-    if (btn) btn.textContent = lock2D ? '⊠' : '⊡'
+    if (btn) { btn.textContent = lock2D ? '⊠' : '⊡'; btn.classList.toggle('locked', lock2D) }
   })
 
   // Unidad cm/m para 2D

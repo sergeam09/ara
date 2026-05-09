@@ -925,10 +925,66 @@
     }, 600);
   }
 
+  // WORLD — un solo GLB: model-viewer nativo (igual que surface mode)
+  function initModelViewerWorld(capa) {
+    setSplash('Cargando modelo 3D...');
+    const src = `${BASE}/proyectos/${PROJECT}/${capa.archivo}`;
+    const sc  = capa.escala ?? 1;
+    const mvWrap = document.getElementById('mvWrap');
+    mvWrap.innerHTML = `
+      <model-viewer id="araModelViewer"
+        src="${src}"
+        ar ar-modes="scene-viewer quick-look webxr"
+        ar-placement="floor" ar-scale="fixed"
+        scale="${sc} ${sc} ${sc}"
+        camera-controls auto-rotate
+        shadow-intensity="1" exposure="1"
+        style="width:100%;height:100%;background:#0a0a0a;">
+        <button slot="ar-button" style="
+          position:absolute;bottom:80px;left:50%;transform:translateX(-50%);
+          background:linear-gradient(135deg,#e63329,#ff5a4d);color:#fff;border:none;
+          padding:16px 36px;font-size:13px;font-weight:800;letter-spacing:0.12em;
+          text-transform:uppercase;cursor:pointer;white-space:nowrap;
+          box-shadow:0 4px 24px rgba(230,51,41,0.4);
+          font-family:'Montserrat',sans-serif;border-radius:999px;">
+          ⬡ Ver en tu espacio
+        </button>
+        <div slot="progress-bar" style="display:none;"></div>
+      </model-viewer>`;
+    mvWrap.classList.add('show');
+    document.getElementById('hud').classList.add('show');
+    if (EDIT_MODE) {
+      document.getElementById('btnEdit').style.display = 'inline-block';
+      document.getElementById('btnVerPublico').style.display = 'inline-block';
+    }
+    const hint = document.createElement('div');
+    hint.style.cssText = 'position:fixed;top:72px;left:0;right:0;text-align:center;font-size:11px;font-weight:700;color:rgba(255,255,255,0.3);letter-spacing:0.1em;text-transform:uppercase;pointer-events:none;z-index:500;font-family:Montserrat,sans-serif;';
+    hint.textContent = 'Rota con los dedos · Toca el botón para ver en AR';
+    document.body.appendChild(hint);
+    const mv = document.getElementById('araModelViewer');
+    if (mv) {
+      mv.addEventListener('load', () => hideSplash());
+      mv.addEventListener('error', () => showErr('No se pudo cargar el modelo 3D.'));
+    }
+    setTimeout(() => hideSplash(), 8000);
+  }
+
   // WORLD AR — A-Frame gestiona la sesión WebXR completa.
   // NO se abre ni cierra sesión manualmente. A-Frame es el AR runtime.
   async function initWorldAR() {
     setSplash('Preparando escena AR...');
+
+    // Atajo: un solo GLB sin otras capas → model-viewer (ARCore/QuickLook nativo,
+    // mejor anclaje, escala automática, iOS compatible). Nada de A-Frame.
+    const capasGlb = (CAPAS || []).filter(c =>
+      (c.tipo === 'glb' || c.tipo === 'gltf' || c.tipo === 'model') && c.archivo);
+    const capasOtras = (CAPAS || []).filter(c =>
+      c.tipo !== 'glb' && c.tipo !== 'gltf' && c.tipo !== 'model');
+
+    if (capasGlb.length === 1 && capasOtras.length === 0) {
+      initModelViewerWorld(capasGlb[0]);
+      return;
+    }
 
     // Construir entidades world ANTES de entrar en AR
     const entities   = await buildCapasEntitiesWorld(0);

@@ -1004,19 +1004,10 @@
     tapBtn.textContent = '⊕ Colocar aquí';
     document.body.appendChild(tapBtn);
 
-    let lastHitPos = null;   // última posición válida de hit-test
+    let lastHitPos = null;   // última posición world válida del hit-test
     let hitSource  = null;
     let refSpace   = null;
     let placed     = false;
-    let shownDefault = false; // contenido ya mostrado en posición default
-
-    // Calcula la posición 1.5m delante de la cámara usando la pose WebXR real
-    function posFrenteCamara() {
-      const cam = scene.camera;  // Three.js PerspectiveCamera — pose driven by WebXR
-      const T = AFRAME.THREE;
-      const dir = new T.Vector3(0, 0, -1).applyQuaternion(cam.quaternion);
-      return cam.position.clone().add(dir.multiplyScalar(1.5));
-    }
 
     // A-Frame entra en AR — la sesión queda viva para siempre
     scene.addEventListener('enter-vr', async () => {
@@ -1028,32 +1019,31 @@
         refSpace  = await session.requestReferenceSpace('local');
         hitSource = await session.requestHitTestSource({ space: viewerSpace });
       } catch(e) {
-        // Sin hit-test: mostrar delante del usuario en el primer frame
+        // Dispositivo sin hit-test: colocar en posición world estable
+        // usando la primera pose de cámara real disponible
         console.warn('hit-test no disponible:', e);
-        session.requestAnimationFrame((t, frame) => mostrarDefault());
+        hintEl.textContent = 'Toca para colocar';
+        tapBtn.style.display = 'block';
+        tapBtn.addEventListener('click', () => {
+          if (!placed) colocarEnEscena(null);
+        }, { once: true });
         return;
       }
 
-      // Loop de hit-test — corre en paralelo al render loop de A-Frame,
-      // dentro de la misma sesión. NO la cierra ni la interrumpe.
+      // Loop de hit-test — paralelo al render loop de A-Frame,
+      // dentro de la misma sesión XR. No la cierra ni interrumpe.
       function xrHitFrame(time, frame) {
-        if (placed) return;           // ya anclado, detener loop
+        if (placed) return;
         session.requestAnimationFrame(xrHitFrame);
 
-        // Fix 2: mostrar contenido delante del usuario en el primer frame,
-        // antes de detectar ninguna superficie. La cámara ya tiene la pose real.
-        if (!shownDefault) {
-          shownDefault = true;
-          mostrarDefault();
-        }
-
-        const hits = frame.getHitTestResults(hitSource);
+        const hits   = frame.getHitTestResults(hitSource);
         const reticle = document.getElementById('arReticle');
+
         if (hits.length > 0) {
           const pose = hits[0].getPose(refSpace);
           if (pose) {
             const p = pose.transform.position;
-            lastHitPos = p;
+            lastHitPos = p;   // coordenadas world reales del hit
             if (reticle) {
               reticle.setAttribute('position',
                 `${p.x.toFixed(4)} ${p.y.toFixed(4)} ${p.z.toFixed(4)}`);
@@ -1069,23 +1059,13 @@
         }
       }
       session.requestAnimationFrame(xrHitFrame);
-      // Fix 1: session.select ELIMINADO — solo el botón controla el placement.
+      // session.select NO se usa — dispara en cualquier tap, incluso sin hit válido
     });
 
-    // Fix 1: solo el botón ancla. Fix 3: requiere lastHitPos válido.
+    // Solo el botón coloca. Solo actúa cuando hay hit válido.
     tapBtn.addEventListener('click', () => {
       if (!placed && lastHitPos) colocarEnEscena(lastHitPos);
     });
-
-    function mostrarDefault() {
-      // Contenido inmediatamente en frente del usuario — pose WebXR real
-      const anchor = document.getElementById('worldAnchor');
-      if (!anchor) return;
-      const p = posFrenteCamara();
-      anchor.setAttribute('position', `${p.x.toFixed(3)} ${p.y.toFixed(3)} ${p.z.toFixed(3)}`);
-      anchor.setAttribute('visible', 'true');
-      arrancarVideos();
-    }
 
     function colocarEnEscena(hitPos) {
       placed = true;
@@ -1094,17 +1074,25 @@
       const reticle = document.getElementById('arReticle');
       if (reticle) reticle.setAttribute('visible', 'false');
 
-      // hitPos garantizado no-null (botón solo activo cuando lastHitPos válido)
       const anchor = document.getElementById('worldAnchor');
-      if (anchor) {
+      if (!anchor) return;
+
+      if (hitPos) {
+        // Posición world real del hit-test — anclado a la superficie
         anchor.setAttribute('position',
           `${hitPos.x.toFixed(4)} ${hitPos.y.toFixed(4)} ${hitPos.z.toFixed(4)}`);
-        anchor.setAttribute('visible', 'true');
+      } else {
+        // Fallback sin hit: usar pose de cámara en este momento exacto
+        // scene.camera ya tiene la pose real WebXR en este frame
+        const cam = scene.camera;
+        const T   = AFRAME.THREE;
+        const dir = new T.Vector3(0, 0, -1).applyQuaternion(cam.quaternion);
+        const p   = cam.position.clone().add(dir.multiplyScalar(1.5));
+        anchor.setAttribute('position', `${p.x.toFixed(3)} ${p.y.toFixed(3)} ${p.z.toFixed(3)}`);
       }
-      arrancarVideos();
-    }
 
-    function arrancarVideos() {
+      anchor.setAttribute('visible', 'true');
+
       document.querySelectorAll('#arScene video').forEach(v => {
         try { const p = v.play(); if (p) p.catch(() => { v.muted = true; v.play(); }); } catch(e) {}
       });

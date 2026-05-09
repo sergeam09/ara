@@ -103,7 +103,7 @@ export class Preview3D {
     const w = container.clientWidth || 800
     const h = container.clientHeight || 600
     this.camera = new THREE.PerspectiveCamera(45, w / h, 0.1, 5000)
-    this.camera.position.set(0, 0, 450)
+    this.camera.position.set(120, 80, 380)
     this.camera.lookAt(0, 0, 0)
 
     this.renderer = new THREE.WebGLRenderer({ antialias: true })
@@ -402,6 +402,28 @@ export class Preview3D {
     this.scene.add(this.triggerMesh)
   }
 
+  /** Resize the trigger preview to match real physical proportions (cm values from inputs) */
+  setTriggerDimensions(widthCm: number, heightCm: number): void {
+    if (!this.scene || widthCm <= 0 || heightCm <= 0) return
+    // Keep triggerW fixed, adjust triggerH for the new aspect ratio
+    const newH = this.triggerW * (heightCm / widthCm)
+    this.triggerH = newH
+
+    if (this.triggerMesh) {
+      this.triggerMesh.geometry.dispose()
+      this.triggerMesh.geometry = new THREE.PlaneGeometry(this.triggerW, newH)
+    }
+
+    // Reposition all layers with updated triggerH
+    this.layers.forEach(entry => {
+      if (!entry.mesh.parent) return
+      const layer = entry.layer
+      const halfY = newH / 2
+      entry.mesh.position.y = (layer.posY ?? 0) * halfY
+      if (this.boxHelper) this.boxHelper.update()
+    })
+  }
+
   private fireTCCallback(mesh: THREE.Object3D): void {
     const id = mesh.userData.layerId as string
     if (!id) return
@@ -552,7 +574,8 @@ export class Preview3D {
   }
 
   private calcElevation(layer: Layer): number {
-    return (Math.max(0, Math.min(200, layer.posZ ?? 0)) / 200) * 25 + 1
+    // posZ range 0-1000 → Three.js depth 1-126 (same scale: 200/1000*125+1=26, backward compatible)
+    return (Math.max(0, Math.min(1000, layer.posZ ?? 0)) / 1000) * 125 + 1
   }
 
   private makeTextTexture(text: string, color: string, fontName = 'roboto'): THREE.CanvasTexture {

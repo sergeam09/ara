@@ -67,12 +67,20 @@ export class Publisher {
       emit({ type: 'progress', message: 'Uploading layers...', percent: modo === 'world' ? 10 : 60 })
       const capasConfig: PublishConfig['capas'] = []
 
+      const typeLabel: Record<string, string> = {
+        image: 'IMAGEN', video: 'VIDEO', gif: 'GIF', svg: 'SVG',
+        glb: 'GLB', gltf: 'GLTF', model: 'MODELO', texto: 'TEXTO'
+      }
+
       for (let i = 0; i < validLayers.length; i++) {
         const layer = validLayers[i]
         if (layer.file) {
           const ext = layer.file.name.split('.').pop()?.toLowerCase() || 'bin'
+          const label = typeLabel[layer.type] || layer.type.toUpperCase()
+          const pct = (modo === 'world' ? 10 : 60) + ((i / validLayers.length) * 14)
+          emit({ type: 'progress', message: `Subiendo ${label}: ${layer.file.name}`, percent: pct })
           const b64 = await fileToBase64(layer.file)
-          await uploadFile(`proyectos/${slug}/layer-${i}.${ext}`, b64, `layer ${i}`)
+          await uploadFile(`proyectos/${slug}/layer-${i}.${ext}`, b64, `${label} layer-${i}`)
 
           capasConfig.push({
             id: i,

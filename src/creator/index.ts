@@ -867,6 +867,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     })
   })
 
+  // Trigger W/H inputs → update preview aspect ratio
+  const syncTriggerDims = () => {
+    const w = parseFloat((document.getElementById('inputWidth') as HTMLInputElement)?.value || '21') || 21
+    const h = parseFloat((document.getElementById('inputHeight') as HTMLInputElement)?.value || '29.7') || 29.7
+    preview3D.setTriggerDimensions(w, h)
+  }
+  document.getElementById('inputWidth') ?.addEventListener('input', syncTriggerDims)
+  document.getElementById('inputHeight')?.addEventListener('input', syncTriggerDims)
+
   // Layer manager subscription → render list + update props + sync preview
   layerManager.subscribe((layers, activeId) => {
     renderLayersList(layers, activeId)

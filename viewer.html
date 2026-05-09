@@ -736,7 +736,7 @@
       // posZ (0-200) encodes depth offset from trigger surface (parallax / layering).
       const posX  = capa.posX ?? 0;
       const posY  = (capa.posY ?? 0) / triggerRatio;  // correct for non-square trigger
-      const posZaf = (capa.posZ ?? 1) / 200 * 0.5 + (idx * 0.005) + 0.01;
+      const posZaf = (capa.posZ ?? 1) / 1000 * 2.5 + (idx * 0.025) + 0.01;
       const pos = `${posX.toFixed(5)} ${posY.toFixed(5)} ${posZaf.toFixed(5)}`;
 
       // ── Common props ──────────────────────────────────────────────────────────

@@ -103,7 +103,7 @@ export class Preview3D {
     const w = container.clientWidth || 800
     const h = container.clientHeight || 600
     this.camera = new THREE.PerspectiveCamera(45, w / h, 0.1, 5000)
-    this.camera.position.set(0, 220, 280)
+    this.camera.position.set(0, 0, 450)
     this.camera.lookAt(0, 0, 0)
 
     this.renderer = new THREE.WebGLRenderer({ antialias: true })
@@ -268,9 +268,10 @@ export class Preview3D {
         model.position.sub(center)
 
         // Apply layer position and rotation
+        // X = horizontal, Y = vertical in image, Z = depth from trigger (toward camera)
         model.position.x += (layer.posX ?? 0) * half
-        model.position.y += baseElevation
-        model.position.z += (layer.posY ?? 0) * halfY
+        model.position.y += (layer.posY ?? 0) * halfY
+        model.position.z += baseElevation
         model.rotation.set(DEG(layer.rotX ?? 0), DEG(layer.rotY ?? 0), DEG(layer.rotZ ?? 0))
 
         this.scene!.add(model)
@@ -313,7 +314,7 @@ export class Preview3D {
     const w = triggerWidth * (layer.scale ?? 1) * textoScale
     const h = w / aspect
     const geo = new THREE.PlaneGeometry(w, h)
-    geo.rotateX(-Math.PI / 2)
+    // No rotateX — plane is vertical (XY), matches MindAR XY target plane
 
     let mat: THREE.MeshLambertMaterial
     let objectURL: string | undefined
@@ -337,7 +338,8 @@ export class Preview3D {
 
     const mesh = new THREE.Mesh(geo, mat)
     mesh.userData = { layerId: layer.id, isLayer: true }
-    mesh.position.set((layer.posX ?? 0) * half, baseElevation, (layer.posY ?? 0) * halfY)
+    // X = horizontal, Y = vertical in image, Z = depth from trigger
+    mesh.position.set((layer.posX ?? 0) * half, (layer.posY ?? 0) * halfY, baseElevation)
     mesh.rotation.set(DEG(layer.rotX ?? 0), DEG(layer.rotY ?? 0), DEG(layer.rotZ ?? 0))
 
     this.scene.add(mesh)
@@ -391,7 +393,7 @@ export class Preview3D {
       this.triggerMesh.geometry.dispose()
     }
     const geo = new THREE.PlaneGeometry(width, height)
-    geo.rotateX(-Math.PI / 2)
+    // No rotateX — trigger is vertical (XY plane), facing camera at +Z
     this.triggerMesh = new THREE.Mesh(geo, new THREE.MeshLambertMaterial({
       map: new THREE.TextureLoader().load(dataURL),
       transparent: true, opacity: 0.92, side: THREE.DoubleSide
@@ -407,10 +409,10 @@ export class Preview3D {
     const halfH = this.triggerH / 2
     if (this.tcMode === 'translate') {
       const posX = mesh.position.x / halfW
-      const posY = mesh.position.z / halfH
-      const posZ = Math.round(Math.max(0, Math.min(200, (mesh.position.y - 1) * 8)))
+      const posY = mesh.position.y / halfH
+      const posZ = Math.round(Math.max(0, Math.min(200, (mesh.position.z - 1) * 8)))
       const entry = this.layers.get(id)
-      if (entry) entry.baseElevation = mesh.position.y
+      if (entry) entry.baseElevation = mesh.position.z
       this.onLayerTransformed?.(id, { posX, posY, posZ })
     } else {
       const rotX = Math.round(RAD(mesh.rotation.x))
@@ -427,8 +429,8 @@ export class Preview3D {
     let text: string
     if (this.tcMode === 'translate') {
       const posX = mesh.position.x / halfW
-      const posY = mesh.position.z / halfH
-      const posZ = Math.round(Math.max(0, Math.min(200, (mesh.position.y - 1) * 8)))
+      const posY = mesh.position.y / halfH
+      const posZ = Math.round(Math.max(0, Math.min(200, (mesh.position.z - 1) * 8)))
       text = `X ${posX >= 0 ? '+' : ''}${posX.toFixed(2)}  Y ${posY >= 0 ? '+' : ''}${posY.toFixed(2)}  Z ${posZ}`
     } else {
       text = `RX ${Math.round(RAD(mesh.rotation.x))}°  RY ${Math.round(RAD(mesh.rotation.y))}°  RZ ${Math.round(RAD(mesh.rotation.z))}°`
@@ -464,7 +466,8 @@ export class Preview3D {
       this.dragging = true
       this.dragLayerId = id
       if (this.controls) this.controls.enabled = false
-      this.dragPlane.set(new THREE.Vector3(0, 1, 0), -hits[0].object.position.y)
+      // Vertical drag plane (XY), camera at +Z
+      this.dragPlane.set(new THREE.Vector3(0, 0, 1), -hits[0].object.position.z)
       const pt = new THREE.Vector3()
       this.raycaster.ray.intersectPlane(this.dragPlane, pt)
       this.dragOffset.copy(pt).sub(obj.position)
@@ -482,7 +485,7 @@ export class Preview3D {
     if (!entry) return
     const newPos = pt.clone().sub(this.dragOffset)
     entry.mesh.position.x = newPos.x
-    entry.mesh.position.z = newPos.z
+    entry.mesh.position.y = newPos.y   // vertical axis in trigger plane
     if (this.boxHelper && this.boxHelper.parent) this.boxHelper.update()
 
     const halfW = this.triggerW / 2
@@ -491,7 +494,7 @@ export class Preview3D {
       this.coordTip.style.left = `${e.clientX - rect.left + 14}px`
       this.coordTip.style.top = `${e.clientY - rect.top - 28}px`
       this.coordTip.style.display = 'block'
-      this.coordTip.textContent = `X ${(newPos.x / halfW).toFixed(2)}  Y ${(newPos.z / (this.triggerH / 2)).toFixed(2)}`
+      this.coordTip.textContent = `X ${(newPos.x / halfW).toFixed(2)}  Y ${(newPos.y / (this.triggerH / 2)).toFixed(2)}`
     }
   }
 
@@ -502,7 +505,7 @@ export class Preview3D {
         const halfW = this.triggerW / 2
         this.onLayerTransformed?.(this.dragLayerId, {
           posX: entry.mesh.position.x / halfW,
-          posY: entry.mesh.position.z / (this.triggerH / 2)
+          posY: entry.mesh.position.y / (this.triggerH / 2)
         })
       }
     }
@@ -599,13 +602,13 @@ export class Preview3D {
       if (l.animation === 'float') {
         const amp = (l.animationAmplitude ?? 0.04) * (this.triggerW / 2)
         const dur = (l.animationDuration ?? 2000) / 1000
-        const axis = l.animationAxis || 'y'
+        const axis = l.animationAxis || 'z'
         const bx = (l.posX ?? 0) * (this.triggerW / 2)
-        const bz = (l.posY ?? 0) * (this.triggerH / 2)
+        const by = (l.posY ?? 0) * (this.triggerH / 2)
         const wave = amp * Math.sin((2 * Math.PI * t) / dur)
         mesh.position.x = axis === 'x' ? bx + wave : bx
-        mesh.position.y = axis === 'y' ? entry.baseElevation + wave : entry.baseElevation
-        mesh.position.z = axis === 'z' ? bz + wave : bz
+        mesh.position.y = axis === 'y' ? by + wave : by
+        mesh.position.z = axis === 'z' ? entry.baseElevation + wave : entry.baseElevation
       } else if (l.animation === 'rotate') {
         const dur = (l.animationDuration ?? 6000) / 1000
         const axis = l.animationAxis || 'y'

@@ -925,138 +925,180 @@
     }, 600);
   }
 
-  // WORLD AR — WebXR hit test real (ARCore/ARKit) con fallback a scan animado
+  // WORLD AR — A-Frame gestiona la sesión WebXR completa.
+  // NO se abre ni cierra sesión manualmente. A-Frame es el AR runtime.
   async function initWorldAR() {
-    setSplash('Iniciando AR...');
+    setSplash('Preparando escena AR...');
+
+    // Construir entidades world ANTES de entrar en AR
+    const entities   = await buildCapasEntitiesWorld(0);
+    const videoAssets = (buildCapasEntitiesWorld._videoAssets || [])
+      .map(v => `<video id="${v.id}" src="${v.src}" autoplay loop muted playsinline webkit-playsinline crossorigin="anonymous"></video>`)
+      .join('');
+
+    const sceneDiv = document.getElementById('arScene');
+    sceneDiv.innerHTML = `
+      <a-scene
+        embedded
+        xr-mode-ui="enabled:false"
+        webxr="requiredFeatures: local-floor; optionalFeatures: hit-test, dom-overlay"
+        renderer="colorManagement:true;physicallyCorrectLights:true;alpha:true"
+        vr-mode-ui="enabled:false"
+        device-orientation-permission-ui="enabled:false"
+        loading-screen="enabled:false"
+        style="width:100vw;height:100vh;position:fixed;inset:0;z-index:1;">
+        <a-assets timeout="10000">${videoAssets}</a-assets>
+        <a-light type="ambient" intensity="1.0"></a-light>
+        <a-light type="directional" intensity="1.2" position="2 6 3"></a-light>
+        <a-camera position="0 1.6 0" look-controls="enabled:false" wasd-controls="enabled:false"></a-camera>
+        <a-entity id="arReticle" visible="false">
+          <a-ring color="#ffffff" radius-inner="0.05" radius-outer="0.09"
+            rotation="-90 0 0"
+            material="color:#ffffff;shader:flat;opacity:0.9;depthTest:false"></a-ring>
+        </a-entity>
+        <a-entity id="worldAnchor" visible="false">
+          ${entities}
+        </a-entity>
+      </a-scene>`;
+
+    sceneDiv.classList.add('show');
+    document.getElementById('hud').classList.add('show');
+    if (EDIT_MODE) {
+      document.getElementById('btnEdit').style.display = 'inline-block';
+      document.getElementById('btnVerPublico').style.display = 'inline-block';
+    }
+
+    const scene = sceneDiv.querySelector('a-scene');
+    // Esperar que A-Frame termine de inicializar su grafo
+    await new Promise(r => scene.hasLoaded ? r() : scene.addEventListener('loaded', r, { once: true }));
+
+    const xrOk = navigator.xr &&
+      await navigator.xr.isSessionSupported('immersive-ar').catch(() => false);
+
     hideSplash();
 
-    // Intenta WebXR hit test (Android ARCore / iOS WebXR)
-    const xrSupported = navigator.xr
-      && await navigator.xr.isSessionSupported('immersive-ar').catch(() => false);
-
-    if (xrSupported) {
-      await initXRHitTest();
+    if (xrOk) {
+      iniciarARNativo(scene);
     } else {
-      await initFakeScan();
+      iniciarFallbackCamara(scene);
     }
   }
 
-  // ── WebXR Hit Test real ────────────────────────────────────────────────────
-  async function initXRHitTest() {
-    let session;
-    try {
-      session = await navigator.xr.requestSession('immersive-ar', {
-        requiredFeatures: ['hit-test'],
-        optionalFeatures: ['dom-overlay', 'light-estimation'],
-        domOverlay: { root: document.body }
-      });
-    } catch(e) {
-      console.warn('XR session failed, fallback:', e);
-      await initFakeScan();
-      return;
-    }
-
-    // WebGL context for XR
-    const xrCanvas = document.createElement('canvas');
-    xrCanvas.style.cssText = 'position:fixed;inset:0;z-index:1;width:100%;height:100%;';
-    document.body.appendChild(xrCanvas);
-    const gl = xrCanvas.getContext('webgl2', { xrCompatible: true })
-      || xrCanvas.getContext('webgl', { xrCompatible: true });
-    await gl.makeXRCompatible();
-    session.updateRenderState({ baseLayer: new XRWebGLLayer(session, gl) });
-
-    const viewerSpace = await session.requestReferenceSpace('viewer');
-    const localSpace  = await session.requestReferenceSpace('local');
-    const hitSource   = await session.requestHitTestSource({ space: viewerSpace });
-
-    // Reticle UI — anillo en el centro indicando superficie detectada
-    const reticleEl = document.createElement('div');
-    reticleEl.style.cssText = `
-      position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);
-      width:70px;height:70px;border-radius:50%;
-      border:3px solid rgba(255,255,255,0.9);
-      background:rgba(255,255,255,0.12);
-      box-shadow:0 0 20px rgba(100,220,255,0.5);
-      display:none;z-index:10;pointer-events:none;
-      transition:opacity 0.2s;`;
-    document.body.appendChild(reticleEl);
-
+  // ── A-Frame AR nativo: una sola sesión, hit-test dentro de ella ────────────
+  function iniciarARNativo(scene) {
+    // UI de placement — sobre la escena A-Frame
     const hintEl = document.createElement('div');
-    hintEl.style.cssText = `
-      position:fixed;bottom:110px;left:0;right:0;text-align:center;
-      color:#fff;font-size:13px;font-weight:800;letter-spacing:0.12em;
-      text-transform:uppercase;z-index:11;pointer-events:none;
-      text-shadow:0 1px 8px rgba(0,0,0,0.8);font-family:Montserrat,sans-serif;`;
-    hintEl.textContent = 'Mueve el dispositivo — apunta al suelo';
+    hintEl.style.cssText = `position:fixed;bottom:120px;left:0;right:0;text-align:center;
+      color:#fff;font-size:13px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;
+      z-index:200;pointer-events:none;text-shadow:0 2px 8px rgba(0,0,0,0.9);
+      font-family:Montserrat,sans-serif;`;
+    hintEl.textContent = 'Apunta al suelo o mesa';
     document.body.appendChild(hintEl);
 
     const tapBtn = document.createElement('button');
-    tapBtn.style.cssText = `
-      position:fixed;bottom:40px;left:50%;transform:translateX(-50%);
+    tapBtn.style.cssText = `position:fixed;bottom:40px;left:50%;transform:translateX(-50%);
       background:linear-gradient(135deg,#e63329,#ff5a4d);color:#fff;border:none;
       padding:16px 40px;font-size:13px;font-weight:800;letter-spacing:0.12em;
-      text-transform:uppercase;cursor:pointer;border-radius:999px;
-      box-shadow:0 4px 24px rgba(230,51,41,0.4);
-      font-family:Montserrat,sans-serif;z-index:11;display:none;`;
+      text-transform:uppercase;cursor:pointer;border-radius:999px;display:none;
+      box-shadow:0 4px 24px rgba(230,51,41,0.4);font-family:Montserrat,sans-serif;z-index:200;`;
     tapBtn.textContent = '⊕ Colocar aquí';
     document.body.appendChild(tapBtn);
 
-    let hitMatrix = null;
-    let placed = false;
+    let lastHitPos  = null;   // XRRigidTransform.position del último hit
+    let hitSource   = null;
+    let refSpace    = null;
+    let placed      = false;
 
-    function onSelect() {
-      if (hitMatrix && !placed) {
-        placed = true;
-        const pos = { x: hitMatrix[12], y: hitMatrix[13], z: hitMatrix[14] };
-        reticleEl.remove(); hintEl.remove(); tapBtn.remove();
-        session.end().then(async () => {
-          xrCanvas.remove();
-          // Al cerrar la sesión XR se apaga el feed de cámara — reanudarlo manualmente
-          const camVid = document.createElement('video');
-          camVid.setAttribute('autoplay',''); camVid.setAttribute('playsinline','');
-          camVid.setAttribute('webkit-playsinline','');
-          camVid.style.cssText = 'position:fixed;inset:0;width:100%;height:100%;object-fit:cover;z-index:0;';
-          document.body.appendChild(camVid);
-          try {
-            const stream = await navigator.mediaDevices.getUserMedia({
-              video: { facingMode:'environment', width:{ideal:1280}, height:{ideal:720} }, audio:false
-            });
-            camVid.srcObject = stream;
-            await camVid.play();
-          } catch(e) { console.warn('cam:', e); }
-          finalizarWorldARAtPosition(pos);
-        });
+    // A-Frame entra en AR — la sesión queda viva para siempre
+    scene.addEventListener('enter-vr', async () => {
+      const session = scene.xrSession;
+      if (!session) return;
+      try {
+        const viewerSpace = await session.requestReferenceSpace('viewer');
+        refSpace  = await session.requestReferenceSpace('local');
+        hitSource = await session.requestHitTestSource({ space: viewerSpace });
+      } catch(e) {
+        // Dispositivo no soporta hit-test: colocar en posición fija
+        console.warn('hit-test no disponible, colocando en posición fija:', e);
+        colocarEnEscena(null);
+        return;
       }
+
+      // Loop de hit-test paralelo — usa la misma sesión que A-Frame,
+      // NO interfiere con el render loop de A-Frame.
+      function xrHitFrame(time, frame) {
+        if (placed) return;   // ya colocado, dejar de pedir frames
+        session.requestAnimationFrame(xrHitFrame);
+        const hits = frame.getHitTestResults(hitSource);
+        const reticle = document.getElementById('arReticle');
+        if (hits.length > 0) {
+          const pose = hits[0].getPose(refSpace);
+          if (pose) {
+            const p  = pose.transform.position;
+            lastHitPos = p;
+            if (reticle) {
+              reticle.setAttribute('position', `${p.x.toFixed(4)} ${p.y.toFixed(4)} ${p.z.toFixed(4)}`);
+              reticle.setAttribute('visible', 'true');
+            }
+            hintEl.textContent = 'Superficie detectada';
+            tapBtn.style.display = 'block';
+          }
+        } else {
+          if (reticle) reticle.setAttribute('visible', 'false');
+          hintEl.textContent = 'Apunta al suelo o mesa';
+          tapBtn.style.display = 'none';
+        }
+      }
+      session.requestAnimationFrame(xrHitFrame);
+
+      // Tap nativo XR (select = tap en ARCore)
+      session.addEventListener('select', () => {
+        if (!placed && lastHitPos) colocarEnEscena(lastHitPos);
+      });
+    });
+
+    // Botón de UI también coloca
+    tapBtn.addEventListener('click', () => {
+      if (!placed) colocarEnEscena(lastHitPos);
+    });
+
+    function colocarEnEscena(hitPos) {
+      placed = true;
+      tapBtn.remove();
+      hintEl.remove();
+      const reticle = document.getElementById('arReticle');
+      if (reticle) reticle.setAttribute('visible', 'false');
+
+      const anchor = document.getElementById('worldAnchor');
+      if (anchor) {
+        if (hitPos) {
+          anchor.setAttribute('position',
+            `${hitPos.x.toFixed(4)} ${hitPos.y.toFixed(4)} ${hitPos.z.toFixed(4)}`);
+        } else {
+          anchor.setAttribute('position', '0 0 -1.5');
+        }
+        anchor.setAttribute('visible', 'true');
+      }
+
+      // Arrancar videos
+      document.querySelectorAll('#arScene video').forEach(v => {
+        try { const p = v.play(); if (p) p.catch(() => { v.muted = true; v.play(); }); } catch(e) {}
+      });
     }
 
-    session.addEventListener('select', onSelect);
-    tapBtn.addEventListener('click', onSelect);
-
-    function onXRFrame(time, frame) {
-      session.requestAnimationFrame(onXRFrame);
-      const hits = frame.getHitTestResults(hitSource);
-      const glLayer = session.renderState.baseLayer;
-      gl.bindFramebuffer(gl.FRAMEBUFFER, glLayer.framebuffer);
-      gl.clearColor(0, 0, 0, 0);
-      gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-
-      if (hits.length > 0) {
-        const pose = hits[0].getPose(localSpace);
-        hitMatrix = pose.transform.matrix;
-        reticleEl.style.display = 'block';
-        hintEl.textContent = 'Superficie detectada — toca para colocar';
-        tapBtn.style.display = 'block';
-      } else {
-        reticleEl.style.display = 'none';
-        tapBtn.style.display = 'none';
-        hintEl.textContent = 'Mueve el dispositivo — apunta al suelo o mesa';
-      }
+    // Entrar en AR — A-Frame gestiona la sesión, nunca se cierra manualmente
+    try {
+      scene.enterAR();
+    } catch(e) {
+      console.warn('enterAR falló, usando fallback:', e);
+      hintEl.remove(); tapBtn.remove();
+      iniciarFallbackCamara(scene);
     }
-    session.requestAnimationFrame(onXRFrame);
   }
 
-  // ── Fallback: scan animado + placement fijo ────────────────────────────────
-  async function initFakeScan() {
+  // ── Fallback: sin WebXR — cámara + posición fija ─────────────────────────
+  async function iniciarFallbackCamara(scene) {
+    // Cámara real como fondo
     const videoEl = document.createElement('video');
     videoEl.setAttribute('autoplay', ''); videoEl.setAttribute('playsinline', '');
     videoEl.setAttribute('webkit-playsinline', '');
@@ -1064,46 +1106,36 @@
     document.body.appendChild(videoEl);
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false
+        video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } },
+        audio: false
       });
-      videoEl.srcObject = stream; await videoEl.play();
+      videoEl.srcObject = stream;
+      await videoEl.play();
     } catch(e) { console.warn('Cámara no disponible:', e); }
 
-    const scanOverlay = document.createElement('div');
-    scanOverlay.style.cssText = 'position:fixed;inset:0;z-index:2;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none;';
-    scanOverlay.innerHTML = `
-      <canvas id="scanCanvas" style="position:absolute;inset:0;width:100%;height:100%;opacity:0.85;"></canvas>
-      <div style="position:relative;z-index:3;background:rgba(0,0,0,0.55);border-radius:20px;padding:12px 24px;margin-top:60vh;">
-        <span id="scanMsg" style="color:#fff;font-size:14px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;">Mueve el dispositivo lentamente</span>
-      </div>`;
-    document.body.appendChild(scanOverlay);
-
-    const canvas = document.getElementById('scanCanvas');
-    canvas.width = window.innerWidth; canvas.height = window.innerHeight;
-    const ctx = canvas.getContext('2d');
-    const dots = []; const ROWS = 12, COLS = 20; let frame2 = 0; let scanDone = false;
-    for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++)
-      dots.push({ x: (c/(COLS-1))*canvas.width, y: (r/(ROWS-1))*canvas.height*0.6+canvas.height*0.2, lit:false, delay:(r*COLS+c)*18 });
-    const scanAnim = setInterval(() => {
-      ctx.clearRect(0,0,canvas.width,canvas.height); frame2+=16; let litCount=0;
-      dots.forEach(d => {
-        if (frame2>d.delay) d.lit=true; if(d.lit) litCount++;
-        const alpha=d.lit?0.7+0.3*Math.sin(frame2/300+d.x):0.15;
-        ctx.beginPath(); ctx.arc(d.x,d.y,d.lit?3:2,0,Math.PI*2);
-        ctx.fillStyle=d.lit?`rgba(100,220,255,${alpha})`:`rgba(100,180,255,0.15)`; ctx.fill();
-      });
-      if (litCount/dots.length>0.85 && !scanDone) {
-        scanDone=true; document.getElementById('scanMsg').textContent='✓ Superficie detectada';
-        clearInterval(scanAnim);
-        setTimeout(() => { scanOverlay.remove(); finalizarWorldARAtPosition(null); }, 1200);
-      }
-    }, 16);
-
-    window._worldSurfaceVertical = false;
-    if (window.DeviceOrientationEvent) {
-      const onOrient = e => { if(e.beta!==null) window._worldSurfaceVertical=Math.abs(e.beta)>45; window.removeEventListener('deviceorientation',onOrient); };
-      window.addEventListener('deviceorientation', onOrient);
+    // Objetos a posición fija delante de la cámara
+    const anchor = document.getElementById('worldAnchor');
+    if (anchor) {
+      anchor.setAttribute('position', '0 0 -1.5');
+      anchor.setAttribute('visible', 'true');
     }
+
+    // Activar look-controls para que el giroscopio mueva la escena A-Frame
+    const cam = scene.querySelector('a-camera');
+    if (cam) cam.setAttribute('look-controls', 'enabled:true');
+
+    // Arrancar videos
+    document.querySelectorAll('#arScene video').forEach(v => {
+      try { const p = v.play(); if (p) p.catch(() => { v.muted = true; v.play(); }); } catch(e) {}
+    });
+
+    const hint = document.createElement('div');
+    hint.style.cssText = `position:fixed;top:72px;left:0;right:0;text-align:center;
+      font-size:11px;font-weight:700;color:rgba(255,255,255,0.4);letter-spacing:0.1em;
+      text-transform:uppercase;pointer-events:none;z-index:500;font-family:Montserrat,sans-serif;`;
+    hint.textContent = 'AR simulado — WebXR no disponible en este dispositivo';
+    document.body.appendChild(hint);
+    setTimeout(() => hint.remove(), 4000);
   }
 
   // ══════════════════════════════════════════════════════════════════════════

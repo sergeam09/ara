@@ -48,6 +48,8 @@ export class Preview3D {
   private animId = 0
   private triggerW = 150
   private triggerH = 150
+  private triggerWidthCm = 21
+  private triggerHeightCm = 29.7
   private clock = new THREE.Clock()
   private activeLayerId: string | null = null
 
@@ -194,13 +196,27 @@ export class Preview3D {
 
   private showDimLabel(mesh: THREE.Object3D, layer: Layer): void {
     if (!this.dimLabel) return
-    const bbox = new THREE.Box3().setFromObject(mesh)
-    const size = bbox.getSize(new THREE.Vector3())
-    const halfW = this.triggerW / 2
-    const wx = (size.x / halfW).toFixed(2)
-    const wz = (size.z / halfW).toFixed(2)
     const typeLabel = layer.type === 'texto' ? 'Texto' : layer.type.toUpperCase()
-    this.dimLabel.textContent = `${typeLabel}  ${wx} × ${wz} u  |  escala ${(layer.scale ?? 1).toFixed(2)}×  |  Z ${layer.posZ ?? 0}`
+    const u = layer.unidadReal || 'cm'
+
+    let dimStr: string
+    const isGlb = layer.type === 'glb' || layer.type === 'gltf' || layer.type === 'model'
+    if (isGlb && layer.anchoReal != null) {
+      const a = layer.anchoReal.toFixed(1)
+      const b = (layer.altoReal ?? 0).toFixed(1)
+      const c = (layer.profReal ?? 0).toFixed(1)
+      dimStr = `${a} × ${b} × ${c} ${u}`
+    } else if (layer.anchoReal != null && layer.anchoReal > 0) {
+      const a = layer.anchoReal.toFixed(1)
+      const b = (layer.altoReal ?? 0).toFixed(1)
+      dimStr = `${a} × ${b} ${u}`
+    } else {
+      const bbox = new THREE.Box3().setFromObject(mesh)
+      const size = bbox.getSize(new THREE.Vector3())
+      const halfW = this.triggerW / 2
+      dimStr = `${(size.x / halfW).toFixed(2)} × ${(size.y / halfW).toFixed(2)} u`
+    }
+    this.dimLabel.textContent = `${typeLabel}  ${dimStr}  |  escala ${(layer.scale ?? 1).toFixed(2)}×  |  Z ${layer.posZ ?? 0}`
     this.dimLabel.style.display = 'block'
   }
 
@@ -311,8 +327,24 @@ export class Preview3D {
       : layer.type === 'texto' ? 4 : 1
 
     const textoScale = layer.type === 'texto' ? Math.max(0.25, (layer.tamanoTexto ?? 0.5) * 2) : 1
-    const w = triggerWidth * (layer.scale ?? 1) * textoScale
-    const h = w / aspect
+    const toCmUnit = (v: number) => (layer.unidadReal === 'm' ? v * 100 : v)
+
+    // For 2D media layers with real dimensions set: size matches AR output proportionally
+    const has2DRealDims = layer.type !== 'texto' && layer.anchoReal != null && layer.anchoReal > 0 && this.triggerWidthCm > 0
+    let w: number, h: number
+    if (has2DRealDims) {
+      const anchorCm = toCmUnit(layer.anchoReal!)
+      w = (anchorCm / this.triggerWidthCm) * triggerWidth * (layer.scale ?? 1)
+      if (layer.altoReal != null && layer.altoReal > 0) {
+        const altoCm = toCmUnit(layer.altoReal)
+        h = (altoCm / this.triggerHeightCm) * this.triggerH * (layer.scale ?? 1)
+      } else {
+        h = w / aspect
+      }
+    } else {
+      w = triggerWidth * (layer.scale ?? 1) * textoScale
+      h = w / aspect
+    }
     const geo = new THREE.PlaneGeometry(w, h)
     // No rotateX — plane is vertical (XY), matches MindAR XY target plane
 
@@ -405,6 +437,8 @@ export class Preview3D {
   /** Resize the trigger preview to match real physical proportions (cm values from inputs) */
   setTriggerDimensions(widthCm: number, heightCm: number): void {
     if (!this.scene || widthCm <= 0 || heightCm <= 0) return
+    this.triggerWidthCm = widthCm
+    this.triggerHeightCm = heightCm
     // Keep triggerW fixed, adjust triggerH for the new aspect ratio
     const newH = this.triggerW * (heightCm / widthCm)
     this.triggerH = newH

@@ -296,6 +296,29 @@
     .xyz-num:focus { outline: none; border-color: var(--accent); }
     .xyz-num::-webkit-inner-spin-button, .xyz-num::-webkit-outer-spin-button { opacity: 1; }
 
+    /* Medidas reales — unit toggle + lock */
+    .meds-hdr { display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; }
+    .meds-hdr .xyz-pos-label { margin:0; }
+    .unit-row { display:flex; gap:2px; align-items:center; }
+    .unit-btn, .unit-btn-2d {
+      font-size:9px; font-weight:700; padding:2px 6px;
+      border:1px solid var(--border); background:transparent;
+      color:var(--text2); cursor:pointer; border-radius:3px;
+      font-family:monospace; letter-spacing:0.04em; transition:all .15s;
+    }
+    .unit-btn.active, .unit-btn-2d.active {
+      background:var(--accent); border-color:var(--accent); color:#fff;
+    }
+    .lock-btn {
+      font-size:12px; padding:2px 6px; margin-left:2px;
+      border:1px solid var(--border); background:transparent;
+      color:var(--text2); cursor:pointer; border-radius:3px; transition:all .15s;
+    }
+    .lock-btn.locked { color:var(--accent); border-color:var(--accent); }
+
+    /* Rotation hint */
+    .rot-hint { font-size:9px; color:var(--text2); margin-top:3px; text-align:center; opacity:.7; }
+
     /* Projects modal */
     #projectsOverlay {
       display: none; position: fixed; inset: 0;
@@ -517,7 +540,7 @@
             </div>
             <div class="xyz-pos-col">
               <span class="xyz-tag y-tag">Y ↑</span>
-              <input type="number" class="xyz-num" id="propPosZ" value="0" step="1" min="0" max="200">
+              <input type="number" class="xyz-num" id="propPosZ" value="0" step="5" min="0" max="1000">
             </div>
           </div>
         </div>
@@ -543,22 +566,23 @@
               <input type="number" class="xyz-num" id="propRotZ" value="0" step="5" min="-180" max="180">
             </div>
           </div>
+          <p class="rot-hint">Trigger vertical → RX=0 &nbsp;|&nbsp; Trigger horizontal → RX=−90</p>
         </div>
         <span id="valRotX" style="display:none"></span>
         <span id="valRotY" style="display:none"></span>
         <span id="valRotZ" style="display:none"></span>
 
-        <!-- Medidas reales (visible para layers 2D: image, video, gif, svg) -->
-        <div id="medidasPanel2D" class="prop-group" style="display:none">
-          <div class="prop-label-row" style="display:flex;justify-content:space-between;align-items:center;">
-            <span class="prop-label">Medidas reales (<span id="lblUnidad2D">cm</span>)</span>
-            <div style="display:flex;gap:2px;align-items:center;">
-              <button class="unit-btn-2d active" data-unidad2d="cm" style="font-size:9px;padding:2px 6px;border:1px solid var(--border);background:transparent;color:var(--text);cursor:pointer;border-radius:3px;">cm</button>
-              <button class="unit-btn-2d" data-unidad2d="m" style="font-size:9px;padding:2px 6px;border:1px solid var(--border);background:transparent;color:var(--text);cursor:pointer;border-radius:3px;">m</button>
-              <button id="propLock2D" title="Bloquear proporción" style="font-size:11px;padding:2px 6px;border:1px solid var(--border);background:transparent;color:var(--accent);cursor:pointer;border-radius:3px;margin-left:2px;">⊡</button>
+        <!-- Medidas reales (2D: image / video / gif / svg) -->
+        <div id="medidasPanel2D" class="xyz-pos-block" style="display:none; margin-top:8px;">
+          <div class="meds-hdr">
+            <span class="xyz-pos-label">Medidas (<span id="lblUnidad2D">cm</span>)</span>
+            <div class="unit-row">
+              <button class="unit-btn-2d active" data-unidad2d="cm">cm</button>
+              <button class="unit-btn-2d" data-unidad2d="m">m</button>
+              <button id="propLock2D" class="lock-btn" title="Bloquear proporción">⊡</button>
             </div>
           </div>
-          <div class="xyz-pos-row">
+          <div class="xyz-pos-grid" style="grid-template-columns:1fr 1fr;">
             <div class="xyz-pos-col">
               <span class="xyz-tag x-tag">W</span>
               <input type="number" class="xyz-num" id="prop2DAncho" placeholder="—" min="0.1" step="0.1">
@@ -570,16 +594,16 @@
           </div>
         </div>
 
-        <!-- Medidas reales (visible para layers 3D) -->
-        <div id="glbMedidasPanel" class="prop-group">
-          <div class="prop-label-row" style="display:flex;justify-content:space-between;align-items:center;">
-            <span class="prop-label">Medidas reales (<span id="lblUnidad">cm</span>)</span>
-            <div style="display:flex;gap:2px;">
-              <button class="unit-btn active" data-unidad="cm" style="font-size:9px;padding:2px 6px;border:1px solid var(--border);background:transparent;color:var(--text);cursor:pointer;border-radius:3px;">cm</button>
-              <button class="unit-btn" data-unidad="m" style="font-size:9px;padding:2px 6px;border:1px solid var(--border);background:transparent;color:var(--text);cursor:pointer;border-radius:3px;">m</button>
+        <!-- Medidas reales (3D: glb / gltf) -->
+        <div id="glbMedidasPanel" class="xyz-pos-block" style="margin-top:8px;">
+          <div class="meds-hdr">
+            <span class="xyz-pos-label">Medidas (<span id="lblUnidad">cm</span>)</span>
+            <div class="unit-row">
+              <button class="unit-btn active" data-unidad="cm">cm</button>
+              <button class="unit-btn" data-unidad="m">m</button>
             </div>
           </div>
-          <div class="xyz-pos-row">
+          <div class="xyz-pos-grid">
             <div class="xyz-pos-col">
               <span class="xyz-tag x-tag">W</span>
               <input type="number" class="xyz-num" id="propGlbAncho" placeholder="—" min="0.1" step="0.1">

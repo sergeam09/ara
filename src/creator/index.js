@@ -526,8 +526,10 @@ function setupSliders() {
     document.getElementById('propLock2D')?.addEventListener('click', () => {
         lock2D = !lock2D;
         const btn = document.getElementById('propLock2D');
-        if (btn)
+        if (btn) {
             btn.textContent = lock2D ? '⊠' : '⊡';
+            btn.classList.toggle('locked', lock2D);
+        }
     });
     // Unidad cm/m para 2D
     document.querySelectorAll('.unit-btn-2d[data-unidad2d]').forEach(btn => {
@@ -881,6 +883,15 @@ document.addEventListener('DOMContentLoaded', async () => {
             preview3D.addLayer(layer, triggerWidth);
         });
     });
+    // Trigger W/H inputs → update preview aspect ratio
+    const syncTriggerDims = () => {
+        const w = parseFloat(document.getElementById('inputWidth')?.value || '21') || 21;
+        const h = parseFloat(document.getElementById('inputHeight')?.value || '29.7') || 29.7;
+        preview3D.setTriggerDimensions(w, h);
+    };
+    syncTriggerDims(); // apply initial values immediately
+    document.getElementById('inputWidth')?.addEventListener('input', syncTriggerDims);
+    document.getElementById('inputHeight')?.addEventListener('input', syncTriggerDims);
     // Layer manager subscription → render list + update props + sync preview
     layerManager.subscribe((layers, activeId) => {
         renderLayersList(layers, activeId);

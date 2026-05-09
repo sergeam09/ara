@@ -873,6 +873,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const h = parseFloat((document.getElementById('inputHeight') as HTMLInputElement)?.value || '29.7') || 29.7
     preview3D.setTriggerDimensions(w, h)
   }
+  syncTriggerDims() // apply initial values immediately
   document.getElementById('inputWidth') ?.addEventListener('input', syncTriggerDims)
   document.getElementById('inputHeight')?.addEventListener('input', syncTriggerDims)
 

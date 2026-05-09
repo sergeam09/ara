@@ -96,6 +96,18 @@ export class Preview3D {
             writable: true,
             value: 150
         });
+        Object.defineProperty(this, "triggerWidthCm", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: 21
+        });
+        Object.defineProperty(this, "triggerHeightCm", {
+            enumerable: true,
+            configurable: true,
+            writable: true,
+            value: 29.7
+        });
         Object.defineProperty(this, "clock", {
             enumerable: true,
             configurable: true,
@@ -218,7 +230,8 @@ export class Preview3D {
                     this.dragLayerId = id;
                     if (this.controls)
                         this.controls.enabled = false;
-                    this.dragPlane.set(new THREE.Vector3(0, 1, 0), -hits[0].object.position.y);
+                    // Vertical drag plane (XY), camera at +Z
+                    this.dragPlane.set(new THREE.Vector3(0, 0, 1), -hits[0].object.position.z);
                     const pt = new THREE.Vector3();
                     this.raycaster.ray.intersectPlane(this.dragPlane, pt);
                     this.dragOffset.copy(pt).sub(obj.position);
@@ -242,7 +255,7 @@ export class Preview3D {
                     return;
                 const newPos = pt.clone().sub(this.dragOffset);
                 entry.mesh.position.x = newPos.x;
-                entry.mesh.position.z = newPos.z;
+                entry.mesh.position.y = newPos.y; // vertical axis in trigger plane
                 if (this.boxHelper && this.boxHelper.parent)
                     this.boxHelper.update();
                 const halfW = this.triggerW / 2;
@@ -251,7 +264,7 @@ export class Preview3D {
                     this.coordTip.style.left = `${e.clientX - rect.left + 14}px`;
                     this.coordTip.style.top = `${e.clientY - rect.top - 28}px`;
                     this.coordTip.style.display = 'block';
-                    this.coordTip.textContent = `X ${(newPos.x / halfW).toFixed(2)}  Y ${(newPos.z / (this.triggerH / 2)).toFixed(2)}`;
+                    this.coordTip.textContent = `X ${(newPos.x / halfW).toFixed(2)}  Y ${(newPos.y / (this.triggerH / 2)).toFixed(2)}`;
                 }
             }
         });
@@ -266,7 +279,7 @@ export class Preview3D {
                         const halfW = this.triggerW / 2;
                         this.onLayerTransformed?.(this.dragLayerId, {
                             posX: entry.mesh.position.x / halfW,
-                            posY: entry.mesh.position.z / (this.triggerH / 2)
+                            posY: entry.mesh.position.y / (this.triggerH / 2)
                         });
                     }
                 }
@@ -298,13 +311,13 @@ export class Preview3D {
                     if (l.animation === 'float') {
                         const amp = (l.animationAmplitude ?? 0.04) * (this.triggerW / 2);
                         const dur = (l.animationDuration ?? 2000) / 1000;
-                        const axis = l.animationAxis || 'y';
+                        const axis = l.animationAxis || 'z';
                         const bx = (l.posX ?? 0) * (this.triggerW / 2);
-                        const bz = (l.posY ?? 0) * (this.triggerH / 2);
+                        const by = (l.posY ?? 0) * (this.triggerH / 2);
                         const wave = amp * Math.sin((2 * Math.PI * t) / dur);
                         mesh.position.x = axis === 'x' ? bx + wave : bx;
-                        mesh.position.y = axis === 'y' ? entry.baseElevation + wave : entry.baseElevation;
-                        mesh.position.z = axis === 'z' ? bz + wave : bz;
+                        mesh.position.y = axis === 'y' ? by + wave : by;
+                        mesh.position.z = axis === 'z' ? entry.baseElevation + wave : entry.baseElevation;
                     }
                     else if (l.animation === 'rotate') {
                         const dur = (l.animationDuration ?? 6000) / 1000;
@@ -367,7 +380,7 @@ export class Preview3D {
         const w = container.clientWidth || 800;
         const h = container.clientHeight || 600;
         this.camera = new THREE.PerspectiveCamera(45, w / h, 0.1, 5000);
-        this.camera.position.set(0, 220, 280);
+        this.camera.position.set(120, 80, 380);
         this.camera.lookAt(0, 0, 0);
         this.renderer = new THREE.WebGLRenderer({ antialias: true });
         this.renderer.setSize(w, h);
@@ -463,13 +476,28 @@ export class Preview3D {
     showDimLabel(mesh, layer) {
         if (!this.dimLabel)
             return;
-        const bbox = new THREE.Box3().setFromObject(mesh);
-        const size = bbox.getSize(new THREE.Vector3());
-        const halfW = this.triggerW / 2;
-        const wx = (size.x / halfW).toFixed(2);
-        const wz = (size.z / halfW).toFixed(2);
         const typeLabel = layer.type === 'texto' ? 'Texto' : layer.type.toUpperCase();
-        this.dimLabel.textContent = `${typeLabel}  ${wx} × ${wz} u  |  escala ${(layer.scale ?? 1).toFixed(2)}×  |  Z ${layer.posZ ?? 0}`;
+        const u = layer.unidadReal || 'cm';
+        let dimStr;
+        const isGlb = layer.type === 'glb' || layer.type === 'gltf' || layer.type === 'model';
+        if (isGlb && layer.anchoReal != null) {
+            const a = layer.anchoReal.toFixed(1);
+            const b = (layer.altoReal ?? 0).toFixed(1);
+            const c = (layer.profReal ?? 0).toFixed(1);
+            dimStr = `${a} × ${b} × ${c} ${u}`;
+        }
+        else if (layer.anchoReal != null && layer.anchoReal > 0) {
+            const a = layer.anchoReal.toFixed(1);
+            const b = (layer.altoReal ?? 0).toFixed(1);
+            dimStr = `${a} × ${b} ${u}`;
+        }
+        else {
+            const bbox = new THREE.Box3().setFromObject(mesh);
+            const size = bbox.getSize(new THREE.Vector3());
+            const halfW = this.triggerW / 2;
+            dimStr = `${(size.x / halfW).toFixed(2)} × ${(size.y / halfW).toFixed(2)} u`;
+        }
+        this.dimLabel.textContent = `${typeLabel}  ${dimStr}  |  escala ${(layer.scale ?? 1).toFixed(2)}×  |  Z ${layer.posZ ?? 0}`;
         this.dimLabel.style.display = 'block';
     }
     addLayer(layer, triggerWidth) {
@@ -534,9 +562,10 @@ export class Preview3D {
                 const center = bbox.getCenter(new THREE.Vector3());
                 model.position.sub(center);
                 // Apply layer position and rotation
+                // X = horizontal, Y = vertical in image, Z = depth from trigger (toward camera)
                 model.position.x += (layer.posX ?? 0) * half;
-                model.position.y += baseElevation;
-                model.position.z += (layer.posY ?? 0) * halfY;
+                model.position.y += (layer.posY ?? 0) * halfY;
+                model.position.z += baseElevation;
                 model.rotation.set(DEG(layer.rotX ?? 0), DEG(layer.rotY ?? 0), DEG(layer.rotZ ?? 0));
                 this.scene.add(model);
                 // Update entry
@@ -570,10 +599,27 @@ export class Preview3D {
             ? layer.naturalWidth / layer.naturalHeight
             : layer.type === 'texto' ? 4 : 1;
         const textoScale = layer.type === 'texto' ? Math.max(0.25, (layer.tamanoTexto ?? 0.5) * 2) : 1;
-        const w = triggerWidth * (layer.scale ?? 1) * textoScale;
-        const h = w / aspect;
+        const toCmUnit = (v) => (layer.unidadReal === 'm' ? v * 100 : v);
+        // For 2D media layers with real dimensions set: size matches AR output proportionally
+        const has2DRealDims = layer.type !== 'texto' && layer.anchoReal != null && layer.anchoReal > 0 && this.triggerWidthCm > 0;
+        let w, h;
+        if (has2DRealDims) {
+            const anchorCm = toCmUnit(layer.anchoReal);
+            w = (anchorCm / this.triggerWidthCm) * triggerWidth * (layer.scale ?? 1);
+            if (layer.altoReal != null && layer.altoReal > 0) {
+                const altoCm = toCmUnit(layer.altoReal);
+                h = (altoCm / this.triggerHeightCm) * this.triggerH * (layer.scale ?? 1);
+            }
+            else {
+                h = w / aspect;
+            }
+        }
+        else {
+            w = triggerWidth * (layer.scale ?? 1) * textoScale;
+            h = w / aspect;
+        }
         const geo = new THREE.PlaneGeometry(w, h);
-        geo.rotateX(-Math.PI / 2);
+        // No rotateX — plane is vertical (XY), matches MindAR XY target plane
         let mat;
         let objectURL;
         let videoEl;
@@ -600,7 +646,8 @@ export class Preview3D {
         }
         const mesh = new THREE.Mesh(geo, mat);
         mesh.userData = { layerId: layer.id, isLayer: true };
-        mesh.position.set((layer.posX ?? 0) * half, baseElevation, (layer.posY ?? 0) * halfY);
+        // X = horizontal, Y = vertical in image, Z = depth from trigger
+        mesh.position.set((layer.posX ?? 0) * half, (layer.posY ?? 0) * halfY, baseElevation);
         mesh.rotation.set(DEG(layer.rotX ?? 0), DEG(layer.rotY ?? 0), DEG(layer.rotZ ?? 0));
         this.scene.add(mesh);
         this.layers.set(layer.id, { mesh, objectURL, videoEl, layer: { ...layer }, baseElevation, glbLoaded: true });
@@ -656,13 +703,37 @@ export class Preview3D {
             this.triggerMesh.geometry.dispose();
         }
         const geo = new THREE.PlaneGeometry(width, height);
-        geo.rotateX(-Math.PI / 2);
+        // No rotateX — trigger is vertical (XY plane), facing camera at +Z
         this.triggerMesh = new THREE.Mesh(geo, new THREE.MeshLambertMaterial({
             map: new THREE.TextureLoader().load(dataURL),
             transparent: true, opacity: 0.92, side: THREE.DoubleSide
         }));
         this.triggerMesh.userData = { isTrigger: true };
         this.scene.add(this.triggerMesh);
+    }
+    /** Resize the trigger preview to match real physical proportions (cm values from inputs) */
+    setTriggerDimensions(widthCm, heightCm) {
+        if (!this.scene || widthCm <= 0 || heightCm <= 0)
+            return;
+        this.triggerWidthCm = widthCm;
+        this.triggerHeightCm = heightCm;
+        // Keep triggerW fixed, adjust triggerH for the new aspect ratio
+        const newH = this.triggerW * (heightCm / widthCm);
+        this.triggerH = newH;
+        if (this.triggerMesh) {
+            this.triggerMesh.geometry.dispose();
+            this.triggerMesh.geometry = new THREE.PlaneGeometry(this.triggerW, newH);
+        }
+        // Reposition all layers with updated triggerH
+        this.layers.forEach(entry => {
+            if (!entry.mesh.parent)
+                return;
+            const layer = entry.layer;
+            const halfY = newH / 2;
+            entry.mesh.position.y = (layer.posY ?? 0) * halfY;
+            if (this.boxHelper)
+                this.boxHelper.update();
+        });
     }
     fireTCCallback(mesh) {
         const id = mesh.userData.layerId;
@@ -672,11 +743,11 @@ export class Preview3D {
         const halfH = this.triggerH / 2;
         if (this.tcMode === 'translate') {
             const posX = mesh.position.x / halfW;
-            const posY = mesh.position.z / halfH;
-            const posZ = Math.round(Math.max(0, Math.min(200, (mesh.position.y - 1) * 8)));
+            const posY = mesh.position.y / halfH;
+            const posZ = Math.round(Math.max(0, Math.min(200, (mesh.position.z - 1) * 8)));
             const entry = this.layers.get(id);
             if (entry)
-                entry.baseElevation = mesh.position.y;
+                entry.baseElevation = mesh.position.z;
             this.onLayerTransformed?.(id, { posX, posY, posZ });
         }
         else {
@@ -694,8 +765,8 @@ export class Preview3D {
         let text;
         if (this.tcMode === 'translate') {
             const posX = mesh.position.x / halfW;
-            const posY = mesh.position.z / halfH;
-            const posZ = Math.round(Math.max(0, Math.min(200, (mesh.position.y - 1) * 8)));
+            const posY = mesh.position.y / halfH;
+            const posZ = Math.round(Math.max(0, Math.min(200, (mesh.position.z - 1) * 8)));
             text = `X ${posX >= 0 ? '+' : ''}${posX.toFixed(2)}  Y ${posY >= 0 ? '+' : ''}${posY.toFixed(2)}  Z ${posZ}`;
         }
         else {
@@ -748,7 +819,8 @@ export class Preview3D {
         }
     }
     calcElevation(layer) {
-        return (Math.max(0, Math.min(200, layer.posZ ?? 0)) / 200) * 25 + 1;
+        // posZ range 0-1000 → Three.js depth 1-126 (same scale: 200/1000*125+1=26, backward compatible)
+        return (Math.max(0, Math.min(1000, layer.posZ ?? 0)) / 1000) * 125 + 1;
     }
     makeTextTexture(text, color, fontName = 'roboto') {
         const family = FONT_MAP[fontName] || 'Arial, sans-serif';

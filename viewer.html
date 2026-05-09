@@ -1106,9 +1106,190 @@
     }
   }
 
+  // ══════════════════════════════════════════════════════════════════════════
+  //  WORLD MODE — arquitectura completamente separada de image tracking.
+  //  NO comparte fórmulas, NO usa triggerCm, NO toca buildCapasEntities().
+  //  Unidades: 1 A-Frame unit = 1 metro real.
+  // ══════════════════════════════════════════════════════════════════════════
+
+  async function buildCapasEntitiesWorld(baseRotX) {
+    if (!CAPAS || !CAPAS.length) return '';
+
+    buildCapasEntitiesWorld._videoAssets = [];
+    const BP = `${BASE}/proyectos/${PROJECT}/`;
+
+    // ── Helpers de escala para espacio de metros ────────────────────────────
+
+    // GLTF: 1 unit = 1 metro. anchoRaw viene en cm desde el creator.
+    // Queremos el modelo a anchoReal cm de ancho.
+    // scale = (anchoReal_cm / 100) / (anchoRaw_cm / 100) = anchoReal_cm / anchoRaw_cm
+    function glbScaleWorld(anchoRealCm, anchoRawCm, escalaBase) {
+      if (anchoRawCm > 0 && anchoRealCm > 0)
+        return (anchoRealCm / anchoRawCm) * escalaBase;
+      return escalaBase;
+    }
+
+    // 2D: queremos anchoReal cm de ancho → anchoReal_cm / 100 metros A-Frame
+    function dim2DWorld(anchoRealCm, altoRealCm, aspect) {
+      const w = anchoRealCm > 0 ? anchoRealCm / 100 : 1;
+      const h = altoRealCm  > 0 ? altoRealCm  / 100 : (aspect > 0 ? w / aspect : w);
+      return { w: w.toFixed(5), h: h.toFixed(5) };
+    }
+
+    function toCm(val, unit) { return unit === 'm' ? val * 100 : val; }
+
+    // ── Orden visual: capas de menor posZ al frente ─────────────────────────
+    const sortedCapas = [...CAPAS].sort((a, b) => (a.posZ ?? 0) - (b.posZ ?? 0));
+
+    return (await Promise.all(sortedCapas.map(async (capa, idx) => {
+      if (!capa.archivo && capa.tipo !== 'texto' && capa.tipo !== 'text') return '';
+
+      // ── Posición en metros ────────────────────────────────────────────────
+      // posX / posY vienen de creator: rango ±0.5 (metros) — usados directamente.
+      // posZ (0-1000) → offset de profundidad local en metros.
+      // Capas apiladas se separan por un pequeño offset por índice (anti-z-fighting).
+      const posX  = capa.posX ?? 0;
+      const posY  = capa.posY ?? 0;            // sin corrección de triggerRatio
+      const posZw = (capa.posZ ?? 0) / 1000 * 1.5 + idx * 0.015 + 0.005;
+      const pos   = `${posX.toFixed(4)} ${posY.toFixed(4)} ${posZw.toFixed(4)}`;
+
+      // ── Rotación: baseRotX se aplica AQUÍ (suelo=-90, pared=0) ───────────
+      const rx  = (capa.rotX || 0) + baseRotX;
+      const ry  = capa.rotY || 0;
+      const rz  = capa.rotZ || 0;
+      const rot = `${rx} ${ry} ${rz}`;
+
+      // ── Props comunes ─────────────────────────────────────────────────────
+      const escalaBase = capa.escala ?? 1;
+      const escStr     = `${escalaBase} ${escalaBase} ${escalaBase}`;
+      const op         = capa.opacidad ?? 1;
+      const src        = capa.archivo ? `${BP}${capa.archivo}` : '';
+      const ext        = capa.archivo ? capa.archivo.split('.').pop().toLowerCase() : '';
+      const dur        = capa.animationDuration ?? capa.animDuration  ?? 2000;
+      const dly        = capa.animationDelay   ?? capa.animDelay    ?? 0;
+      const amp        = (capa.animationAmplitude ?? capa.animAmplitude ?? 0.05);
+
+      // ── Animaciones de entrada ────────────────────────────────────────────
+      let anim = '';
+      if (capa.entrada === 'fade')
+        anim = `animation__in="property:material.opacity;from:0;to:${op};dur:${dur};delay:${dly}"`;
+      if (capa.entrada === 'scale')
+        anim = `animation__in="property:scale;from:0 0 0;to:${escalaBase} ${escalaBase} ${escalaBase};dur:${dur};delay:${dly}"`;
+      if (capa.entrada === 'float') {
+        const axis = capa.animationAxis ?? 'y';
+        const tx = axis === 'x' ? (posX + amp).toFixed(4) : posX.toFixed(4);
+        const ty = axis === 'y' ? (posY + amp).toFixed(4) : posY.toFixed(4);
+        const tz = axis === 'z' ? (posZw + amp).toFixed(4) : posZw.toFixed(4);
+        anim = `animation__float="property:position;from:${pos};to:${tx} ${ty} ${tz};dir:alternate;loop:true;dur:${dur};delay:${dly};easing:easeInOutSine"`;
+      }
+      if (capa.entrada === 'rotate') {
+        const axis  = capa.animationAxis ?? 'y';
+        const toRot = axis === 'x' ? `${rx+360} ${ry} ${rz}`
+                    : axis === 'z' ? `${rx} ${ry} ${rz+360}`
+                    :                `${rx} ${ry+360} ${rz}`;
+        anim = `animation__rot="property:rotation;from:${rx} ${ry} ${rz};to:${toRot};loop:true;dur:${dur};easing:linear"`;
+      }
+
+      // ── Tipos de capa ─────────────────────────────────────────────────────
+      switch (capa.tipo) {
+
+        case 'video': {
+          if (!['mp4','webm','mov'].includes(ext)) return '';
+          const aspect = capa.aspectRatio || 1;
+          const aCm  = toCm(capa.anchoReal || 100, capa.unidadReal);
+          const hCm  = toCm(capa.altoReal  || 0,   capa.unidadReal);
+          const { w: vw, h: vh } = dim2DWorld(aCm, hCm, aspect);
+          const isAlpha = ['webm','mov'].includes(ext);
+          const videoId = `wv-${idx}`;
+          const mat = isAlpha
+            ? `material="src:#${videoId};transparent:true;alphaTest:0.05;opacity:${op}"`
+            : `material="src:#${videoId};opacity:${op}"`;
+          buildCapasEntitiesWorld._videoAssets.push({ id: videoId, src });
+          return `<a-plane id="arc-w-${idx}" width="${vw}" height="${vh}"
+            position="${pos}" rotation="${rot}" scale="${escStr}" ${mat} ${anim}></a-plane>`;
+        }
+
+        case 'image':
+        case 'gif': {
+          const aspect = capa.aspectRatio || 1;
+          const aCm  = toCm(capa.anchoReal || 100, capa.unidadReal);
+          const hCm  = toCm(capa.altoReal  || 0,   capa.unidadReal);
+          const { w: iw, h: ih } = dim2DWorld(aCm, hCm, aspect);
+          const hasTrans = ['png','webp','apng','gif'].includes(ext);
+          const mat = hasTrans
+            ? `material="src:${src};transparent:true;alphaTest:0.05;opacity:${op}"`
+            : `material="src:${src};opacity:${op}"`;
+          return `<a-image id="arc-w-${idx}" src="${src}" width="${iw}" height="${ih}"
+            position="${pos}" rotation="${rot}" scale="${escStr}" ${mat} ${anim}></a-image>`;
+        }
+
+        case 'svg': {
+          const aspect = capa.aspectRatio || 1;
+          const aCm  = toCm(capa.anchoReal || 100, capa.unidadReal);
+          const hCm  = toCm(capa.altoReal  || 0,   capa.unidadReal);
+          const { w: sw, h: sh } = dim2DWorld(aCm, hCm, aspect);
+          return `<a-image id="arc-w-${idx}" src="${src}" width="${sw}" height="${sh}"
+            position="${pos}" rotation="${rot}" scale="${escStr}"
+            material="src:${src};transparent:true;alphaTest:0.01;opacity:${op}" ${anim}></a-image>`;
+        }
+
+        case 'glb':
+        case 'gltf':
+        case 'model': {
+          // GLTF: 1 unit = 1 metro. anchoRaw en cm (bounding box nativo del modelo).
+          // Scale = anchoReal_cm / anchoRaw_cm  (ratio puro en cm, sin triggerCm)
+          const rawCm  = capa.anchoRaw && capa.anchoRaw > 0 ? capa.anchoRaw : null;
+          const realCm = toCm(capa.anchoReal || 0, capa.unidadReal);
+          const gS     = glbScaleWorld(realCm, rawCm, escalaBase);
+          const gs     = gS.toFixed(6);
+          return `<a-gltf-model id="arc-w-${idx}" src="${src}"
+            position="${pos}" rotation="${rot}" scale="${gs} ${gs} ${gs}"
+            shadow="cast:true;receive:false" ${anim}></a-gltf-model>`;
+        }
+
+        case 'texto':
+        case 'text': {
+          const rawTxt = capa.texto || 'Texto AR';
+          const color  = capa.colorTexto || '#ffffff';
+          const size   = parseFloat(capa.tamanoTexto) || 0.5;
+          const depth  = parseFloat(capa.extrusionDepth) || 0;
+          const font   = capa.font || 'roboto';
+          // Canvas 1024×256 = ratio 4:1. size en world = metros directamente.
+          const fw = Math.max(0.1, size);
+          const fh = (fw / 4).toFixed(4);
+          if (depth > 0) {
+            const steps = Math.min(Math.max(2, Math.ceil(depth * 10)), 5);
+            let html = '';
+            for (let d = 0; d < steps; d++) {
+              const isFront = (d === steps - 1);
+              const zOff    = (posZw + d * depth * 0.005).toFixed(5);
+              const col     = isFront ? color : darkenHex(color, 0.45);
+              const layOp   = isFront ? op : (op * 0.65).toFixed(2);
+              const url     = await textToDataURL(rawTxt, col, font);
+              html += `<a-image src="${url}" width="${fw}" height="${fh}"
+                position="${posX.toFixed(4)} ${posY.toFixed(4)} ${zOff}" rotation="${rot}" scale="${escStr}"
+                material="transparent:true;alphaTest:0.01;opacity:${layOp}"></a-image>`;
+            }
+            return `<a-entity id="arc-w-${idx}" ${anim}>${html}</a-entity>`;
+          }
+          const dataURL = await textToDataURL(rawTxt, color, font);
+          return `<a-image id="arc-w-${idx}" src="${dataURL}" width="${fw}" height="${fh}"
+            position="${pos}" rotation="${rot}" scale="${escStr}"
+            material="transparent:true;alphaTest:0.01;opacity:${op}" ${anim}></a-image>`;
+        }
+
+        default: return '';
+      }
+    }))).join('\n          ');
+  }
+
+  // ══════════════════════════════════════════════════════════════════════════
+
   // pos: { x, y, z } de WebXR hit test, o null para fallback (posición fija)
   async function finalizarWorldARAtPosition(pos) {
     const isVertical = window._worldSurfaceVertical || false;
+    // Suelo (horizontal) → rotar capas -90° en X para que queden planas.
+    // Pared (vertical)   → sin rotación base, capas ya están verticales.
     const baseRotX = isVertical ? 0 : -90;
 
     // Si tenemos posición real del hit test, la usamos; si no, posición fija delante
@@ -1116,9 +1297,13 @@
       ? `${pos.x.toFixed(3)} ${pos.y.toFixed(3)} ${pos.z.toFixed(3)}`
       : '0 0 -1.5';
 
-    const entities = await buildCapasEntities(baseRotX);
-    const sceneDiv = document.getElementById('arScene');
+    // Usa la arquitectura world — NO toca buildCapasEntities (image tracking)
+    const entities  = await buildCapasEntitiesWorld(baseRotX);
+    const videoAssets = (buildCapasEntitiesWorld._videoAssets || [])
+      .map(v => `<video id="${v.id}" src="${v.src}" autoplay loop muted playsinline webkit-playsinline crossorigin="anonymous"></video>`)
+      .join('');
 
+    const sceneDiv = document.getElementById('arScene');
     sceneDiv.innerHTML = `
       <a-scene
         embedded
@@ -1128,6 +1313,7 @@
         device-orientation-permission-ui="enabled:false"
         loading-screen="enabled:false"
         style="width:100vw;height:100vh;position:fixed;inset:0;z-index:1;">
+        <a-assets>${videoAssets}</a-assets>
         <a-light type="ambient" intensity="1.0"></a-light>
         <a-light type="directional" intensity="1.2" position="2 6 3"></a-light>
         <a-camera position="0 1.6 0" look-controls="enabled:true" wasd-controls="enabled:false"></a-camera>
@@ -1139,6 +1325,10 @@
     setTimeout(() => {
       const canvas = sceneDiv.querySelector('canvas');
       if (canvas) canvas.style.cssText = 'position:fixed;inset:0;z-index:1;width:100%;height:100%;';
+      // Arrancar videos world
+      sceneDiv.querySelectorAll('video').forEach(v => {
+        try { const p = v.play(); if (p) p.catch(() => { v.muted = true; v.play(); }); } catch(e) {}
+      });
     }, 500);
 
     sceneDiv.classList.add('show');
